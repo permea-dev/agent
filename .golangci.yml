@@ -1,0 +1,11 @@
+# Config ilustrativa. El linter forma parte del producto: un agente auditable
+# necesita código limpio. Ejecutar con: golangci-lint run
+run:
+  timeout: 3m
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - revive
+    - gofmt
