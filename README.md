@@ -23,4 +23,4 @@ lo verifica sobre un fixture con contenido sensible inyectado a propósito.
     internal/transport cliente HTTPS al backend
     internal/config   configuración local
 
-Renombrar el módulo en `go.mod` (`github.com/TU-USUARIO/permea-agent`) al repo real.
+Renombrar el módulo en `go.mod` (`github.com/bfgnet/agente_permea`) al repo real.

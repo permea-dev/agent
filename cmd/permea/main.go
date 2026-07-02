@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TU-USUARIO/permea-agent/internal/config"
-	"github.com/TU-USUARIO/permea-agent/internal/ingest"
+	"github.com/bfgnet/agente_permea/internal/config"
+	"github.com/bfgnet/agente_permea/internal/ingest"
 )
 
 var version = "0.0.1-dev"
@@ -17,7 +17,7 @@ func main() {
 	scan := flag.String("scan", "", "ruta a un JSONL de Claude Code para dry-run (imprime eventos, no envía)")
 	flag.Parse()
 
-	fmt.Fprintf(os.Stderr, "Permea agente %s\n", version)
+	fmt.Fprintf(os.Stderr, "Permea %s\n", version)
 
 	if *scan == "" {
 		fmt.Fprintf(os.Stderr, "sin --scan: nada que hacer. config por defecto: %+v\n", config.Default())
