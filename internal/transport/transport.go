@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tu-org/agente/internal/event"
+	"github.com/TU-USUARIO/permea-agent/internal/event"
 )
 
 // Client habla con el backend de equipo.
