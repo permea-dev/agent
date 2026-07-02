@@ -67,6 +67,43 @@ func TestBoundary_NoDenylistLeaks(t *testing.T) {
 	}
 }
 
+// TestBoundary_CostAvailable verifica el metadato cost_available (R5): el evento
+// serializado incluye el campo y distingue "coste no disponible" de "coste 0".
+func TestBoundary_CostAvailable(t *testing.T) {
+	// Modelo conocido -> cost_available=true, coste > 0.
+	known := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":1000,"output_tokens":1000}}}`)
+	ev, err := FromClaudeCodeLine(known, Context{Salt: "s"})
+	if err != nil || ev == nil {
+		t.Fatalf("evento esperado: ev=%v err=%v", ev, err)
+	}
+	if !ev.CostAvailable {
+		t.Errorf("modelo conocido debe tener cost_available=true")
+	}
+	out, err := json.Marshal(ev)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if !strings.Contains(string(out), "cost_available") {
+		t.Errorf("el evento serializado debe incluir cost_available: %s", out)
+	}
+
+	// Modelo desconocido -> cost_available=false, cost_usd=0, tokens contabilizados.
+	unknown := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","message":{"model":"modelo-futuro-x","usage":{"input_tokens":500,"output_tokens":200}}}`)
+	ev2, err := FromClaudeCodeLine(unknown, Context{Salt: "s"})
+	if err != nil || ev2 == nil {
+		t.Fatalf("evento esperado: ev=%v err=%v", ev2, err)
+	}
+	if ev2.CostAvailable {
+		t.Errorf("modelo desconocido debe tener cost_available=false")
+	}
+	if ev2.CostUSD != 0 {
+		t.Errorf("modelo desconocido debe tener cost_usd=0, got %v", ev2.CostUSD)
+	}
+	if ev2.TokensInput != 500 || ev2.TokensOutput != 200 {
+		t.Errorf("tokens deben contabilizarse aun sin coste: %+v", ev2)
+	}
+}
+
 // TestBoundary_KeepsMetrics confirma que lo permitido SÍ cruza correctamente.
 func TestBoundary_KeepsMetrics(t *testing.T) {
 	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x/y","message":{"model":"claude-opus-4-6","usage":{"input_tokens":1200,"output_tokens":800,"cache_creation_input_tokens":300,"cache_read_input_tokens":5000}}}`)

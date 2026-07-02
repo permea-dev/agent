@@ -39,6 +39,6 @@ func (c *Client) Send(events []event.Event) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }() // solo lectura de la respuesta
 	return nil
 }

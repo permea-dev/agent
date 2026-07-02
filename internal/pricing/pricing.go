@@ -17,12 +17,14 @@ var Table = map[string]Rate{
 	"claude-haiku-4-5":  {Input: 1, Output: 5, CacheWrite: 1.25, CacheRead: 0.1},
 }
 
-// Cost devuelve el coste de una llamada. Modelo desconocido -> 0 (se marca n/a aparte).
-func Cost(model string, in, out, cacheCreate, cacheRead int) float64 {
+// Cost devuelve el coste de una llamada y un booleano de disponibilidad (R5): un
+// modelo ausente de la tabla devuelve (0, false) —"no disponible", distinto de un
+// coste 0 real—; los tokens se contabilizan aparte aunque el coste no esté disponible.
+func Cost(model string, in, out, cacheCreate, cacheRead int) (float64, bool) {
 	r, ok := Table[model]
 	if !ok {
-		return 0
+		return 0, false
 	}
 	perM := func(tokens int, rate float64) float64 { return float64(tokens) / 1_000_000 * rate }
-	return perM(in, r.Input) + perM(out, r.Output) + perM(cacheCreate, r.CacheWrite) + perM(cacheRead, r.CacheRead)
+	return perM(in, r.Input) + perM(out, r.Output) + perM(cacheCreate, r.CacheWrite) + perM(cacheRead, r.CacheRead), true
 }

@@ -52,6 +52,7 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 		return nil, err
 	}
 	u := r.Message.Usage
+	cost, costAvailable := pricing.Cost(r.Message.Model, u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens)
 	return &event.Event{
 		SchemaVersion:       event.SchemaVersion,
 		AgentVersion:        ctx.AgentVersion,
@@ -63,7 +64,8 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 		TokensOutput:        u.OutputTokens,
 		TokensCacheCreation: u.CacheCreationTokens,
 		TokensCacheRead:     u.CacheReadTokens,
-		CostUSD:             pricing.Cost(r.Message.Model, u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens),
+		CostUSD:             cost,
+		CostAvailable:       costAvailable,
 		ProjectRef:          event.Ref(ctx.Salt, r.Cwd),
 		SessionRef:          event.Ref(ctx.Salt, r.SessionID),
 		MachineRef:          event.Ref(ctx.Salt, ctx.MachineID),

@@ -26,6 +26,7 @@ type Event struct {
 	TokensCacheCreation int       `json:"tokens_cache_creation"`
 	TokensCacheRead     int       `json:"tokens_cache_read"`
 	CostUSD             float64   `json:"cost_usd"`
+	CostAvailable       bool      `json:"cost_available"`
 	ProjectRef          string    `json:"project_ref"`
 	SessionRef          string    `json:"session_ref"`
 	MachineRef          string    `json:"machine_ref"`

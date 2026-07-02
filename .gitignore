@@ -2,6 +2,15 @@
 /dist/
 *.db
 *.out
+*.exe
+*.test
 .env
 config.local.json
 .claude/
+
+queue.jsonl
+state.json
+salt
+machine-id
+*.exe
+*.test

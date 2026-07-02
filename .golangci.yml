@@ -1,11 +1,30 @@
-# Config ilustrativa. El linter forma parte del producto: un agente auditable
-# necesita código limpio. Ejecutar con: golangci-lint run
-run:
-  timeout: 3m
+version: "2"
+
 linters:
+  default: standard
   enable:
+    - errcheck      # errores sin comprobar — crítico para la durabilidad de la cola
     - govet
     - staticcheck
-    - errcheck
+    - ineffassign
+    - unused
+    - gosec         # seguridad — relevante para un producto que vende confianza
     - revive
+    # misspell omitido a propósito: los comentarios y mensajes del agente están en
+    # español y misspell asume inglés ("producto"->"production", "corrupto"->"corruption").
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+      # G304: las rutas se derivan de la configuración local y del descubrimiento de
+      # logs del sistema (~/.claude/projects), NUNCA de input de usuario no confiable.
+      # La apertura de fichero por variable es intencionada y controlada.
+      - linters:
+          - gosec
+        text: "G304"
+
+formatters:
+  enable:
     - gofmt

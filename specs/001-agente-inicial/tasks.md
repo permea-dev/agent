@@ -35,9 +35,9 @@ Proyecto único en Go (layout `cmd/` + `internal/` fijado por la constitución).
 
 **Purpose**: Confirmar línea base verde y utillaje antes de tocar la frontera.
 
-- [ ] T001 Verificar toolchain y baseline verde desde la raíz del repo: `go version` (go1.22.x), `go build ./...`, `go test ./...`, `go vet ./...` y `golangci-lint run` — dejar constancia de que `internal/ingest` (golden test) pasa antes de empezar
-- [ ] T002 [P] Añadir targets de test por paquete en `Makefile` (`test-state`, `test-transport`, `test-pricing`, `test-config`) reutilizando `go test ./internal/<pkg>`
-- [ ] T003 [P] Confirmar que `.golangci.yml` cubre los paquetes nuevos (state, transport, config) sin excepciones que oculten fugas de frontera
+- [X] T001 Verificar toolchain y baseline verde desde la raíz del repo: `go version` (go1.22.x), `go build ./...`, `go test ./...`, `go vet ./...` y `golangci-lint run` — dejar constancia de que `internal/ingest` (golden test) pasa antes de empezar
+- [X] T002 [P] Añadir targets de test por paquete en `Makefile` (`test-state`, `test-transport`, `test-pricing`, `test-config`) reutilizando `go test ./internal/<pkg>`
+- [X] T003 [P] Confirmar que `.golangci.yml` cubre los paquetes nuevos (state, transport, config) sin excepciones que oculten fugas de frontera
 
 ---
 
@@ -49,20 +49,20 @@ Proyecto único en Go (layout `cmd/` + `internal/` fijado por la constitución).
 
 ### Frontera: ampliación con metadato `cost_available` (test-first, R5)
 
-- [ ] T004 [P] Ampliar el golden test de frontera en `internal/ingest/boundary_test.go`: aseverar que el evento serializado incluye `cost_available` y que un modelo desconocido produce `cost_available=false` con `cost_usd=0` pero tokens contabilizados — **debe FALLAR** antes de T006–T008
-- [ ] T005 [P] Añadir tests de pricing en `internal/pricing/pricing_test.go`: `TestCost` (coste ±1% frente a cálculo de referencia, SC-001) y `TestCost_UnknownModel` (`(0,false)`) — **deben FALLAR** antes de T007
-- [ ] T006 Añadir el campo cerrado `CostAvailable bool` con tag `json:"cost_available"` a `Event` en `internal/event/event.go`, manteniendo el struct como allowlist (sin passthrough)
-- [ ] T007 Cambiar la firma de `Cost` a `(float64, bool)` en `internal/pricing/pricing.go`: modelo ausente de `Table` ⇒ `(0, false)`; presente ⇒ `(coste, true)`
-- [ ] T008 Actualizar `FromClaudeCodeLine` en `internal/ingest/claudecode.go` para poblar `CostUSD` y `CostAvailable` desde `pricing.Cost` (depende de T006, T007) — dejar T004 y T005 en verde
+- [X] T004 [P] Ampliar el golden test de frontera en `internal/ingest/boundary_test.go`: aseverar que el evento serializado incluye `cost_available` y que un modelo desconocido produce `cost_available=false` con `cost_usd=0` pero tokens contabilizados — **debe FALLAR** antes de T006–T008
+- [X] T005 [P] Añadir tests de pricing en `internal/pricing/pricing_test.go`: `TestCost` (coste ±1% frente a cálculo de referencia, SC-001) y `TestCost_UnknownModel` (`(0,false)`) — **deben FALLAR** antes de T007
+- [X] T006 Añadir el campo cerrado `CostAvailable bool` con tag `json:"cost_available"` a `Event` en `internal/event/event.go`, manteniendo el struct como allowlist (sin passthrough)
+- [X] T007 Cambiar la firma de `Cost` a `(float64, bool)` en `internal/pricing/pricing.go`: modelo ausente de `Table` ⇒ `(0, false)`; presente ⇒ `(coste, true)`
+- [X] T008 Actualizar `FromClaudeCodeLine` en `internal/ingest/claudecode.go` para poblar `CostUSD` y `CostAvailable` desde `pricing.Cost` (depende de T006, T007) — dejar T004 y T005 en verde
 
 ### Configuración local, rutas por SO, salt e identidades (R6, R7, R8)
 
-- [ ] T009 [P] Tests de configuración en `internal/config/config_test.go`: resolución del directorio de datos por SO, `Load`/`Save` round-trip, aplicación de `Default()`, y rechazo de endpoint no-`https` — **deben FALLAR** antes de T010–T014
-- [ ] T010 Implementar `DataDir()` (resolución por SO vía `os.UserConfigDir`→`permea`, creación del directorio con permisos) en `internal/config/config.go`
-- [ ] T011 Implementar `Load(path)`/`Save(path)` de `config.json` con escritura atómica (temporal + `os.Rename`), aplicando `Default()` a campos vacíos, en `internal/config/config.go`
-- [ ] T012 Implementar `LoadOrCreateSalt(dir)` en `internal/config/identity.go`: generar `salt` (`crypto/rand`, 32 bytes hex) al primer arranque, persistir en fichero `salt` con permisos `0600`; **nunca** se transmite (R6)
-- [ ] T013 Implementar `LoadOrCreateMachineID(dir)` en `internal/config/identity.go`: UUID de instalación aleatorio persistido (fuente estable y no sensible); solo su hash cruza como `machine_ref` (R7)
-- [ ] T014 Implementar `ClaudeCodeLogsRoot(cfg)` en `internal/config/config.go`: resolver `~/.claude/projects` por SO (Linux/macOS `$HOME`, Windows `%USERPROFILE%`) con override configurable (R1)
+- [X] T009 [P] Tests de configuración en `internal/config/config_test.go`: resolución del directorio de datos por SO, `Load`/`Save` round-trip, aplicación de `Default()`, y rechazo de endpoint no-`https` — **deben FALLAR** antes de T010–T014
+- [X] T010 Implementar `DataDir()` (resolución por SO vía `os.UserConfigDir`→`permea`, creación del directorio con permisos) en `internal/config/config.go`
+- [X] T011 Implementar `Load(path)`/`Save(path)` de `config.json` con escritura atómica (temporal + `os.Rename`), aplicando `Default()` a campos vacíos, en `internal/config/config.go`
+- [X] T012 Implementar `LoadOrCreateSalt(dir)` en `internal/config/identity.go`: generar `salt` (`crypto/rand`, 32 bytes hex) al primer arranque, persistir en fichero `salt` con permisos `0600`; **nunca** se transmite (R6)
+- [X] T013 Implementar `LoadOrCreateMachineID(dir)` en `internal/config/identity.go`: UUID de instalación aleatorio persistido (fuente estable y no sensible); solo su hash cruza como `machine_ref` (R7)
+- [X] T014 Implementar `ClaudeCodeLogsRoot(cfg)` en `internal/config/config.go`: resolver `~/.claude/projects` por SO (Linux/macOS `$HOME`, Windows `%USERPROFILE%`) con override configurable (R1)
 
 **Checkpoint**: Frontera ampliada y en verde; configuración, salt, identidades y rutas resueltas por SO. Las historias pueden empezar.
 
@@ -76,18 +76,18 @@ Proyecto único en Go (layout `cmd/` + `internal/` fijado por la constitución).
 
 ### Tests for User Story 1 (test-first) ⚠️
 
-- [ ] T015 [P] [US1] Test de idempotencia `TestIncremental_NoReprocess` en `internal/state/state_test.go`: dos pasadas sobre el mismo fichero sin cambios ⇒ 0 eventos nuevos; truncado (`size < offset`) ⇒ reinicio a offset 0 — **debe FALLAR**
-- [ ] T016 [P] [US1] Test de recorrido de directorio en `internal/state/scan_test.go`: enumera `*.jsonl` bajo una raíz de proyectos temporal (subdirectorios anidados) e ignora no-`.jsonl` — **debe FALLAR**
-- [ ] T017 [P] [US1] Test de cola de generación `TestQueue_Append` en `internal/transport/queue_test.go`: `Append` añade una línea JSON por evento y `Load` las recupera en orden — **debe FALLAR**
+- [X] T015 [P] [US1] Test de idempotencia `TestIncremental_NoReprocess` en `internal/state/state_test.go`: dos pasadas sobre el mismo fichero sin cambios ⇒ 0 eventos nuevos; truncado (`size < offset`) ⇒ reinicio a offset 0 — **debe FALLAR**
+- [X] T016 [P] [US1] Test de recorrido de directorio en `internal/state/scan_test.go`: enumera `*.jsonl` bajo una raíz de proyectos temporal (subdirectorios anidados) e ignora no-`.jsonl` — **debe FALLAR**
+- [X] T017 [P] [US1] Test de cola de generación `TestQueue_Append` en `internal/transport/queue_test.go`: `Append` añade una línea JSON por evento y `Load` las recupera en orden — **debe FALLAR**
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implementar `Store.Load(path)`/`Store.Save(path)` con escritura atómica (temporal + `os.Rename` en el mismo sistema de ficheros) en `internal/state/state.go`
-- [ ] T019 [US1] Implementar el escaneo incremental por offset en `internal/state/state.go`: `Seek(offset)`, leer solo **líneas completas** nuevas, avanzar `offset` hasta el fin de la última línea completa, y detectar truncado (`size < offset` ⇒ `offset = 0`) — sin `internal/state/scan.go` aún (separado en T020)
-- [ ] T020 [P] [US1] Implementar el recorrido del directorio de proyectos en `internal/state/scan.go`: enumerar `~/.claude/projects/**/*.jsonl` (usando `ClaudeCodeLogsRoot`) con `filepath.WalkDir`, devolviendo rutas ordenadas (independiente del offset de T019)
-- [ ] T021 [P] [US1] Implementar `Queue.Append(dir, ev)` y `Queue.Load(dir)` sobre `queue.jsonl` append-only (una línea `event.Event` por evento) en `internal/transport/queue.go`
-- [ ] T022 [US1] Cablear el pipeline de generación en `cmd/permea/main.go`: cargar config+salt+machineID → recorrer directorio (T020) → por fichero, leer incrementalmente (T019) → `ingest.FromClaudeCodeLine` → `Queue.Append` **y solo entonces** avanzar y persistir `Store.Save` (orden de durabilidad de R4) — sustituye el salt hardcodeado `"dry-run-salt"`
-- [ ] T023 [US1] Test de integración `TestScan_TwoPasses_NoDuplicates` en `internal/state/state_test.go` (o `cmd/permea`): primera pasada genera N eventos en cola, segunda pasada 0 nuevos (SC-003)
+- [X] T018 [US1] Implementar `Store.Load(path)`/`Store.Save(path)` con escritura atómica (temporal + `os.Rename` en el mismo sistema de ficheros) en `internal/state/state.go`
+- [X] T019 [US1] Implementar el escaneo incremental por offset en `internal/state/state.go`: `Seek(offset)`, leer solo **líneas completas** nuevas, avanzar `offset` hasta el fin de la última línea completa, y detectar truncado (`size < offset` ⇒ `offset = 0`) — sin `internal/state/scan.go` aún (separado en T020)
+- [X] T020 [P] [US1] Implementar el recorrido del directorio de proyectos en `internal/state/scan.go`: enumerar `~/.claude/projects/**/*.jsonl` (usando `ClaudeCodeLogsRoot`) con `filepath.WalkDir`, devolviendo rutas ordenadas (independiente del offset de T019)
+- [X] T021 [P] [US1] Implementar `Queue.Append(dir, ev)` y `Queue.Load(dir)` sobre `queue.jsonl` append-only (una línea `event.Event` por evento) en `internal/transport/queue.go`
+- [X] T022 [US1] Cablear el pipeline de generación en `cmd/permea/main.go`: cargar config+salt+machineID → recorrer directorio (T020) → por fichero, leer incrementalmente (T019) → `ingest.FromClaudeCodeLine` → `Queue.Append` **y solo entonces** avanzar y persistir `Store.Save` (orden de durabilidad de R4) — sustituye el salt hardcodeado `"dry-run-salt"`
+- [X] T023 [US1] Test de integración `TestScan_TwoPasses_NoDuplicates` en `internal/state/state_test.go` (o `cmd/permea`): primera pasada genera N eventos en cola, segunda pasada 0 nuevos (SC-003)
 
 **Checkpoint**: US1 funcional y testeable de forma independiente — escaneo incremental idempotente que deja eventos de frontera durables en `queue.jsonl`, sin contenido en claro.
 
