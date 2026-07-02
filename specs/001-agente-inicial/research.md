@@ -79,8 +79,9 @@ escritura atómica evita estado corrupto ante caída a mitad. Solo librería est
   confirmados.
 - La **idempotencia de entrega** se apoya en `event_id`: el backend deduplica por `event_id`,
   así un reintento tras un envío que sí llegó pero cuya respuesta se perdió no cuenta doble.
-- Reintentos con backoff exponencial acotado; sin red, la cola simplemente crece y la
-  medición local no se detiene.
+- Reintentos con backoff exponencial acotado (**máximo 5 reintentos** con **delay máximo de
+  5 minutos** por espera); agotados, el lote permanece en cola para el siguiente ciclo. Sin
+  red, la cola simplemente crece y la medición local no se detiene.
 
 **Justificación**: "Exactamente una vez" extremo a extremo se logra con **at-least-once** en
 el cliente (reintentar hasta `2xx`) + **dedup por `event_id`** en el backend — patrón estándar

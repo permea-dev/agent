@@ -19,7 +19,7 @@ El desarrollador usa Claude Code con normalidad. El agente, en segundo plano, de
 
 **Acceptance Scenarios:**
 
-1. **Given** Claude Code ha registrado N llamadas nuevas al modelo, **When** el agente procesa ese uso, **Then** se transmite un evento de métrica por llamada, y ninguno contiene texto de prompt, respuesta, código ni rutas o nombres en claro.
+1. **Given** Claude Code ha registrado N llamadas nuevas al modelo, **When** el agente procesa ese uso, **Then** se encola un evento de métrica por llamada (duradero en `queue.jsonl`), y ninguno contiene texto de prompt, respuesta, código ni rutas o nombres en claro. La transmisión al backend y su validación end-to-end se cubren en la Historia 2 (US2).
 2. **Given** una llamada ya procesada anteriormente, **When** el agente vuelve a examinar el mismo origen, **Then** esa llamada NO se reenvía.
 
 ### User Story 2 — Funcionamiento sin conexión (Priority: P1)
@@ -103,4 +103,4 @@ Una versión futura de Claude Code añade al registro un dato nuevo que contiene
 - **SC-004:** Tras una interrupción y posterior recuperación de red, el número de eventos recibidos por el backend es exactamente igual al de llamadas reales.
 - **SC-005:** Una entrada con contenido sensible inyectado a propósito no produce ningún contenido en lo transmitido.
 - **SC-006:** Un revisor externo confirma el cumplimiento de la frontera examinando únicamente el punto donde se construye el evento.
-- **SC-007:** El agente se instala y arranca con un único comando en macOS, Linux y Windows, sin dependencias previas.
+- **SC-007:** `make build` produce el binario estático `./bin/permea` y este arranca en el SO de desarrollo sin dependencias previas. Nota: el instalador multiplataforma de un solo comando (Homebrew / Scoop / paquetes por SO) es objeto de una **especificación de distribución posterior**; esta feature acota SC-007 a lo verificable localmente (build + arranque).
