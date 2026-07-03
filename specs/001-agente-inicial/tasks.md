@@ -141,11 +141,11 @@ Proyecto único en Go (layout `cmd/` + `internal/` fijado por la constitución).
 
 **Purpose**: Puertas de calidad, portabilidad y validación de extremo a extremo.
 
-- [ ] T036 [P] Cablear `agent_version` real: propagar la variable `version` de `cmd/permea/main.go` al `Context.AgentVersion` y verificar que llega a `Event.AgentVersion`
-- [ ] T037 [P] Verificación multiplataforma de build: `GOOS=linux/darwin/windows go build ./cmd/permea` sin CGO ni dependencias externas (SC-007)
-- [ ] T038 Ejecutar la validación de `quickstart.md` (V1–V7) y dejar constancia de resultados
-- [ ] T039 [P] Puertas de calidad de la constitución desde la raíz: `go vet ./...` sin hallazgos, `golangci-lint run` limpio, `go test ./...` en verde
-- [ ] T040 [P] Actualizar `README.md`: modo `run` (config, sync), resolución de rutas/datos por SO, y garantía de frontera
+- [X] T036 [P] Cablear `agent_version` real: propagar la variable `version` de `cmd/permea/main.go` al `Context.AgentVersion` y verificar que llega a `Event.AgentVersion`
+- [X] T037 [P] Verificación multiplataforma de build: `GOOS=linux/darwin/windows go build ./cmd/permea` sin CGO ni dependencias externas (SC-007)
+- [X] T038 Ejecutar la validación de `quickstart.md` (V1–V7) y dejar constancia de resultados
+- [X] T039 [P] Puertas de calidad de la constitución desde la raíz: `go vet ./...` sin hallazgos, `golangci-lint run` limpio, `go test ./...` en verde
+- [X] T040 [P] Actualizar `README.md`: modo `run` (config, sync), resolución de rutas/datos por SO, y garantía de frontera
 
 ---
 

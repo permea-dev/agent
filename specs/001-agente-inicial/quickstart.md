@@ -89,6 +89,21 @@ golangci-lint run     # limpio
 go test ./...         # frontera + suite completa en verde
 ```
 
+## Resultados de validación (T038 — ejecutado 2026-07-03)
+
+| Escenario | Comando | Resultado |
+|---|---|---|
+| **V1** frontera no filtra | `go test ./internal/ingest -run TestBoundary` | ✅ verde (incl. `TestBoundary_UnknownFutureFieldDoesNotLeak`) |
+| **V2** solo métricas/refs | `permea --scan <fixture>` | ✅ 2 eventos; `project_ref` hasheado (`cb24c6a0…`), sin rutas ni prompts en claro |
+| **V3** idempotencia | `go test ./internal/state -run TestIncremental_NoReprocess` | ✅ verde (2ª pasada 0 eventos nuevos) |
+| **V4** offline + exactamente-una-vez | `go test ./internal/transport -run 'TestQueue_OfflineThenDrain\|TestQueue_ExactlyOnce'` | ✅ verde (dedup por `event_id`) |
+| **V5** modelo desconocido | `go test ./internal/pricing -run TestCost_UnknownModel` | ✅ verde (`cost_available=false`, tokens contabilizados) |
+| **V6** coste ±1% ref | `go test ./internal/pricing -run TestCost` | ✅ verde |
+| **V7** build multiplataforma sin CGO | `CGO_ENABLED=0 GOOS={linux,darwin,windows} go build ./cmd/permea` | ✅ 3 binarios estáticos: ELF / Mach-O / PE32+; cero dependencias externas (`go.mod` sin `require`) |
+
+Puertas de calidad: `go test ./...` verde en los 7 paquetes, `go vet ./...` sin hallazgos,
+`golangci-lint run` con 0 issues.
+
 ## Revisión de frontera (SC-006)
 
 Un revisor externo confirma el cumplimiento leyendo **solo** `internal/event/event.go` (el

@@ -81,16 +81,25 @@ func setup() (*agent, error) {
 		return nil, err
 	}
 	return &agent{
-		dir: dir,
-		cfg: cfg,
-		ictx: ingest.Context{
-			Salt:         salt,
-			MachineID:    machineID,
-			DevID:        cfg.DevID,
-			OrgID:        cfg.OrgID,
-			AgentVersion: version,
-		},
+		dir:  dir,
+		cfg:  cfg,
+		ictx: newIngestContext(version, cfg, salt, machineID),
 	}, nil
+}
+
+// newIngestContext construye el contexto de ingesta a partir de la versión REAL del
+// binario (variable `version`, sobreescribible con -ldflags "-X main.version=...") y de
+// la identidad local. Aislado como función pura para poder verificar por test que la
+// versión del agente llega hasta Event.AgentVersion (T036), sin tocar el sistema de
+// ficheros.
+func newIngestContext(agentVersion string, cfg config.Config, salt, machineID string) ingest.Context {
+	return ingest.Context{
+		Salt:         salt,
+		MachineID:    machineID,
+		DevID:        cfg.DevID,
+		OrgID:        cfg.OrgID,
+		AgentVersion: agentVersion,
+	}
 }
 
 // generate ejecuta una pasada de generación incremental (US1): descubre los logs de
