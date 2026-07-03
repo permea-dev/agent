@@ -71,15 +71,30 @@ coloca ningún binario**. Ver [contracts/install-contract.md](./contracts/instal
 ### V7 — Instalación de un comando por canal (SC-004, SC-007)
 
 ```bash
-# macOS/Linux (Homebrew):
+# macOS (Homebrew cask — SOLO macOS):
 brew install bfgnet/permea/permea && permea --version
-# macOS/Linux (script):
+# Linux y macOS (script — canal PRINCIPAL en Linux):
 curl -fsSL https://raw.githubusercontent.com/bfgnet/agente_permea/main/install.sh | sh && permea --version
 # Windows (Scoop):
 scoop bucket add permea https://github.com/bfgnet/scoop-permea; scoop install permea; permea --version
 ```
 **Esperado**: cada canal instala con un único comando efectivo; `permea --version` coincide con
 la versión publicada; **no** se crea ningún servicio en segundo plano (SC-007, spec 003 aparte).
+
+**Canales por SO** (GoReleaser v2.16 deprecó `brews:` → Homebrew usa **casks**):
+
+- **macOS**: cask de Homebrew (`homebrew_casks:`, `binary "permea"`, sin `service`) o `install.sh`.
+- **Linux**: **`install.sh`** es el canal principal; el cask de Homebrew es solo macOS.
+- **Windows**: Scoop (`scoops:`, `bin: permea.exe`, verificación de `hash` intrínseca).
+
+### V6-bis — Verificación local de `install.sh` (antes de una release real)
+
+```bash
+shellcheck install.sh
+sh scripts/test-install.sh   # caso feliz + caso tamper (checksum manipulado -> abort sin binario)
+```
+**Esperado**: `shellcheck` limpio; el harness imprime `PASS` para ambos casos y sale con 0. El
+caso tamper prueba SC-005: un checksum alterado aborta la instalación sin dejar binario.
 
 ## Cortar una release real (procedimiento)
 

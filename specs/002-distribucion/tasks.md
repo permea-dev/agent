@@ -105,10 +105,10 @@ del tap declara `permea --version` como test (SC-004).
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Crear `install.sh` (POSIX sh, per `contracts/install-contract.md`): detectar SO/arch con `uname` (`x86_64→amd64`, `aarch64|arm64→arm64`); mapear al nombre de artefacto del contrato; soportar `PERMEA_VERSION` (defecto: última) y `PREFIX` (defecto `/usr/local/bin`, fallback `~/.local/bin`); descargar `.tar.gz` + `checksums.txt` de la release; **verificar el SHA256 ANTES de extraer**; instalar con permisos de ejecución; abortar con código ≠ 0 y sin instalar ante SO/arch no soportado, fallo de descarga o checksum no coincidente
-- [ ] T011 [US2] `shellcheck install.sh` sin hallazgos (sin bashismos; POSIX)
-- [ ] T012 [US2] Crear `scripts/test-install.sh` que valide `install.sh` contra un directorio de release local simulado: (a) caso feliz → instala y `permea --version` responde; (b) **caso manipulado** → checksum alterado ⇒ `install.sh` termina con código ≠ 0 y `PREFIX` queda sin binario (SC-005). El script sale ≠ 0 si algún aserto falla
-- [ ] T013 [US2] Verificar el canal Homebrew (cask, solo macOS): el bloque `homebrew_casks` de `.goreleaser.yaml` pasa `goreleaser check` y define `binary "permea"` sin `service` (GoReleaser v2.16 deprecó `brews:`); confirmar en el snapshot que se genera `dist/homebrew/Casks/permea.rb`; documentar en `quickstart.md` que la publicación real del tap se valida con `brew install bfgnet/permea/permea` tras la primera release, y que **Linux se instala por `install.sh`, no por Homebrew**
+- [X] T010 [US2] Crear `install.sh` (POSIX sh, per `contracts/install-contract.md`): detectar SO/arch con `uname` (`x86_64→amd64`, `aarch64|arm64→arm64`); mapear al nombre de artefacto del contrato; soportar `PERMEA_VERSION` (defecto: última) y `PREFIX` (defecto `/usr/local/bin`, fallback `~/.local/bin`); descargar `.tar.gz` + `checksums.txt` de la release; **verificar el SHA256 ANTES de extraer**; instalar con permisos de ejecución; abortar con código ≠ 0 y sin instalar ante SO/arch no soportado, fallo de descarga o checksum no coincidente
+- [X] T011 [US2] `shellcheck install.sh` sin hallazgos (sin bashismos; POSIX)
+- [X] T012 [US2] Crear `scripts/test-install.sh` que valide `install.sh` contra un directorio de release local simulado: (a) caso feliz → instala y `permea --version` responde; (b) **caso manipulado** → checksum alterado ⇒ `install.sh` termina con código ≠ 0 y `PREFIX` queda sin binario (SC-005). El script sale ≠ 0 si algún aserto falla
+- [X] T013 [US2] Verificar el canal Homebrew (cask, solo macOS): el bloque `homebrew_casks` de `.goreleaser.yaml` pasa `goreleaser check` y define `binary "permea"` sin `service` (GoReleaser v2.16 deprecó `brews:`); confirmar en el snapshot que se genera `dist/homebrew/Casks/permea.rb`; documentar en `quickstart.md` que la publicación real del tap se valida con `brew install bfgnet/permea/permea` tras la primera release, y que **Linux se instala por `install.sh`, no por Homebrew**
 
 **Checkpoint**: US2 funcional — `install.sh` verificado (incl. abort ante manipulación) y el canal Homebrew validado en config.
 
@@ -125,7 +125,7 @@ la versión (SC-004). La verificación de hash es intrínseca a Scoop (FR-009).
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Verificar el canal Scoop: el bloque `scoops` de `.goreleaser.yaml` pasa `goreleaser check` (bucket `bfgnet/scoop-permea`, `bin: permea.exe`); confirmar en el snapshot que existe el artefacto `permea_*_windows_amd64.zip` y su línea en checksums; documentar en `quickstart.md` los comandos `scoop bucket add permea …` + `scoop install permea` para validar tras la primera release
+- [X] T014 [US3] Verificar el canal Scoop: el bloque `scoops` de `.goreleaser.yaml` pasa `goreleaser check` (bucket `bfgnet/scoop-permea`, `bin: permea.exe`); confirmar en el snapshot que existe el artefacto `permea_*_windows_amd64.zip` y su línea en checksums; documentar en `quickstart.md` los comandos `scoop bucket add permea …` + `scoop install permea` para validar tras la primera release
 
 **Checkpoint**: Las tres historias quedan cubiertas — publicación por etiqueta (US1) e instalación de un comando en los tres SO (US2 macOS/Linux, US3 Windows), todas con verificación de integridad.
 
