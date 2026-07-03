@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"net/http"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -29,6 +31,48 @@ func TestQueue_Append(t *testing.T) {
 	}
 	if got[0].EventID != "id-1" || got[1].EventID != "id-2" {
 		t.Fatalf("orden de cola incorrecto: %+v", got)
+	}
+}
+
+// TestQueue_AtomicRewrite_KeepsUnconfirmed (US2, T028): tras confirmar (2xx) solo un
+// subconjunto, queue.jsonl conserva EXACTAMENTE los no confirmados y se reescribe vía
+// temporal + os.Rename (sin borrado in-place ni temporales residuales).
+func TestQueue_AtomicRewrite_KeepsUnconfirmed(t *testing.T) {
+	dir := t.TempDir()
+	evs := seed(t, dir, 4)
+
+	// El backend acepta (2xx) el primer lote y falla (5xx) el segundo: solo los dos
+	// primeros eventos se confirman.
+	client, _ := newBackend(t, func(reqNum int) int {
+		if reqNum == 1 {
+			return http.StatusOK
+		}
+		return http.StatusServiceUnavailable
+	})
+	client.BatchSize = 2
+	client.MaxRetries = 1
+
+	confirmed, err := drain(dir, client, evs)
+	if err == nil {
+		t.Fatal("esperaba error del segundo lote (5xx)")
+	}
+	if confirmed != 2 {
+		t.Fatalf("esperaba 2 confirmados, got %d", confirmed)
+	}
+
+	// La cola conserva SOLO los no confirmados, en orden.
+	got, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(got) != 2 || got[0].EventID != "id-2" || got[1].EventID != "id-3" {
+		t.Fatalf("la cola debe conservar los no confirmados en orden, got %+v", got)
+	}
+
+	// La reescritura atómica no deja temporales residuales en el directorio.
+	tmps, _ := filepath.Glob(filepath.Join(dir, ".tmp-*"))
+	if len(tmps) != 0 {
+		t.Fatalf("la reescritura atómica no debe dejar temporales: %v", tmps)
 	}
 }
 

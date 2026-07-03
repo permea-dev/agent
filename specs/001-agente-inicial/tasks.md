@@ -101,17 +101,17 @@ Proyecto único en Go (layout `cmd/` + `internal/` fijado por la constitución).
 
 ### Tests for User Story 2 (test-first) ⚠️
 
-- [ ] T024 [P] [US2] Tests de cola offline/drenaje `TestQueue_OfflineThenDrain` y `TestQueue_ExactlyOnce` en `internal/transport/transport_test.go` con `httptest.NewTLSServer`: sin red la cola crece; al drenar, el backend recibe exactamente N; reenvío del mismo lote es idempotente por `event_id` — **deben FALLAR**
-- [ ] T025 [P] [US2] Test de reescritura atómica `TestQueue_AtomicRewrite_KeepsUnconfirmed` en `internal/transport/queue_test.go`: tras `2xx` de un subconjunto, `queue.jsonl` conserva solo los no confirmados y se reescribe vía temporal + `os.Rename` (mismo sistema de ficheros) — **debe FALLAR**
-- [ ] T026 [P] [US2] Test de contrato de transporte `TestSend_RejectsHTTP`/`TestSend_StatusSemantics` en `internal/transport/transport_test.go`: endpoint `http://` se rechaza; `2xx`=confirmar, `401/403`=detener sync, `5xx`/error de red=reintentar — **debe FALLAR**
+- [X] T024 [P] [US2] Tests de cola offline/drenaje `TestQueue_OfflineThenDrain` y `TestQueue_ExactlyOnce` en `internal/transport/transport_test.go` con `httptest.NewTLSServer`: sin red la cola crece; al drenar, el backend recibe exactamente N; reenvío del mismo lote es idempotente por `event_id` — **deben FALLAR**
+- [X] T025 [P] [US2] Test de reescritura atómica `TestQueue_AtomicRewrite_KeepsUnconfirmed` en `internal/transport/queue_test.go`: tras `2xx` de un subconjunto, `queue.jsonl` conserva solo los no confirmados y se reescribe vía temporal + `os.Rename` (mismo sistema de ficheros) — **debe FALLAR**
+- [X] T026 [P] [US2] Test de contrato de transporte `TestSend_RejectsHTTP`/`TestSend_StatusSemantics` en `internal/transport/transport_test.go`: endpoint `http://` se rechaza; `2xx`=confirmar, `401/403`=detener sync, `5xx`/error de red=reintentar — **debe FALLAR**
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Endurecer `Client.Send` en `internal/transport/transport.go`: validar esquema `https` (rechazar `http://`), fijar `Content-Type` y `Authorization: Bearer`, e interpretar el código de estado según `contracts/transport.md` (`2xx`/`401`/`403`/`4xx`/`5xx`)
-- [ ] T028 [US2] Implementar la reescritura atómica de `queue.jsonl` tras `2xx` en `internal/transport/queue.go`: escribir los no confirmados a temporal + `os.Rename` en el mismo directorio (mismo sistema de ficheros); nunca borrado in-place
-- [ ] T029 [US2] Implementar reintentos con backoff exponencial acotado en `internal/transport/transport.go`: `5xx`/error de red reintentan hasta un **máximo de 5 reintentos** con **delay máximo de 5 minutos** por espera (tope del backoff); agotados los reintentos, el lote permanece en cola para el siguiente ciclo de sync; `401/403` detienen el sync (config errónea); sin red la cola permanece
-- [ ] T030 [US2] Implementar el paso de sync `Drain(cfg)` en `internal/transport/queue.go`: `Queue.Load` en lotes → `Client.Send` → en `2xx` reescritura atómica (T028); la dedup extremo a extremo se apoya en `event_id`
-- [ ] T031 [US2] Cablear el sync en el bucle del agente en `cmd/permea/main.go`: ticker con `sync_interval` de la config, ejecutando generación (US1) y drenaje (T030); modo `run` frente al `--scan` dry-run existente
+- [X] T027 [US2] Endurecer `Client.Send` en `internal/transport/transport.go`: validar esquema `https` (rechazar `http://`), fijar `Content-Type` y `Authorization: Bearer`, e interpretar el código de estado según `contracts/transport.md` (`2xx`/`401`/`403`/`4xx`/`5xx`)
+- [X] T028 [US2] Implementar la reescritura atómica de `queue.jsonl` tras `2xx` en `internal/transport/queue.go`: escribir los no confirmados a temporal + `os.Rename` en el mismo directorio (mismo sistema de ficheros); nunca borrado in-place
+- [X] T029 [US2] Implementar reintentos con backoff exponencial acotado en `internal/transport/transport.go`: `5xx`/error de red reintentan hasta un **máximo de 5 reintentos** con **delay máximo de 5 minutos** por espera (tope del backoff); agotados los reintentos, el lote permanece en cola para el siguiente ciclo de sync; `401/403` detienen el sync (config errónea); sin red la cola permanece
+- [X] T030 [US2] Implementar el paso de sync `Drain(cfg)` en `internal/transport/queue.go`: `Queue.Load` en lotes → `Client.Send` → en `2xx` reescritura atómica (T028); la dedup extremo a extremo se apoya en `event_id`
+- [X] T031 [US2] Cablear el sync en el bucle del agente en `cmd/permea/main.go`: ticker con `sync_interval` de la config, ejecutando generación (US1) y drenaje (T030); modo `run` frente al `--scan` dry-run existente
 
 **Checkpoint**: US1 + US2 funcionan de forma independiente — medición offline sin pérdida y entrega exactamente-una-vez al recuperar la red.
 

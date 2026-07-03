@@ -1,16 +1,20 @@
 // Comando agente Permea.
 //
 //	--scan <fichero>  dry-run: imprime eventos de frontera desde un JSONL, sin tocar estado ni cola.
-//	--run             una pasada incremental: escanea ~/.claude/projects, ingiere y ENCOLA
-//	                  los eventos de forma durable en queue.jsonl (la transmisión es US2).
+//	--run             una pasada: escanea ~/.claude/projects, ENCOLA de forma durable en
+//	                  queue.jsonl y drena la cola al backend por HTTPS (US1 + US2).
+//	--daemon          bucle continuo: cada sync_interval genera y transmite (US2).
 package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"time"
 
 	"github.com/bfgnet/agente_permea/internal/config"
 	"github.com/bfgnet/agente_permea/internal/ingest"
@@ -22,7 +26,8 @@ var version = "0.0.1-dev"
 
 func main() {
 	scan := flag.String("scan", "", "ruta a un JSONL de Claude Code para dry-run (imprime eventos, no envía)")
-	run := flag.Bool("run", false, "ejecuta una pasada incremental: escanea, ingiere y encola en queue.jsonl (no transmite en este MVP)")
+	run := flag.Bool("run", false, "una pasada: escanea, encola en queue.jsonl y drena al backend (US1 + US2)")
+	daemon := flag.Bool("daemon", false, "bucle continuo: cada sync_interval genera y transmite (US2)")
 	flag.Parse()
 
 	fmt.Fprintf(os.Stderr, "Permea %s\n", version)
@@ -33,64 +38,85 @@ func main() {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
+	case *daemon:
+		if err := runDaemon(); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
 	case *run:
 		if err := runOnce(); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
 	default:
-		fmt.Fprintf(os.Stderr, "sin --scan ni --run: nada que hacer. config por defecto: %+v\n", config.Default())
+		fmt.Fprintf(os.Stderr, "sin --scan/--run/--daemon: nada que hacer. config por defecto: %+v\n", config.Default())
 	}
 }
 
-// runOnce ejecuta una pasada de generación incremental (US1): descubre los logs de
-// Claude Code, lee solo las líneas nuevas por offset, construye el Event de frontera
-// y lo ENCOLA de forma durable. El estado se persiste tras encolar (orden de
-// durabilidad de R4). No transmite: el drenaje de la cola corresponde a US2.
-func runOnce() error {
+// agent agrupa el contexto resuelto una sola vez (directorio de datos, config, salt e
+// identidades) para las pasadas de generación y sync.
+type agent struct {
+	dir  string
+	cfg  config.Config
+	ictx ingest.Context
+}
+
+// setup resuelve el directorio de datos por SO, carga la config y las identidades locales
+// (salt/machineID persistidos). El salt nunca cruza la frontera (R6).
+func setup() (*agent, error) {
 	dir, err := config.DataDir()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cfg, err := config.Load(filepath.Join(dir, "config.json"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	salt, err := config.LoadOrCreateSalt(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	machineID, err := config.LoadOrCreateMachineID(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	root, err := config.ClaudeCodeLogsRoot(cfg)
+	return &agent{
+		dir: dir,
+		cfg: cfg,
+		ictx: ingest.Context{
+			Salt:         salt,
+			MachineID:    machineID,
+			DevID:        cfg.DevID,
+			OrgID:        cfg.OrgID,
+			AgentVersion: version,
+		},
+	}, nil
+}
+
+// generate ejecuta una pasada de generación incremental (US1): descubre los logs de
+// Claude Code, lee solo las líneas nuevas por offset, construye el Event de frontera y lo
+// ENCOLA de forma durable. El estado se persiste DESPUÉS de encolar (durabilidad, R4): si
+// hay caída entre medias, a lo sumo se re-encola (at-least-once), nunca se pierde.
+func (a *agent) generate() (int, error) {
+	root, err := config.ClaudeCodeLogsRoot(a.cfg)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	logs, err := state.FindLogs(root)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	statePath := filepath.Join(dir, "state.json")
+	statePath := filepath.Join(a.dir, "state.json")
 	st, err := state.Load(statePath)
 	if err != nil {
-		return err
-	}
-
-	ctx := ingest.Context{
-		Salt:         salt,
-		MachineID:    machineID,
-		DevID:        cfg.DevID,
-		OrgID:        cfg.OrgID,
-		AgentVersion: version,
+		return 0, err
 	}
 
 	total := 0
 	for _, logPath := range logs {
 		err := st.ScanFile(logPath, func(line []byte) error {
-			ev, err := ingest.FromClaudeCodeLine(line, ctx)
+			ev, err := ingest.FromClaudeCodeLine(line, a.ictx)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "skip (línea corrupta):", err)
 				return nil // un registro corrupto se omite sin detener el resto
@@ -98,24 +124,116 @@ func runOnce() error {
 			if ev == nil {
 				return nil // línea no facturable (p. ej. mensaje de usuario)
 			}
-			if err := transport.Append(dir, *ev); err != nil {
+			if err := transport.Append(a.dir, *ev); err != nil {
 				return err
 			}
 			total++
 			return nil
 		})
 		if err != nil {
-			return err
+			return total, err
 		}
 	}
 
-	// Persistir el estado DESPUÉS de encolar: si hay caída entre medias, a lo sumo se
-	// re-encola (at-least-once), nunca se pierde un evento (FR-007).
 	if err := st.Save(statePath); err != nil {
+		return total, err
+	}
+	return total, nil
+}
+
+// sync drena la cola pendiente hacia el backend por HTTPS (US2, T030). Sin endpoint
+// configurado es un no-op silencioso (medición local sin backend). Valida que el endpoint
+// sea https antes de intentar transmitir (FR-009).
+func (a *agent) sync() (int, error) {
+	if a.cfg.Endpoint == "" {
+		return 0, nil
+	}
+	if err := a.cfg.Validate(); err != nil {
+		return 0, err
+	}
+	return transport.Drain(a.dir, a.cfg)
+}
+
+// runOnce ejecuta una única pasada: genera (US1) y drena (US2).
+func runOnce() error {
+	a, err := setup()
+	if err != nil {
 		return err
 	}
+	n, err := a.generate()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "%d eventos encolados en %s\n", n, transport.QueuePath(a.dir))
 
-	fmt.Fprintf(os.Stderr, "%d eventos encolados en %s (no transmitido: sync es US2)\n", total, transport.QueuePath(dir))
+	if a.cfg.Endpoint == "" {
+		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
+		return nil
+	}
+	m, err := a.sync()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "%d eventos transmitidos y confirmados\n", m)
+	return nil
+}
+
+// runDaemon corre el bucle del agente: cada sync_interval de la config genera y drena
+// (T031). Un error de auth (401/403) detiene el bucle por configuración errónea; los
+// errores de red/5xx se registran y se reintentan en el siguiente ciclo (la cola persiste).
+func runDaemon() error {
+	a, err := setup()
+	if err != nil {
+		return err
+	}
+	interval, err := time.ParseDuration(a.cfg.SyncInterval)
+	if err != nil {
+		return fmt.Errorf("sync_interval inválido %q: %w", a.cfg.SyncInterval, err)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	fmt.Fprintf(os.Stderr, "daemon: ciclo cada %s (Ctrl-C para parar)\n", interval)
+
+	for {
+		if err := a.tick(); err != nil {
+			return err // solo errores terminales (p. ej. auth) llegan aquí
+		}
+		select {
+		case <-ctx.Done():
+			fmt.Fprintln(os.Stderr, "daemon detenido")
+			return nil
+		case <-ticker.C:
+		}
+	}
+}
+
+// tick es una iteración del daemon: generar + drenar. Devuelve error solo cuando el sync
+// debe detenerse (auth); los fallos transitorios se registran y no abortan el bucle.
+func (a *agent) tick() error {
+	if n, err := a.generate(); err != nil {
+		fmt.Fprintln(os.Stderr, "generación:", err)
+	} else if n > 0 {
+		fmt.Fprintf(os.Stderr, "%d eventos encolados\n", n)
+	}
+
+	if a.cfg.Endpoint == "" {
+		return nil
+	}
+	m, err := a.sync()
+	if err != nil {
+		if transport.IsAuth(err) {
+			return fmt.Errorf("sync detenido por autenticación (revisa device_token): %w", err)
+		}
+		fmt.Fprintln(os.Stderr, "sync (reintento en el próximo ciclo):", err)
+		return nil
+	}
+	if m > 0 {
+		fmt.Fprintf(os.Stderr, "%d eventos transmitidos y confirmados\n", m)
+	}
 	return nil
 }
 
