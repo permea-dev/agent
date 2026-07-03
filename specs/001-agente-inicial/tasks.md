@@ -125,13 +125,13 @@ Proyecto único en Go (layout `cmd/` + `internal/` fijado por la constitución).
 
 ### Tests for User Story 3 (test-first) ⚠️
 
-- [ ] T032 [P] [US3] Ampliar `internal/ingest/testdata/claude_code_sample.jsonl` y `internal/ingest/boundary_test.go`: inyectar un campo futuro con contenido (`message.content`, ruta en claro, argumentos de herramienta, un campo desconocido arbitrario) y aseverar que **ningún** término de la denylist sobrevive al evento serializado — **debe FALLAR** si algo se filtra
-- [ ] T033 [P] [US3] Añadir `TestEvent_OnlyAllowlistKeys` en `internal/event/event_test.go`: serializar un `Event` y comprobar que el conjunto de claves JSON es **exactamente** la allowlist de `contracts/boundary-event.md` (equivalente a `additionalProperties:false`) — **debe FALLAR** si aparece una clave nueva
+- [X] T032 [P] [US3] Ampliar `internal/ingest/testdata/claude_code_sample.jsonl` y `internal/ingest/boundary_test.go`: inyectar un campo futuro con contenido (`message.content`, ruta en claro, argumentos de herramienta, un campo desconocido arbitrario) y aseverar que **ningún** término de la denylist sobrevive al evento serializado — **debe FALLAR** si algo se filtra
+- [X] T033 [P] [US3] Añadir `TestEvent_OnlyAllowlistKeys` en `internal/event/event_test.go`: serializar un `Event` y comprobar que el conjunto de claves JSON es **exactamente** la allowlist de `contracts/boundary-event.md` (equivalente a `additionalProperties:false`) — **debe FALLAR** si aparece una clave nueva
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Confirmar y documentar en `internal/ingest/claudecode.go` que `rawRecord` decodifica **solo** campos de la allowlist (sin `message.content` ni texto); añadir comentario-guardia que prohíba ampliar `rawRecord` con contenido — dejar T032/T033 en verde
-- [ ] T035 [US3] Revisión de frontera (SC-006): verificar leyendo **solo** `internal/event/event.go` e `internal/ingest/claudecode.go` que ningún contenido cruza; anotar el resultado en `quickstart.md` (sección "Revisión de frontera")
+- [X] T034 [US3] Confirmar y documentar en `internal/ingest/claudecode.go` que `rawRecord` decodifica **solo** campos de la allowlist (sin `message.content` ni texto); añadir comentario-guardia que prohíba ampliar `rawRecord` con contenido — dejar T032/T033 en verde
+- [X] T035 [US3] Revisión de frontera (SC-006): verificar leyendo **solo** `internal/event/event.go` e `internal/ingest/claudecode.go` que ningún contenido cruza; anotar el resultado en `quickstart.md` (sección "Revisión de frontera")
 
 **Checkpoint**: Las tres historias funcionan de forma independiente; la frontera está blindada frente a datos futuros.
 

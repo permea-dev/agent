@@ -12,6 +12,15 @@ import (
 // rawRecord decodifica SOLO los campos permitidos del JSONL de Claude Code.
 // Deliberadamente NO incluye message.content ni ningún campo de texto: lo que no
 // se decodifica aquí, no entra en el proceso. Esa es la garantía deny-by-default.
+//
+// GUARDIA DE FRONTERA (Principio I, no negociable — NO AMPLIAR con contenido):
+// Está PROHIBIDO añadir a rawRecord cualquier campo que transporte contenido del
+// usuario o del modelo: message.content, texto de respuestas, código, diffs,
+// argumentos o resultados de herramientas, rutas en claro, secretos, o CUALQUIER
+// campo nuevo/desconocido del log con contenido. Los campos desconocidos del origen
+// se ignoran por construcción (encoding/json descarta lo no declarado). Solo se
+// admiten métricas y metadatos derivados de la allowlist de contracts/boundary-event.md.
+// El golden test (boundary_test.go) y TestEvent_OnlyAllowlistKeys fallan si esto se viola.
 type rawRecord struct {
 	Type      string    `json:"type"`
 	Timestamp time.Time `json:"timestamp"`

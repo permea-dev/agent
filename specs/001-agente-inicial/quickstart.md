@@ -94,3 +94,29 @@ go test ./...         # frontera + suite completa en verde
 Un revisor externo confirma el cumplimiento leyendo **solo** `internal/event/event.go` (el
 struct cerrado y `Ref`) y el mapeo explícito en `internal/ingest/claudecode.go`. No hace falta
 leer el resto del agente para verificar que ningún contenido cruza.
+
+### Resultado de la revisión (US3 — blindaje deny-by-default)
+
+Revisión realizada leyendo **exclusivamente** `internal/event/event.go` e
+`internal/ingest/claudecode.go`:
+
+- **`event/event.go`** — `Event` es un struct cerrado con exactamente las 17 claves de la
+  allowlist (`contracts/boundary-event.md`). No hay campo alguno para contenido, ni
+  passthrough de mapas/`json.RawMessage`. `TestEvent_OnlyAllowlistKeys` fija el conjunto de
+  claves serializadas como equivalente Go de `additionalProperties: false`.
+- **`ingest/claudecode.go`** — `rawRecord` decodifica **solo** `type`, `timestamp`,
+  `sessionId`, `cwd`, `message.model` y `message.usage.*`. No declara `message.content` ni
+  ningún campo de texto; `encoding/json` **descarta** todo campo desconocido del origen, así
+  que una futura versión de Claude Code que añada contenido no puede colarlo. Un
+  comentario-guardia prohíbe explícitamente ampliar `rawRecord` con contenido.
+- Los identificadores sensibles (`cwd`, `sessionId`, `machineID`) solo cruzan como hash
+  salado vía `event.Ref`; el `salt` vive en local y nunca se transmite.
+
+**Verificación con teeth (regresión):** el golden test `TestBoundary_NoDenylistLeaks`, el
+caso `TestBoundary_UnknownFutureFieldDoesNotLeak` (campo NUEVO y DESCONOCIDO con contenido,
+lo más exigente del SC-005) y `TestEvent_OnlyAllowlistKeys` se comprobaron rojos al inducir
+temporalmente una fuga de `message.content` y verdes de nuevo al revertirla: los guardias
+detectan una fuga real, no pasan de forma vacua.
+
+**Conclusión:** ningún contenido del origen cruza la frontera. Deny-by-default garantizado
+por construcción (struct cerrado + decodificación restringida), no por validación posterior.

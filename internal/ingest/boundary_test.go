@@ -10,6 +10,9 @@ import (
 )
 
 // Términos sensibles del fixture que JAMÁS deben aparecer en un evento transmitido.
+// Cubre contenido conocido (message.content, rutas, sesión) y —lo más exigente del
+// SC-005— campos NUEVOS y DESCONOCIDOS con contenido inyectados en el origen: un campo
+// futuro arbitrario, argumentos de herramienta y un campo de nivel superior no previsto.
 var denylist = []string{
 	"SECRETO_DEL_PROMPT",
 	"refactoriza",
@@ -20,6 +23,13 @@ var denylist = []string{
 	"acme-banca",
 	"core-pagos",
 	"sess-PRIVATE-9f3a",
+	// Campos desconocidos/futuros con contenido (deny-by-default por construcción):
+	"FUGA_CAMPO_FUTURO_ZzZ", // campo futuro arbitrario dentro de message
+	"FUGA_ARG_SECRETA",      // argumentos de una llamada a herramienta
+	"FUGA_TOP_LEVEL_QqQ",    // campo desconocido de nivel superior
+	"sk-LEAK-DEADBEEF",      // secreto tipo clave de API
+	"/etc/passwd",           // comando de herramienta
+	"id_rsa",                // ruta sensible en input de herramienta
 }
 
 // TestBoundary_NoDenylistLeaks es el test que define el producto: ninguna
@@ -64,6 +74,39 @@ func TestBoundary_NoDenylistLeaks(t *testing.T) {
 	}
 	if events != 2 {
 		t.Fatalf("se esperaban 2 eventos de asistente, se generaron %d", events)
+	}
+}
+
+// TestBoundary_UnknownFutureFieldDoesNotLeak es el caso más exigente del SC-005: una
+// futura versión de Claude Code añade un campo DESCONOCIDO con contenido (aquí un campo
+// arbitrario que no existe en rawRecord) directamente en el registro. El evento
+// serializado NO debe contener ese contenido: deny-by-default por construcción, porque el
+// campo no tiene lugar en el struct cerrado ni se decodifica. Este test FALLA si alguien
+// amplía rawRecord/Event para dar paso a contenido.
+func TestBoundary_UnknownFutureFieldDoesNotLeak(t *testing.T) {
+	// Registro de asistente facturable con un campo futuro inédito que transporta
+	// contenido sensible, además de message.content y argumentos de herramienta.
+	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"sess-PRIVATE-9f3a","cwd":"/home/basilio/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5},"content":[{"type":"text","text":"LEAK_CONTENT_AAA"}],"brand_new_2027_field":"LEAK_UNKNOWN_BBB"},"another_unknown":"LEAK_TOPLEVEL_CCC"}`)
+
+	ev, err := FromClaudeCodeLine(line, Context{Salt: "s", MachineID: "m", DevID: "d", OrgID: "o", AgentVersion: "t"})
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if ev == nil {
+		t.Fatal("se esperaba un evento facturable")
+	}
+	out, err := json.Marshal(ev)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	for _, leak := range []string{"LEAK_CONTENT_AAA", "LEAK_UNKNOWN_BBB", "LEAK_TOPLEVEL_CCC", "brand_new_2027_field", "another_unknown"} {
+		if strings.Contains(string(out), leak) {
+			t.Errorf("FUGA DE FRONTERA: un campo desconocido con contenido cruzó la frontera (%q)\nevento: %s", leak, out)
+		}
+	}
+	// Sanidad: las métricas permitidas sí cruzan (el registro no se descartó por completo).
+	if ev.TokensInput != 10 || ev.TokensOutput != 5 {
+		t.Errorf("las métricas permitidas deben cruzar: %+v", ev)
 	}
 }
 
