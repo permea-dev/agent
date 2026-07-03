@@ -4,6 +4,7 @@
 //	--run             una pasada: escanea ~/.claude/projects, ENCOLA de forma durable en
 //	                  queue.jsonl y drena la cola al backend por HTTPS (US1 + US2).
 //	--daemon          bucle continuo: cada sync_interval genera y transmite (US2).
+//	--version         imprime la versión (inyectada desde la etiqueta) en stdout y termina.
 package main
 
 import (
@@ -11,6 +12,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -22,13 +24,30 @@ import (
 	"github.com/bfgnet/agente_permea/internal/transport"
 )
 
+// version es la versión del binario. GoReleaser la sobreescribe desde la etiqueta con
+// -ldflags "-X main.version={{.Version}}"; por defecto, un valor de desarrollo.
 var version = "0.0.1-dev"
+
+// printVersion escribe SOLO la versión (una línea, sin adornos) en w. Es el contrato de
+// `--version`: salida limpia y estable, apta para scripts y para verificar que el binario
+// publicado coincide con su etiqueta (SC-002).
+func printVersion(w io.Writer) {
+	fmt.Fprintln(w, version)
+}
 
 func main() {
 	scan := flag.String("scan", "", "ruta a un JSONL de Claude Code para dry-run (imprime eventos, no envía)")
 	run := flag.Bool("run", false, "una pasada: escanea, encola en queue.jsonl y drena al backend (US1 + US2)")
 	daemon := flag.Bool("daemon", false, "bucle continuo: cada sync_interval genera y transmite (US2)")
+	showVersion := flag.Bool("version", false, "imprime la versión en stdout y termina")
 	flag.Parse()
+
+	// --version se atiende ANTES de cualquier otra salida: stdout queda con exactamente la
+	// versión y nada más (sin el banner de stderr), para verificación e integración.
+	if *showVersion {
+		printVersion(os.Stdout)
+		return
+	}
 
 	fmt.Fprintf(os.Stderr, "Permea %s\n", version)
 

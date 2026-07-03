@@ -14,5 +14,7 @@ salt
 machine-id
 *.exe
 *.test
-Roadmap.md/permea
+Roadmap.md
+/permea
 /permea-*
+/dist/

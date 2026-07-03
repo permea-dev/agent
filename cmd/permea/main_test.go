@@ -1,11 +1,30 @@
 package main
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/bfgnet/agente_permea/internal/config"
 	"github.com/bfgnet/agente_permea/internal/ingest"
 )
+
+// TestVersionFlag verifica el contrato de `--version` (contracts/artifacts.md): imprime
+// EXACTAMENTE la versión en stdout (una línea, sin el prefijo "Permea") para que la
+// verificación de release sea comprobable (SC-002). La versión es la que inyecta el
+// -ldflags de GoReleaser desde la etiqueta.
+func TestVersionFlag(t *testing.T) {
+	var buf bytes.Buffer
+	printVersion(&buf)
+	got := buf.String()
+
+	if got != version+"\n" {
+		t.Fatalf("printVersion = %q, want %q", got, version+"\n")
+	}
+	if strings.Contains(got, "Permea") {
+		t.Fatalf("--version no debe incluir el prefijo Permea: %q", got)
+	}
+}
 
 // TestAgentVersion_ReachesEvent verifica el cableado de T036: la versión REAL del binario
 // (variable `version` de este paquete) se propaga por newIngestContext hasta

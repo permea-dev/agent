@@ -1,0 +1,38 @@
+# Release de `permea` (spec 002). Se dispara al empujar una etiqueta semver y delega en
+# GoReleaser la matriz, los checksums y la publicación al tap/bucket.
+# Contrato: specs/002-distribucion/contracts/release-workflow.md
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'          # solo etiquetas semver con prefijo v
+
+permissions:
+  contents: write         # crear la release y subir assets en ESTE repo
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # historial y etiquetas completos para GoReleaser
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean
+        env:
+          # Publica la release en este repo (assets + checksums).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PAT con scope repo: necesario para commitear la fórmula y el manifiesto en los
+          # repos externos bfgnet/homebrew-permea y bfgnet/scoop-permea.
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}

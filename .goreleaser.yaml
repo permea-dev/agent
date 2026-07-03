@@ -1,0 +1,84 @@
+# GoReleaser — distribución multiplataforma de `permea` (spec 002).
+# Contrato de nombres/artefactos: specs/002-distribucion/contracts/artifacts.md
+# Validar: `goreleaser check` · Dry-run local: `goreleaser release --snapshot --clean`
+version: 2
+
+project_name: permea
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: permea
+    main: ./cmd/permea
+    binary: permea
+    env:
+      - CGO_ENABLED=0            # binario estático, sin dependencias de runtime (FR-003)
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}   # versión inyectada desde la etiqueta (FR-004)
+    mod_timestamp: "{{ .CommitTimestamp }}"     # build determinista (FR-010)
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64           # fuera de la matriz de esta spec
+
+archives:
+  - id: permea
+    ids:
+      - permea
+    # Contrato de nombres: permea_{version}_{os}_{arch}.{ext}
+    name_template: "permea_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "permea_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+# Homebrew: GoReleaser v2 distribuye binarios de CLI como CASKS (brews está deprecado).
+# Publica en el tap propio bfgnet/homebrew-permea (macOS amd64/arm64).
+homebrew_casks:
+  - name: permea
+    ids:
+      - permea
+    repository:
+      owner: bfgnet
+      name: homebrew-permea
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/bfgnet/agente_permea"
+    description: "Medidor local de coste de IA con frontera de datos (local-first)"
+    skip_upload: auto           # en snapshot/pre-release no se publica el tap
+
+scoops:
+  - name: permea
+    ids:
+      - permea
+    repository:
+      owner: bfgnet
+      name: scoop-permea
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/bfgnet/agente_permea"
+    description: "Medidor local de coste de IA con frontera de datos (local-first)"
+    license: "Apache-2.0"
+    skip_upload: auto           # en snapshot/pre-release no se publica el bucket
+
+release:
+  github:
+    owner: bfgnet
+    name: agente_permea
