@@ -41,27 +41,38 @@ PERMEA_VERSION=v1.4.0 PREFIX="$HOME/.local/bin" sh install.sh
   `shasum`.
 - Idempotente: reinstalar la misma versión deja el mismo binario.
 
-## 2. Fórmula de Homebrew (tap `bfgnet/homebrew-permea`)
+## 2. Cask de Homebrew (tap `bfgnet/homebrew-permea`, solo macOS)
 
-Generada y publicada por GoReleaser (`brews:`). Contrato de la fórmula `permea`:
+Generado y publicado por GoReleaser (`homebrew_casks:`). GoReleaser v2.16 **deprecó `brews:`**
+(fórmula) para binarios de CLI en favor de **casks**; este contrato refleja esa migración. El
+cask es **solo macOS** (amd64/arm64): Homebrew Cask no opera en Linux. Contrato del cask `permea`:
 
 ```ruby
-class Permea < Formula
+cask "permea" do
+  version "1.4.0"
+  # bloque por arquitectura con url al artefacto y su sha256 (rellenado por GoReleaser)
+  on_arm do
+    url "https://github.com/bfgnet/agente_permea/releases/download/v1.4.0/permea_1.4.0_darwin_arm64.tar.gz"
+    sha256 "..."
+  end
+  on_intel do
+    url "https://github.com/bfgnet/agente_permea/releases/download/v1.4.0/permea_1.4.0_darwin_amd64.tar.gz"
+    sha256 "..."
+  end
+  name "permea"
   desc "Medidor local de coste de IA (frontera de datos)"
   homepage "https://github.com/bfgnet/agente_permea"
-  version "1.4.0"
-  # bloque por objetivo con url al artefacto y su sha256 (rellenado por GoReleaser)
-  on_macos { on_arm { url "...darwin_arm64.tar.gz"; sha256 "..." } ... }
-  def install; bin.install "permea"; end
-  test { system "#{bin}/permea", "--version" }
+  binary "permea"
 end
 ```
 
-- **Instalación**: `brew tap bfgnet/permea && brew install permea` (un comando efectivo por
-  tap+install; `brew install bfgnet/permea/permea` en uno).
-- **Integridad**: Homebrew verifica el `sha256` declarado antes de instalar (FR-009).
-- **Test de la fórmula**: `brew test permea` ejecuta `permea --version` (verifica SC-002/SC-003).
-- **Sin servicios**: la fórmula NO declara bloque `service` (FR-011).
+- **Plataforma**: **solo macOS** (darwin amd64/arm64). **Linux NO se cubre por Homebrew**: su
+  canal es `install.sh` (ver Sección 1), que es el **canal principal de instalación en Linux**.
+- **Instalación**: `brew install bfgnet/permea/permea` (un comando; `brew tap bfgnet/permea &&
+  brew install permea` de forma equivalente).
+- **Integridad**: Homebrew verifica el `sha256` declarado en el cask antes de instalar (FR-009).
+- **Sin servicios**: el cask NO declara `service` ni un `postflight` que registre autoarranque
+  (FR-011). GoReleaser añade el `postflight` estándar para quitar la cuarentena del binario.
 
 ## 3. Manifiesto de Scoop (bucket `bfgnet/scoop-permea`)
 
