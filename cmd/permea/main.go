@@ -32,7 +32,9 @@ var version = "0.0.1-dev"
 // `--version`: salida limpia y estable, apta para scripts y para verificar que el binario
 // publicado coincide con su etiqueta (SC-002).
 func printVersion(w io.Writer) {
-	fmt.Fprintln(w, version)
+	// Escritura de una sola línea; un fallo al escribir la versión no es recuperable ni
+	// afecta a la durabilidad (a diferencia de la cola), así que se ignora explícitamente.
+	_, _ = fmt.Fprintln(w, version)
 }
 
 func main() {

@@ -109,6 +109,22 @@ gh release view v1.4.0            # 5 artefactos + checksums
 **Esperado**: release `v1.4.0` con los 5 artefactos y su fichero de checksums; tap y bucket
 actualizados a `1.4.0`.
 
+## Resultados de validación (T016 — ejecutado 2026-07-03)
+
+| Escenario | Comando | Resultado |
+|---|---|---|
+| **V1** config válida | `goreleaser check` | ✅ 1 configuration file validated |
+| **V2** snapshot | `goreleaser release --snapshot --clean` | ✅ 5 archivos + `permea_*_checksums.txt` en `dist/` |
+| **V3** binario estático | `file dist/…linux_amd64` | ✅ ELF "statically linked" |
+| **V4** versión inyectada | `permea --version` (binario del snapshot) | ✅ imprime la versión del snapshot (`0.1.0-SNAPSHOT-<sha>`) |
+| **V5** checksums | `sha256sum -c permea_*_checksums.txt` | ✅ `OK` para todos los artefactos |
+| **V6** shellcheck | `shellcheck install.sh scripts/test-install.sh` | ✅ 0 issues |
+| **V6-bis** tamper | `sh scripts/test-install.sh` | ✅ caso feliz instala; caso tamper aborta sin binario (SC-005) |
+| **V7** canales por SO | cask (macOS) · `install.sh` (Linux/macOS) · Scoop (Windows) | ✅ cask `binary "permea"` y manifiesto Scoop `bin permea.exe` generados en snapshot; instalación real tras la primera release |
+
+Puertas de calidad: `go vet ./...` sin hallazgos, `golangci-lint run` con **0 issues**,
+`go test ./...` en verde en los 7 paquetes; el golden test de frontera (`TestBoundary_*`) sigue verde.
+
 ## Puertas de calidad (constitución)
 
 ```bash

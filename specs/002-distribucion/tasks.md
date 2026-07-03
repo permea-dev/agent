@@ -135,9 +135,9 @@ la versión (SC-004). La verificación de hash es intrínseca a Scoop (FR-009).
 
 **Purpose**: Documentación de instalación, validación end-to-end y puertas de calidad.
 
-- [ ] T015 [P] Actualizar `README.md`: sección de **instalación** con los tres canales (Homebrew tap, Scoop bucket, `install.sh` en una línea `curl … | sh`), nota de que la versión se inyecta desde la etiqueta, y enlace a la página de releases
-- [ ] T016 [P] Ejecutar la validación de `quickstart.md` (V1–V7) y dejar constancia de resultados (config válida, snapshot con 5 artefactos + checksums, binarios estáticos, versión == etiqueta, checksums OK, abort ante manipulación, instalación por canal)
-- [ ] T017 [P] Puertas de calidad de la constitución por el cambio de código: `go vet ./...` sin hallazgos, `golangci-lint run` limpio, `go test ./...` en verde (incl. `TestVersionFlag`); confirmar que el golden test de frontera sigue verde (esta feature no toca la frontera)
+- [X] T015 [P] Actualizar `README.md`: sección de **instalación** con los tres canales (Homebrew tap, Scoop bucket, `install.sh` en una línea `curl … | sh`), nota de que la versión se inyecta desde la etiqueta, y enlace a la página de releases
+- [X] T016 [P] Ejecutar la validación de `quickstart.md` (V1–V7) y dejar constancia de resultados (config válida, snapshot con 5 artefactos + checksums, binarios estáticos, versión == etiqueta, checksums OK, abort ante manipulación, instalación por canal)
+- [X] T017 [P] Puertas de calidad de la constitución por el cambio de código: `go vet ./...` sin hallazgos, `golangci-lint run` limpio, `go test ./...` en verde (incl. `TestVersionFlag`); confirmar que el golden test de frontera sigue verde (esta feature no toca la frontera)
 
 ---
 

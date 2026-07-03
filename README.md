@@ -15,6 +15,31 @@ solo cruzan como **hash salado**; el `salt` vive en local y nunca se transmite. 
 `internal/ingest/boundary_test.go` y `internal/event` (`TestEvent_OnlyAllowlistKeys`) lo
 verifican sobre contenido sensible inyectado a propósito.
 
+## Instalación
+
+Binario estático único, sin dependencias previas. Un comando por sistema operativo; la
+integridad se verifica por SHA256 en todos los canales. La versión se inyecta desde la
+etiqueta de la release.
+
+**macOS** — Homebrew cask (tap propio):
+
+    brew install --cask bfgnet/permea/permea
+
+**macOS y Linux** — script de instalación (canal **principal en Linux**; el cask de Homebrew
+es solo macOS):
+
+    curl -fsSL https://raw.githubusercontent.com/bfgnet/agente_permea/main/install.sh | sh
+    # opcional: PERMEA_VERSION=v1.4.0 PREFIX="$HOME/.local/bin" sh install.sh
+
+**Windows** — Scoop (bucket propio):
+
+    scoop bucket add permea https://github.com/bfgnet/scoop-permea
+    scoop install permea
+
+Verifica la instalación con `permea --version`. Detalle de canales e integridad en
+[`specs/002-distribucion/contracts/install-contract.md`](specs/002-distribucion/contracts/install-contract.md).
+Compilar desde fuente: ver [Portabilidad](#portabilidad).
+
 ## Primeros pasos
     make test    # test de frontera en verde (empezar por aquí)
     make run     # dry-run: imprime eventos desde el fixture, sin transmitir
