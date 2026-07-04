@@ -80,5 +80,5 @@ scoops:
 
 release:
   github:
-    owner: bfgnet
-    name: agente_permea
+    owner: permea-dev
+    name: agent
