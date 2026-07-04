@@ -58,7 +58,7 @@ homebrew_casks:
     ids:
       - permea
     repository:
-      owner: bfgnet
+      owner: permea-dev
       name: homebrew-permea
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/bfgnet/agente_permea"
@@ -70,7 +70,7 @@ scoops:
     ids:
       - permea
     repository:
-      owner: bfgnet
+      owner: permea-dev
       name: scoop-permea
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/bfgnet/agente_permea"
