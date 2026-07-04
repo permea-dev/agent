@@ -18,10 +18,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bfgnet/agente_permea/internal/config"
-	"github.com/bfgnet/agente_permea/internal/ingest"
-	"github.com/bfgnet/agente_permea/internal/state"
-	"github.com/bfgnet/agente_permea/internal/transport"
+	"github.com/permea-dev/agent/internal/config"
+	"github.com/permea-dev/agent/internal/ingest"
+	"github.com/permea-dev/agent/internal/state"
+	"github.com/permea-dev/agent/internal/transport"
 )
 
 // version es la versión del binario. GoReleaser la sobreescribe desde la etiqueta con

@@ -14,7 +14,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/bfgnet/agente_permea/internal/event"
+	"github.com/permea-dev/agent/internal/event"
 )
 
 // Valores por defecto del backoff acotado (T029): reintentar 5xx/red hasta 5 veces,

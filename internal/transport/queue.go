@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bfgnet/agente_permea/internal/config"
-	"github.com/bfgnet/agente_permea/internal/event"
+	"github.com/permea-dev/agent/internal/config"
+	"github.com/permea-dev/agent/internal/event"
 )
 
 const queueFile = "queue.jsonl"

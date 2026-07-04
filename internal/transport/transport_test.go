@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bfgnet/agente_permea/internal/event"
+	"github.com/permea-dev/agent/internal/event"
 )
 
 // recorder es un backend de ingesta simulado: deduplica por event_id como exige el

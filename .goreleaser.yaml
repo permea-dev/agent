@@ -61,7 +61,7 @@ homebrew_casks:
       owner: permea-dev
       name: homebrew-permea
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-    homepage: "https://github.com/bfgnet/agente_permea"
+    homepage: "https://github.com/permea-dev/agent"
     description: "Medidor local de coste de IA con frontera de datos (local-first)"
     skip_upload: auto           # en snapshot/pre-release no se publica el tap
 
@@ -73,7 +73,7 @@ scoops:
       owner: permea-dev
       name: scoop-permea
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-    homepage: "https://github.com/bfgnet/agente_permea"
+    homepage: "https://github.com/permea-dev/agent"
     description: "Medidor local de coste de IA con frontera de datos (local-first)"
     license: "Apache-2.0"
     skip_upload: auto           # en snapshot/pre-release no se publica el bucket

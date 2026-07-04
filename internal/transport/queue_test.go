@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bfgnet/agente_permea/internal/event"
+	"github.com/permea-dev/agent/internal/event"
 )
 
 // TestQueue_Append: la cola es append-only, una línea JSON por evento, y Load las

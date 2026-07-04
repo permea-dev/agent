@@ -7,7 +7,7 @@
 # SO/arch no soportado, fallo de descarga o checksum que no coincide (SC-005).
 #
 # Uso:
-#   curl -fsSL https://raw.githubusercontent.com/bfgnet/agente_permea/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/permea-dev/agent/main/install.sh | sh
 #   PERMEA_VERSION=v1.4.0 PREFIX="$HOME/.local/bin" sh install.sh
 #
 # Variables:
@@ -19,7 +19,7 @@
 #                    "$PERMEA_BASE_URL/<artefacto>" y "$PERMEA_BASE_URL/<checksums>".
 set -eu
 
-REPO="bfgnet/agente_permea"
+REPO="permea-dev/agent"
 
 err() { printf 'install.sh: %s\n' "$*" >&2; }
 info() { printf 'install.sh: %s\n' "$*" >&2; }

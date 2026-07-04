@@ -1,3 +1,3 @@
-module github.com/bfgnet/agente_permea
+module github.com/permea-dev/agent
 
 go 1.22

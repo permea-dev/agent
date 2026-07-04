@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bfgnet/agente_permea/internal/config"
-	"github.com/bfgnet/agente_permea/internal/ingest"
+	"github.com/permea-dev/agent/internal/config"
+	"github.com/permea-dev/agent/internal/ingest"
 )
 
 // TestVersionFlag verifica el contrato de `--version` (contracts/artifacts.md): imprime

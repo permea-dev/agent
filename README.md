@@ -28,7 +28,7 @@ etiqueta de la release.
 **macOS y Linux** — script de instalación (canal **principal en Linux**; el cask de Homebrew
 es solo macOS):
 
-    curl -fsSL https://raw.githubusercontent.com/bfgnet/agente_permea/main/install.sh | sh
+    curl -fsSL https://raw.githubusercontent.com/permea-dev/agent/main/install.sh | sh
     # opcional: PERMEA_VERSION=v1.4.0 PREFIX="$HOME/.local/bin" sh install.sh
 
 **Windows** — Scoop (bucket propio):
@@ -97,4 +97,4 @@ La versión del binario (`agent_version` en el evento) se inyecta con
     internal/transport cliente HTTPS + cola offline + entrega exactamente-una-vez
     internal/config   configuración local, rutas por SO, salt e identidades
 
-Renombrar el módulo en `go.mod` (`github.com/bfgnet/agente_permea`) al repo real.
+Renombrar el módulo en `go.mod` (`github.com/permea-dev/agent`) al repo real.

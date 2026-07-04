@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/bfgnet/agente_permea/internal/event"
-	"github.com/bfgnet/agente_permea/internal/pricing"
+	"github.com/permea-dev/agent/internal/event"
+	"github.com/permea-dev/agent/internal/pricing"
 )
 
 // rawRecord decodifica SOLO los campos permitidos del JSONL de Claude Code.
