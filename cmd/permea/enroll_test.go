@@ -15,14 +15,19 @@ import (
 	"github.com/permea-dev/agent/internal/transport"
 )
 
-// mkEnrollStr construye un enrollment string pmea1.<base64url(json)> para los tests.
+// testDevID es el dev_id autoritativo (asignado por el backend) que viaja en los enrollment
+// strings pmea2 de los tests; el agente lo adopta como su identidad de desarrollador.
+const testDevID = "acme-dev-01"
+
+// mkEnrollStr construye un enrollment string pmea2.<base64url(json{endpoint,token,dev_id})>
+// para los tests, con el mismo formato que el backend (P-002b) emite.
 func mkEnrollStr(t *testing.T, endpoint, token string) string {
 	t.Helper()
-	b, err := json.Marshal(map[string]string{"endpoint": endpoint, "token": token})
+	b, err := json.Marshal(map[string]string{"endpoint": endpoint, "token": token, "dev_id": testDevID})
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	return "pmea1." + base64.RawURLEncoding.EncodeToString(b)
+	return "pmea2." + base64.RawURLEncoding.EncodeToString(b)
 }
 
 // verifyVia construye un verify que confía en el servidor TLS de test (self-signed) y
@@ -75,6 +80,11 @@ func TestEnroll_Argv_HappyPath(t *testing.T) {
 	}
 	if cfg.Endpoint != srv.URL || cfg.DeviceToken != token {
 		t.Errorf("config = (%q, %q), quiero (%q, %q)", cfg.Endpoint, cfg.DeviceToken, srv.URL, token)
+	}
+	// Fuente autoritativa: el dev_id persistido DEBE ser el del enrollment string (pmea2),
+	// no uno autodeclarado. Es lo que luego estampa Event.dev_id vía newIngestContext.
+	if cfg.DevID != testDevID {
+		t.Errorf("dev_id persistido = %q, quiero el del enrollment string %q (autoritativo)", cfg.DevID, testDevID)
 	}
 	if *gotAuth != "Bearer "+token {
 		t.Errorf("el backend recibió Authorization %q, quiero Bearer %q", *gotAuth, token)

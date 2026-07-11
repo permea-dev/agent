@@ -23,7 +23,9 @@ func runStatus(stdout io.Writer) error {
 	}
 
 	if config.IsEnrolled(cfg) {
-		_, _ = fmt.Fprintf(stdout, "enrolado contra %s (token: configurado)\n", cfg.Endpoint)
+		// dev_id es identidad (no secreto): se muestra. El device_token NUNCA (SC-005): a lo
+		// sumo un indicador de presencia.
+		_, _ = fmt.Fprintf(stdout, "enrolado contra %s (dev_id: %s, token: configurado)\n", cfg.Endpoint, cfg.DevID)
 	} else {
 		_, _ = fmt.Fprintln(stdout, "no enrolado")
 	}

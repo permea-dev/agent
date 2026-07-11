@@ -41,9 +41,10 @@ func enroll(args []string, stdin io.Reader, stdinIsPipe bool, stdout io.Writer, 
 		return err
 	}
 
-	// La decodificación valida el envoltorio y que el endpoint sea https; su error no
-	// reproduce el argumento ni el token (FR-007/FR-013).
-	endpoint, token, err := config.ParseEnrollmentString(raw)
+	// La decodificación valida el envoltorio, que el endpoint sea https y el charset del
+	// dev_id; su error no reproduce el argumento ni el token (FR-007/FR-013). El dev_id es
+	// autoritativo (asignado por el backend): el agente lo adopta, ya no lo genera en local.
+	endpoint, token, devID, err := config.ParseEnrollmentString(raw)
 	if err != nil {
 		return err
 	}
@@ -70,13 +71,18 @@ func enroll(args []string, stdin io.Reader, stdinIsPipe bool, stdout io.Writer, 
 	}
 	cfg.Endpoint = endpoint
 	cfg.DeviceToken = token
+	// El dev_id del enrollment string es la fuente autoritativa de la identidad de
+	// desarrollador que el agente estampa en las métricas (Config.DevID -> ingest.Context ->
+	// Event.dev_id). Fijarlo aquí sustituye cualquier valor previo/autodeclarado.
+	cfg.DevID = devID
 	if err := config.Save(path, cfg); err != nil {
 		return err
 	}
 
-	// Confirmación: la URL sí; el token NUNCA. Un fallo al escribir la confirmación no
-	// revierte el enrolamiento ya persistido, así que se ignora explícitamente (como printVersion).
-	_, _ = fmt.Fprintf(stdout, "enrolado contra %s\n", endpoint)
+	// Confirmación: la URL y el dev_id (identidad, no secreto) sí; el token NUNCA. Un fallo al
+	// escribir la confirmación no revierte el enrolamiento ya persistido, así que se ignora
+	// explícitamente (como printVersion).
+	_, _ = fmt.Fprintf(stdout, "enrolado contra %s (dev_id: %s)\n", endpoint, devID)
 	return nil
 }
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -136,7 +138,7 @@ func TestEnroll_Reject_Malformed_AbortsBeforePing(t *testing.T) {
 	}
 
 	t.Run("base64 malformado", func(t *testing.T) {
-		const arg = "pmea1.###malformado###"
+		const arg = "pmea2.###malformado###"
 		var out strings.Builder
 		err := enroll([]string{arg}, strings.NewReader(""), false, &out, verifyMustNotRun)
 		if err == nil {
@@ -157,6 +159,37 @@ func TestEnroll_Reject_Malformed_AbortsBeforePing(t *testing.T) {
 		assertNoPersist(t, cfgDir)
 		assertNoSecret(t, "el error de http://", err.Error(), token, es)
 	})
+}
+
+// Política de versión — un enrollment string pmea1 (formato viejo) se RECHAZA antes del
+// ping (verify no se ejecuta), no persiste y el error indica formato obsoleto sin filtrar
+// el argumento ni el token.
+func TestEnroll_Reject_Pmea1_Obsolete(t *testing.T) {
+	cfgDir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfgDir)
+
+	verifyMustNotRun := func(_, _ string) error {
+		t.Fatal("verify NO debe ejecutarse: un pmea1 se rechaza en la decodificación")
+		return nil
+	}
+
+	const token = "dev_tok_viejo_pmea1"
+	b, err := json.Marshal(map[string]string{"endpoint": "https://x.example/ingest", "token": token})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	es := "pmea1." + base64.RawURLEncoding.EncodeToString(b)
+
+	var out strings.Builder
+	err = enroll([]string{es}, strings.NewReader(""), false, &out, verifyMustNotRun)
+	if err == nil {
+		t.Fatal("un pmea1 debe rechazarse (formato obsoleto)")
+	}
+	assertNoPersist(t, cfgDir)
+	assertNoSecret(t, "el error de pmea1", err.Error(), token, es)
+	if !strings.Contains(err.Error(), "obsoleto") {
+		t.Errorf("el error de pmea1 debe indicar formato obsoleto; got %q", err.Error())
+	}
 }
 
 // T012 (FR-014/SC-010) — re-enrolar no deja residuo del token viejo.
