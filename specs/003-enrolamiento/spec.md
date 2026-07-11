@@ -18,7 +18,7 @@
 
 ### User Story 1 — Enrolar el agente con un enrollment string válido (Priority: P1)
 
-Un desarrollador acaba de obtener del backend, una sola vez, el **enrollment string** de su instalación (un envoltorio que empaqueta la URL del backend y el device token). Ejecuta `permea enroll <enrollment-string>` pegando ese valor. El agente lo decodifica en URL + token, verifica el token contra esa URL y, si es válido, lo guarda de forma segura en la máquina para poder transmitir metadato a partir de ese momento.
+Un desarrollador acaba de obtener del backend, una sola vez, el **enrollment string** de su instalación (un envoltorio que empaqueta la URL del backend y el device token). Se lo pasa al agente por una de dos vías equivalentes: como argumento (`permea enroll <enrollment-string>`) o por **stdin** (`permea enroll` sin argumento, o `permea enroll -`) para no dejar el secreto en la lista de procesos ni en el historial del shell. El agente lo decodifica en URL + token, verifica el token contra esa URL y, si es válido, lo guarda de forma segura en la máquina para poder transmitir metadato a partir de ese momento.
 
 **Why this priority**: Es el propósito central de la feature y el MVP. Sin un enrolamiento válido, el agente no puede autenticarse ante el backend y todo el resto del producto (medición, transmisión) queda inutilizable. Entrega valor por sí solo.
 
@@ -30,6 +30,7 @@ Un desarrollador acaba de obtener del backend, una sola vez, el **enrollment str
 2. **Given** un enrolamiento recién confirmado, **When** se inspecciona el fichero de configuración local, **Then** contiene el endpoint (la URL decodificada) y el token, y tiene permisos **0600** (solo el dueño lee/escribe), en la ruta de configuración resuelta por el sistema operativo.
 3. **Given** el comando de enrolamiento en ejecución, **When** se captura toda su salida (stdout, stderr y logs), **Then** ni el enrollment string ni el token que contiene aparecen en ninguna parte salvo el propio argumento que el usuario pegó.
 4. **Given** un enrollment string cuya URL usa el esquema `http://` en claro, **When** el usuario intenta enrolar, **Then** el transporte lo rechaza conforme al contrato (TLS obligatorio) y el enrolamiento aborta sin persistir nada.
+5. **Given** un enrollment string válido enviado por **stdin** (`permea enroll` sin argumento, o `permea enroll -`), **When** el usuario enrola, **Then** el flujo es el **mismo** que con el argumento posicional (decodifica, verifica con lote vacío, confirma) y el secreto **no** queda en la lista de procesos.
 
 ---
 
@@ -68,7 +69,8 @@ Un usuario quiere saber si su agente está enrolado y contra qué backend está 
 
 ### Edge Cases
 
-- **Falta el argumento**: `permea enroll` sin enrollment string termina con un error de uso claro y no persiste nada.
+- **Falta el argumento pero hay stdin**: `permea enroll` sin argumento (o `permea enroll -`) lee el enrollment string de stdin y sigue el flujo normal.
+- **Sin argumento y sin stdin** (terminal interactiva sin pipe): el agente termina con un **error de uso** y **exit ≠ 0** (seguro en contextos no-interactivos como CI); NUNCA muestra un prompt que se cuelgue esperando indefinidamente.
 - **Enrollment string malformado**: si el argumento no decodifica a un par URL + token válido, el agente aborta con un error que **no** reproduce el argumento y no persiste nada.
 - **Fichero de configuración preexistente con permisos laxos**: al persistir un token verificado, el agente **fija** los permisos a 0600 y no confía en el umask heredado.
 - **Re-enrolamiento seguro**: ejecutar `permea enroll` con un nuevo enrollment string válido reemplaza el token almacenado (última escritura gana); la sobrescritura **no** deja el token viejo en disco (ni ficheros `.bak` ni temporales con el secreto). La rotación/revocación como ciclo de vida es del backend y queda fuera de alcance.
@@ -78,7 +80,7 @@ Un usuario quiere saber si su agente está enrolado y contra qué backend está 
 
 ### Functional Requirements
 
-- **FR-001**: El comando `permea enroll <enrollment-string>` DEBE aceptar como argumento un **enrollment string** que empaqueta la **URL del backend** y el **device token en claro** (el valor que el backend genera y revela una sola vez). El agente DEBE **decodificarlo** en URL + token y usar **ambos** para el ping de verificación. El token que P-001 verifica sigue siendo el mismo; el enrollment string es solo el envoltorio de entrega.
+- **FR-001**: El comando `permea enroll` DEBE aceptar el **enrollment string** —que empaqueta la **URL del backend** y el **device token en claro** (el valor que el backend genera y revela una sola vez)— por **dos vías equivalentes**: como **argumento posicional** (`permea enroll <enrollment-string>`), o por **stdin** (`permea enroll` sin argumento, o `permea enroll -`) para no dejar el secreto en la lista de procesos ni en el historial del shell. Ambas vías producen el **mismo flujo**. El agente DEBE **decodificarlo** en URL + token y usar **ambos** para el ping de verificación. El token que P-001 verifica sigue siendo el mismo; el enrollment string es solo el envoltorio de entrega.
 - **FR-002**: Antes de persistir el token, el agente DEBE **verificarlo** contra el backend reutilizando el **contrato de transporte existente** (un ping de ingesta de **lote vacío** contra `/ingest`); NUNCA DEBE inventar un endpoint de verificación nuevo.
 - **FR-003**: Una **respuesta de aceptación** del backend (2xx) DEBE confirmar el enrolamiento; una respuesta **401/403** (token inválido o revocado) DEBE rechazarlo.
 - **FR-004**: Ante un token rechazado o no verificable, el agente NUNCA DEBE persistir el token; el estado del sistema tras un rechazo DEBE ser indistinguible de no haber intentado enrolar (no queda token inútil).
@@ -92,6 +94,7 @@ Un usuario quiere saber si su agente está enrolado y contra qué backend está 
 - **FR-012**: El **esquema del token** y el **endpoint de ingesta** son la fuente de verdad (P-001 / P-002); 003 los **consume** y NUNCA los define.
 - **FR-013**: El **formato del enrollment string** DEBE especificarse en `specs/003-enrolamiento/contracts/enrollment-string.md` (lo generará el plan) como fuente de verdad de ese envoltorio. 003 **define** este formato porque es el lado que lo decodifica; P-002 (backend) lo **consumirá** para emitirlo. Este contrato NUNCA DEBE redefinir el esquema del token ni el endpoint de ingesta (que siguen siendo de P-001 / P-002).
 - **FR-014**: El re-enrolamiento DEBE **sobrescribir** el token almacenado sin dejar el token viejo en disco: NUNCA DEBE quedar una copia del secreto en ficheros `.bak`, temporales u otros residuos tras reemplazarlo.
+- **FR-015**: Al leer el enrollment string por **stdin**, el agente NUNCA DEBE hacerlo **eco** a la terminal ni dejarlo en salida alguna (coherente con FR-007): se consume del flujo de entrada y no se reimprime.
 
 ### Key Entities
 
@@ -104,7 +107,7 @@ Un usuario quiere saber si su agente está enrolado y contra qué backend está 
 ## Success Criteria *(mandatory)*
 
 - **SC-001**: Un usuario enrola el agente con **un único comando** (`permea enroll <enrollment-string>`) y, con un enrollment string válido, obtiene una **confirmación** explícita de enrolamiento.
-- **SC-002**: Tras un enrolamiento exitoso, el fichero de configuración que contiene el token tiene permisos **0600** (solo el dueño), verificable en macOS, Linux y Windows nativo.
+- **SC-002**: Tras un enrolamiento exitoso, el fichero de configuración que contiene el token queda restringido a **solo el usuario propietario** en las tres plataformas: en POSIX (macOS, Linux) con permisos **`0600`**; en Windows nativo, residiendo en el directorio de configuración por-usuario (ACL heredada que lo restringe al usuario) más el atributo de **solo-lectura** que `Chmod` sí fija. Verificable como "ningún otro usuario puede leer el fichero" en cada SO (en POSIX, `stat` = `600`).
 - **SC-003**: Ni el enrollment string ni el device token que contiene aparecen **NUNCA** en la salida estándar, los logs ni los mensajes de error del agente, verificable inspeccionando toda la salida de `enroll` y `status` (salvo el argumento que el usuario pega).
 - **SC-004**: Un enrolamiento con token inválido o revocado (401/403) se **rechaza** y no deja **ningún** token persistido: el estado posterior es idéntico al de no haber enrolado.
 - **SC-005**: `permea status` informa correctamente el estado (**enrolado / no enrolado**) y, si enrolado, la **URL** del backend, sin revelar el token.
@@ -113,6 +116,7 @@ Un usuario quiere saber si su agente está enrolado y contra qué backend está 
 - **SC-008**: El enrolamiento **reutiliza** el contrato de transporte existente (HTTPS + Bearer) y **no introduce ningún endpoint nuevo**; una URL `http://` en claro se rechaza y el enrolamiento aborta.
 - **SC-009**: El ping de verificación (lote vacío) **no persiste ni altera estado** en el backend más allá de confirmar la autenticación: no crea eventos ni deja rastro de metadato (verificable en el estado del backend antes/después del ping).
 - **SC-010**: Un re-enrolamiento con un enrollment string válido reemplaza el token y **no deja el token viejo en disco** (sin ficheros `.bak` ni temporales con el secreto), verificable inspeccionando la ruta de configuración tras la operación.
+- **SC-011**: Un enrollment string introducido por **stdin** **no aparece** en la lista de procesos (argv) del comando, verificable inspeccionando los argumentos del proceso durante `permea enroll`.
 
 ## Assumptions
 
