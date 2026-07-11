@@ -87,8 +87,28 @@ func main() {
 			os.Exit(1)
 		}
 	default:
-		fmt.Fprintf(os.Stderr, "sin --scan/--run/--daemon: nada que hacer. config por defecto: %+v\n", config.Default())
+		printUsage(os.Stderr)
 	}
+}
+
+// printUsage escribe una ayuda breve: subcomandos (enroll/status) y flags. NUNCA vuelca la
+// configuración ni el device_token (FR-007): solo describe el uso. La vía stdin de `enroll`
+// se documenta como la recomendada, para no dejar el secreto en el historial del shell (cli.md).
+func printUsage(w io.Writer) {
+	_, _ = fmt.Fprint(w, `uso: permea <subcomando | flag>
+
+Subcomandos:
+  enroll [<enrollment-string>]  empareja el agente con su backend: verifica el token y lo guarda.
+                                Recomendado: pásalo por stdin para no dejar el secreto en el
+                                historial del shell, p. ej.:  echo "$ENROLL" | permea enroll -
+  status                        informa si el agente está enrolado y contra qué backend (nunca el token).
+
+Flags (ingesta, P-001/P-002):
+  --scan <fichero>  dry-run: imprime eventos de un JSONL, sin tocar estado ni cola.
+  --run             una pasada: escanea, encola y drena al backend.
+  --daemon          bucle continuo: cada sync_interval genera y transmite.
+  --version         imprime la versión y termina.
+`)
 }
 
 // agent agrupa el contexto resuelto una sola vez (directorio de datos, config, salt e

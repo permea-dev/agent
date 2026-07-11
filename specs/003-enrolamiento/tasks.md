@@ -109,10 +109,10 @@ existentes; **no** crea paquetes nuevos ni toca la frontera (`internal/event`, `
 
 **Purpose**: Ayuda/usage, validación end-to-end, auditoría de secreto y puertas de calidad.
 
-- [ ] T016 [P] Ayuda y usage: el mensaje de ayuda de `enroll` DEBE mencionar la vía **stdin** como la **recomendada** (per `contracts/cli.md`); actualizar el usage de `cmd/permea/main.go` para listar `enroll` y `status` junto a los flags existentes.
-- [ ] T017 [P] Ejecutar la validación de `quickstart.md` (pasos 2–8, incl. permisos 0600, redacción, 2xx/401, **re-enrolamiento sin residuos** SC-010, vía stdin SC-011) y dejar constancia de resultados.
-- [ ] T018 [P] Auditoría de higiene del secreto (FR-007): revisar que ninguna ruta de código vuelca `Config`/token con `%+v` ni lo registra (incl. la rama `default:` y los mensajes de error de `main.go`); confirmar que `enroll`/`status` no exponen el token en ninguna salida.
-- [ ] T019 [P] Puertas de calidad de la constitución: `go vet ./...` sin hallazgos, `golangci-lint run` limpio, `go test ./...` en verde; **confirmar que el golden test de frontera sigue verde** — 003 no toca la frontera (FR-009).
+- [X] T016 [P] Ayuda y usage: el mensaje de ayuda de `enroll` DEBE mencionar la vía **stdin** como la **recomendada** (per `contracts/cli.md`); actualizar el usage de `cmd/permea/main.go` para listar `enroll` y `status` junto a los flags existentes.
+- [X] T017 [P] Ejecutar la validación de `quickstart.md` (pasos 2–8, incl. permisos 0600, redacción, 2xx/401, **re-enrolamiento sin residuos** SC-010, vía stdin SC-011) y dejar constancia de resultados.
+- [X] T018 [P] Auditoría de higiene del secreto (FR-007): revisar que ninguna ruta de código vuelca `Config`/token con `%+v` ni lo registra (incl. la rama `default:` y los mensajes de error de `main.go`); confirmar que `enroll`/`status` no exponen el token en ninguna salida.
+- [X] T019 [P] Puertas de calidad de la constitución: `go vet ./...` sin hallazgos, `golangci-lint run` limpio, `go test ./...` en verde; **confirmar que el golden test de frontera sigue verde** — 003 no toca la frontera (FR-009).
 
 ---
 
