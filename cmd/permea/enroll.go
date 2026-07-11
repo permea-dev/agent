@@ -48,9 +48,15 @@ func enroll(args []string, stdin io.Reader, stdinIsPipe bool, stdout io.Writer, 
 		return err
 	}
 
-	// Verificar ANTES de persistir. El error del transporte no contiene el token.
+	// Verificar ANTES de persistir. En ambas ramas de error NO se persiste y el mensaje
+	// NUNCA incluye el token (el error del transporte solo referencia código HTTP/red, no
+	// la cabecera Bearer). Se distingue "rechazado" (auth) de "no verificable" (transitorio)
+	// para dar un diagnóstico correcto sin filtrar el secreto.
 	if err := verify(endpoint, token); err != nil {
-		return fmt.Errorf("no se pudo verificar el enrolamiento: %w", err)
+		if transport.IsAuth(err) {
+			return fmt.Errorf("token rechazado por el backend (401/403): revoca y reemite el enrollment string desde el backend")
+		}
+		return fmt.Errorf("no se pudo verificar (backend no disponible): %w", err)
 	}
 
 	dir, err := config.DataDir()
