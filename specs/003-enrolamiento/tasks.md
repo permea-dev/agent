@@ -97,9 +97,9 @@ existentes; **no** crea paquetes nuevos ni toca la frontera (`internal/event`, `
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Implementar `cmd/permea/status.go` (`runStatus() error`): `config.Load` desde `config.DataDir`; si `config.IsEnrolled(cfg)` imprimir **enrolado** + la **URL** (`cfg.Endpoint`) y a lo sumo un indicador de token tipo `token: configurado`; si no, imprimir **no enrolado**; NUNCA imprimir `cfg.DeviceToken`. Operación local, sin contactar al backend (FR-008, SC-005).
-- [ ] T014 [US3] Añadir el despacho del subcomando `status` en `cmd/permea/main.go`: si `os.Args[1] == "status"` → `runStatus()`; conservar los flags existentes.
-- [ ] T015 [US3] Test en `cmd/permea/status_test.go` con config dir temporal: (a) enrolado → salida contiene la URL y **no** el token; (b) sin enrolar → "no enrolado", exit 0, sin secreto (FR-008, SC-005).
+- [X] T013 [US3] Implementar `cmd/permea/status.go` (`runStatus() error`): `config.Load` desde `config.DataDir`; si `config.IsEnrolled(cfg)` imprimir **enrolado** + la **URL** (`cfg.Endpoint`) y a lo sumo un indicador de token tipo `token: configurado`; si no, imprimir **no enrolado**; NUNCA imprimir `cfg.DeviceToken`. Operación local, sin contactar al backend (FR-008, SC-005).
+- [X] T014 [US3] Añadir el despacho del subcomando `status` en `cmd/permea/main.go`: si `os.Args[1] == "status"` → `runStatus()`; conservar los flags existentes.
+- [X] T015 [US3] Test en `cmd/permea/status_test.go` con config dir temporal: (a) enrolado → salida contiene la URL y **no** el token; (b) sin enrolar → "no enrolado", exit 0, sin secreto (FR-008, SC-005).
 
 **Checkpoint**: Las tres historias cubiertas — enrolar (argv/stdin), rechazar de forma segura y consultar el estado.
 
