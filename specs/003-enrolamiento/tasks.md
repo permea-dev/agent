@@ -37,7 +37,7 @@ existentes; **no** crea paquetes nuevos ni toca la frontera (`internal/event`, `
 
 **Purpose**: Confirmar la superficie reutilizada y que no se introducen dependencias nuevas.
 
-- [ ] T001 [P] Verificar el estado de partida (no reinventar) leyendo `internal/config/config.go` y `internal/transport/transport.go`: confirmar `Config.Endpoint`/`Config.DeviceToken`, `Save` 0600, `Validate` https, `Client.Send`/`New`/`IsAuth`; confirmar que `go.mod` NO necesita dependencias nuevas (solo stdlib: `encoding/base64`, `encoding/json`, `bufio`, `os`).
+- [X] T001 [P] Verificar el estado de partida (no reinventar) leyendo `internal/config/config.go` y `internal/transport/transport.go`: confirmar `Config.Endpoint`/`Config.DeviceToken`, `Save` 0600, `Validate` https, `Client.Send`/`New`/`IsAuth`; confirmar que `go.mod` NO necesita dependencias nuevas (solo stdlib: `encoding/base64`, `encoding/json`, `bufio`, `os`).
 
 ---
 
@@ -47,10 +47,10 @@ existentes; **no** crea paquetes nuevos ni toca la frontera (`internal/event`, `
 
 **⚠️ CRITICAL**: Ninguna historia puede completarse sin estas piezas. Las dos parejas test→impl están en ficheros distintos (`config` vs `transport`) y pueden avanzar en paralelo entre sí.
 
-- [ ] T002 [P] Añadir tests test-first en `internal/config/enrollment_test.go` para la decodificación del enrollment string (per `contracts/enrollment-string.md`): (a) `pmea1.<base64url(json)>` válido → `(endpoint, token)`; (b) prefijo desconocido → error; (c) base64 inválido → error; (d) JSON malformado → error; (e) `endpoint` con esquema `http://`/no-https → error; (f) `token` vacío → error; (g) **ningún error reproduce el argumento de entrada** (FR-007/FR-013). **Debe FALLAR** antes de T003.
-- [ ] T003 [P] Implementar `internal/config/enrollment.go`: `ParseEnrollmentString(s string) (endpoint, token string, err error)` (strip prefijo `pmea1.` → `base64.RawURLEncoding.Decode` → `json.Unmarshal` en struct cerrada `{endpoint, token}` → validar `https` y token no vacío; errores **sin** eco del argumento) y `IsEnrolled(cfg config.Config) bool` (`Endpoint!="" && DeviceToken!="" && Validate()==nil`) — deja T002 en verde (FR-001, FR-012, FR-013).
-- [ ] T004 [P] Añadir un test test-first en `internal/transport/transport_test.go` (`TestVerifyEmptyBatch`) usando `httptest.NewTLSServer`: aseverar que `Verify()` envía un cuerpo **exactamente `[]`** (cero eventos, cero metadato), con `Authorization: Bearer`, y que `2xx`→`nil`, `401`→`IsAuth`, `5xx`/red→error no-auth. **Debe FALLAR** antes de T005 (FR-002, FR-009, FR-010, SC-006, SC-009).
-- [ ] T005 [P] Implementar `func (c *Client) Verify() error` en `internal/transport/transport.go`: `return c.Send([]event.Event{})` (slice **no-nil** → `[]`), un solo intento (sin `sendWithRetry`); documentar "ping de lote vacío; reutiliza el contrato de transporte, sin endpoint nuevo" — deja T004 en verde (FR-002, FR-011).
+- [X] T002 [P] Añadir tests test-first en `internal/config/enrollment_test.go` para la decodificación del enrollment string (per `contracts/enrollment-string.md`): (a) `pmea1.<base64url(json)>` válido → `(endpoint, token)`; (b) prefijo desconocido → error; (c) base64 inválido → error; (d) JSON malformado → error; (e) `endpoint` con esquema `http://`/no-https → error; (f) `token` vacío → error; (g) **ningún error reproduce el argumento de entrada** (FR-007/FR-013). **Debe FALLAR** antes de T003.
+- [X] T003 [P] Implementar `internal/config/enrollment.go`: `ParseEnrollmentString(s string) (endpoint, token string, err error)` (strip prefijo `pmea1.` → `base64.RawURLEncoding.Decode` → `json.Unmarshal` en struct cerrada `{endpoint, token}` → validar `https` y token no vacío; errores **sin** eco del argumento) y `IsEnrolled(cfg config.Config) bool` (`Endpoint!="" && DeviceToken!="" && Validate()==nil`) — deja T002 en verde (FR-001, FR-012, FR-013).
+- [X] T004 [P] Añadir un test test-first en `internal/transport/transport_test.go` (`TestVerifyEmptyBatch`) usando `httptest.NewTLSServer`: aseverar que `Verify()` envía un cuerpo **exactamente `[]`** (cero eventos, cero metadato), con `Authorization: Bearer`, y que `2xx`→`nil`, `401`→`IsAuth`, `5xx`/red→error no-auth. **Debe FALLAR** antes de T005 (FR-002, FR-009, FR-010, SC-006, SC-009).
+- [X] T005 [P] Implementar `func (c *Client) Verify() error` en `internal/transport/transport.go`: `return c.Send([]event.Event{})` (slice **no-nil** → `[]`), un solo intento (sin `sendWithRetry`); documentar "ping de lote vacío; reutiliza el contrato de transporte, sin endpoint nuevo" — deja T004 en verde (FR-002, FR-011).
 
 **Checkpoint**: `go test ./internal/config/ ./internal/transport/` en verde; decode y ping de verificación disponibles.
 

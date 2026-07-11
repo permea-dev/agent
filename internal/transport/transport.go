@@ -88,6 +88,16 @@ func New(endpoint, token string) *Client {
 	}
 }
 
+// Verify comprueba el device token con un ping de ingesta de **lote vacío** contra el
+// mismo `/ingest`: reutiliza el contrato de transporte (Send), sin inventar ningún
+// endpoint nuevo. El slice es **no-nil** (`[]event.Event{}`) para que el cuerpo sea `[]`
+// y no `null` —un `null` no es un lote válido—. Un solo intento (sin backoff): en el
+// enrolamiento, un 5xx/red significa "no verificable → no persistir", no reintentar.
+// No cruza la frontera: cero eventos, cero metadato (Principio I).
+func (c *Client) Verify() error {
+	return c.Send([]event.Event{})
+}
+
 // Send transmite un lote de eventos por HTTPS autenticado e interpreta el código de
 // estado según el contrato (2xx=aceptado, 401/403=auth, 5xx=reintentar, otros 4xx=error).
 // La deduplicación extremo a extremo se apoya en event_id.
