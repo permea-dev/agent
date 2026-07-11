@@ -38,6 +38,16 @@ func printVersion(w io.Writer) {
 }
 
 func main() {
+	// Subcomandos (P-003): se despachan ANTES del parseo de flags para no interferir con
+	// los flags de P-001/P-002 (--scan/--run/--daemon/--version), que se conservan intactos.
+	if len(os.Args) >= 2 && os.Args[1] == "enroll" {
+		if err := runEnroll(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	scan := flag.String("scan", "", "ruta a un JSONL de Claude Code para dry-run (imprime eventos, no envía)")
 	run := flag.Bool("run", false, "una pasada: escanea, encola en queue.jsonl y drena al backend (US1 + US2)")
 	daemon := flag.Bool("daemon", false, "bucle continuo: cada sync_interval genera y transmite (US2)")
