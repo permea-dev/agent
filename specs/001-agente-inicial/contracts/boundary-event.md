@@ -32,7 +32,7 @@ El evento se serializa como JSON. Esquema (informativo, JSON-Schema-like):
     "tokens_cache_read":     { "type": "integer", "minimum": 0 },
     "cost_usd":              { "type": "number", "description": "válido solo si cost_available" },
     "cost_available":        { "type": "boolean", "description": "false si el modelo no está en la tabla local" },
-    "project_ref":           { "type": "string", "description": "hash salado, SIEMPRE; nunca la ruta en claro (opt-in plain retirado en 004)" },
+    "project_ref":           { "type": "string", "description": "hash salado de la RAIZ del arbol de trabajo (004), con reserva al directorio normalizado; SIEMPRE irreversible, nunca la ruta en claro" },
     "session_ref":           { "type": "string", "description": "hash salado" },
     "machine_ref":           { "type": "string", "description": "hash salado" },
     "dev_id":                { "type": "string" },

@@ -587,3 +587,104 @@ func exigirIdentidadUtilizable(t *testing.T, ruta string) {
 		t.Errorf("G8+G2: la identidad degradada debe conservar la forma del contrato\n  %s → %q", ruta, got)
 	}
 }
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// T032 · La caché de pasada
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestResolutor_UnaResolucionPorDirectorioDistinto es la comprobación de SC-006, y se hace
+// CONTANDO RESOLUCIONES, no midiendo tiempo: la garantía es estructural —una resolución por
+// directorio distinto, no por evento— y un cronómetro no la demostraría, solo la sugeriría
+// con un número que oscila.
+//
+// La unicidad se observa por el TAMAÑO DE LA CACHÉ, leyendo el campo no exportado desde el
+// propio paquete. No hace falta ninguna costura de producción para contar: si hubiera que
+// añadir un contador solo para el test, se estaría deformando el sujeto para que el test
+// pudiera morderlo.
+func TestResolutor_UnaResolucionPorDirectorioDistinto(t *testing.T) {
+	base := t.TempDir()
+	proyecto := filepath.Join(base, "proy")
+	crearRepo(t, proyecto)
+	sub := filepath.Join(proyecto, "a", "b")
+	crearDirs(t, sub)
+	otro := filepath.Join(base, "suelto")
+	crearDirs(t, otro)
+
+	r := NuevoResolutor()
+
+	// El mismo cwd muchas veces —el caso real: cientos de eventos de un fichero de log— más
+	// dos directorios distintos.
+	for i := 0; i < 50; i++ {
+		r.Derivar(sub, saltDePrueba)
+	}
+	r.Derivar(proyecto, saltDePrueba)
+	r.Derivar(otro, saltDePrueba)
+
+	if len(r.cache) != 3 {
+		t.Errorf("SC-006: la caché debe tener UNA entrada por directorio DECLARADO distinto (3), no una\n"+
+			"por evento (52); tiene %d", len(r.cache))
+	}
+}
+
+// TestResolutor_LaCacheOptimizaNoDecide es la mitad que impide que la caché se convierta en
+// parte de la derivación: con acierto y sin él, la identidad es la MISMA.
+//
+// Si faltara, una caché que devolviera cualquier cosa recordada —o que se saltara la
+// resolución en el primer uso— pasaría el test de unicidad con nota.
+func TestResolutor_LaCacheOptimizaNoDecide(t *testing.T) {
+	base := t.TempDir()
+	proyecto := filepath.Join(base, "proy")
+	crearRepo(t, proyecto)
+	sub := filepath.Join(proyecto, "sub")
+	crearDirs(t, sub)
+
+	casos := []string{sub, proyecto, filepath.Join(base, "no-existe"), ""}
+	r := NuevoResolutor()
+
+	for _, cwd := range casos {
+		sinCache := Derivar(cwd, saltDePrueba)
+		primera := r.Derivar(cwd, saltDePrueba) // fallo de caché
+		segunda := r.Derivar(cwd, saltDePrueba) // acierto de caché
+
+		if primera != sinCache || segunda != sinCache {
+			t.Errorf("la caché OPTIMIZA, no DECIDE: para %q debe dar lo mismo que Derivar\n"+
+				"  sin caché → %s\n  1.ª (fallo) → %s\n  2.ª (acierto) → %s",
+				cwd, sinCache, primera, segunda)
+		}
+	}
+}
+
+// TestResolutor_NilDerivaSinCache protege el contrato del receptor nil: quien construya un
+// contexto de ingesta sin resolutor —el dry-run de `--scan`, o un test que arme su Context a
+// mano— sigue derivando igual. Sin esta garantía, añadir la caché habría roto a todo el que
+// no la pidió.
+func TestResolutor_NilDerivaSinCache(t *testing.T) {
+	base := t.TempDir()
+	proyecto := filepath.Join(base, "proy")
+	crearRepo(t, proyecto)
+	sub := filepath.Join(proyecto, "sub")
+	crearDirs(t, sub)
+
+	var nulo *Resolutor
+	if got, want := nulo.Derivar(sub, saltDePrueba), Derivar(sub, saltDePrueba); got != want {
+		t.Errorf("un *Resolutor nil debe derivar sin caché y dar el mismo resultado\n  nil → %s\n  Derivar → %s", got, want)
+	}
+}
+
+// TestResolutor_CadaUnoTieneSuPropiaCache: dos resolutores no comparten memoria. Es lo que
+// hace que el ámbito sea la PASADA y no el proceso — si compartieran, `tick()` heredaría lo
+// resuelto en el ciclo anterior y un directorio que cambiara de naturaleza no se enteraría
+// hasta reiniciar el daemon.
+func TestResolutor_CadaUnoTieneSuPropiaCache(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "x")
+	crearDirs(t, dir)
+
+	primero := NuevoResolutor()
+	primero.Derivar(dir, saltDePrueba)
+
+	segundo := NuevoResolutor()
+	if len(segundo.cache) != 0 {
+		t.Errorf("un resolutor nuevo debe nacer sin memoria del anterior; tiene %d entradas", len(segundo.cache))
+	}
+}

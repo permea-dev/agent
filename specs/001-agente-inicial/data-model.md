@@ -26,7 +26,7 @@ Struct **cerrado** (allowlist). No admite passthrough de campos crudos del log.
 | `tokens_cache_read` | int | log (`usage.cache_read_input_tokens`) | ≥ 0. |
 | `cost_usd` | float64 | `pricing.Cost` (local) | Válido solo si `cost_available`. |
 | `cost_available` | bool | `pricing.Cost` (local) | **Nuevo (R5)**: `false` si el modelo no está en la tabla. |
-| `project_ref` | string | `Ref(salt, cwd)` | Hash salado **siempre**; nunca la ruta en claro (el opt-in `plain` quedó **retirado en 004**). |
+| `project_ref` | string | `Ref(salt, raíz del proyecto)` — **004**; antes `Ref(salt, cwd)` | Hash salado **siempre**; nunca la ruta en claro (el opt-in `plain` quedó **retirado en 004**). La raíz es la del árbol de trabajo que contiene el directorio de lanzamiento; si ninguno lo contiene, el propio directorio normalizado. |
 | `session_ref` | string | `Ref(salt, sessionId)` | Hash salado. |
 | `machine_ref` | string | `Ref(salt, machineID)` | Hash salado. |
 | `dev_id` | string | local (`Context.DevID`) | Identidad, no contenido. |

@@ -125,7 +125,10 @@ Revisión realizada leyendo **exclusivamente** `internal/event/event.go` e
   que una futura versión de Claude Code que añada contenido no puede colarlo. Un
   comentario-guardia prohíbe explícitamente ampliar `rawRecord` con contenido.
 - Los identificadores sensibles (`cwd`, `sessionId`, `machineID`) solo cruzan como hash
-  salado vía `event.Ref`; el `salt` vive en local y nunca se transmite.
+  salado vía `event.Ref`; el `salt` vive en local y nunca se transmite. **Desde 004**, lo que
+  se hashea para el proyecto no es el `cwd` sino la **raíz del árbol de trabajo** que lo
+  contiene (con reserva al propio directorio normalizado); la garantía es la misma —nada en
+  claro—, cambia **qué** se deriva.
 
 **Verificación con teeth (regresión):** el golden test `TestBoundary_NoDenylistLeaks`, el
 caso `TestBoundary_UnknownFutureFieldDoesNotLeak` (campo NUEVO y DESCONOCIDO con contenido,

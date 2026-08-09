@@ -215,3 +215,57 @@ func cuelgaDe(ruta, base string) bool {
 	}
 	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
+
+// ═══ P-004 T032 · LA CACHÉ DE PASADA ══════════════════════════════════════════════════════
+
+// Resolutor deriva identidades recordando las que ya resolvió DENTRO DE UNA PASADA.
+//
+// PARA QUÉ (SC-006): un fichero de log típico trae **cientos de eventos del mismo directorio
+// de trabajo**, y cada uno dispararía el mismo `EvalSymlinks` y el mismo ascenso. La garantía
+// de SC-006 es **por diseño** —una resolución por directorio distinto, no por evento—, y esto
+// es ese diseño. No hay benchmark que la sostenga: los tests de tiempo son la familia de
+// flakes ya fichada, y un número que oscila no demuestra una propiedad estructural.
+//
+// LAS TRES DECISIONES, y sus porqués (data-model §entidad 6, research §P3):
+//
+//	· CLAVE = el directorio DECLARADO, tal cual viene del log. No la ruta real: la caché se
+//	  consulta ANTES de resolver, así que usar la ruta real obligaría a resolverla para poder
+//	  preguntar — justo el trabajo que la caché existe para evitar.
+//	· VALOR = la identidad YA DERIVADA, no la ruta intermedia. Así el acierto se ahorra
+//	  también el hash.
+//	· ÁMBITO = una PASADA, no el proceso. En `--daemon` el proceso vive días: una caché de
+//	  proceso serviría identidad obsoleta a un directorio que entretanto se convirtió en
+//	  repositorio. Una pasada es un instante de observación; el proceso no lo es.
+//
+// LA CACHÉ OPTIMIZA, NO DECIDE: `Derivar` y `Resolutor.Derivar` devuelven exactamente lo
+// mismo para la misma entrada. Dos grafías distintas del mismo directorio son dos claves y se
+// resuelven por separado —**y convergen igual**, porque quien decide es la derivación.
+type Resolutor struct {
+	cache map[string]string
+}
+
+// NuevoResolutor crea un resolutor con su caché vacía. Se llama UNA VEZ POR PASADA: ahí vive
+// el ámbito, y por eso no hay ninguna instancia global ni perezosa que pudiera sobrevivirle.
+func NuevoResolutor() *Resolutor {
+	return &Resolutor{cache: make(map[string]string)}
+}
+
+// Derivar es `Derivar` con memoria de la pasada.
+//
+// EL RECEPTOR NIL ES VÁLIDO Y DELIBERADO: un `*Resolutor` nil deriva sin caché. Así, quien
+// construya un contexto de ingesta sin resolutor —el dry-run de `--scan`, o cualquier test
+// que arme su `ingest.Context` a mano— sigue funcionando exactamente igual, solo que sin el
+// ahorro. La alternativa —exigir un resolutor siempre— obligaría a tocar cada punto de
+// construcción para ganar nada: la caché es una optimización, y una optimización que rompe a
+// quien no la pide está mal puesta.
+func (r *Resolutor) Derivar(cwdDeclarado, salt string) string {
+	if r == nil {
+		return Derivar(cwdDeclarado, salt)
+	}
+	if identidad, visto := r.cache[cwdDeclarado]; visto {
+		return identidad
+	}
+	identidad := Derivar(cwdDeclarado, salt)
+	r.cache[cwdDeclarado] = identidad
+	return identidad
+}
