@@ -26,7 +26,7 @@ Struct **cerrado** (allowlist). No admite passthrough de campos crudos del log.
 | `tokens_cache_read` | int | log (`usage.cache_read_input_tokens`) | ≥ 0. |
 | `cost_usd` | float64 | `pricing.Cost` (local) | Válido solo si `cost_available`. |
 | `cost_available` | bool | `pricing.Cost` (local) | **Nuevo (R5)**: `false` si el modelo no está en la tabla. |
-| `project_ref` | string | `Ref(salt, cwd)` | Hash salado; nunca la ruta en claro (salvo opt-in `plain`). |
+| `project_ref` | string | `Ref(salt, cwd)` | Hash salado **siempre**; nunca la ruta en claro (el opt-in `plain` quedó **retirado en 004**). |
 | `session_ref` | string | `Ref(salt, sessionId)` | Hash salado. |
 | `machine_ref` | string | `Ref(salt, machineID)` | Hash salado. |
 | `dev_id` | string | local (`Context.DevID`) | Identidad, no contenido. |
@@ -102,7 +102,7 @@ Reintentos con backoff; sin red permanece `pendiente`. La dedup extremo a extrem
 | `device_token` | string | — | Token por instalación; auth Bearer. |
 | `org_id` | string | — | Identidad de organización. |
 | `dev_id` | string | — | Identidad de desarrollador. |
-| `project_ref_mode` | `ProjectRefMode` | `hash` | `hash` (por defecto) u opt-in `plain`. |
+| ~~`project_ref_mode`~~ | — | — | **Retirado en 004** (FR-014/FR-015): el ajuste ya no existe. La identidad de proyecto cruza **siempre** de forma irreversible, sin modo alternativo. |
 | `tools` | []string | `["claude_code"]` | Herramientas activas (esta spec: solo claude_code). |
 | `sync_interval` | string | `"60s"` | Cadencia del ciclo de sync. |
 

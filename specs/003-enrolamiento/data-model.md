@@ -39,8 +39,8 @@ no añade ninguno:
 | `endpoint` (`Endpoint`) | string | URL del backend, decodificada del enrollment string. Base de `status`. |
 | `device_token` (`DeviceToken`) | string | Token verificado. Secreto; `status` NUNCA lo muestra. |
 
-Resto de campos (`org_id`, `dev_id`, `project_ref_mode`, `tools`, `sync_interval`, `logs_root`)
-quedan **intactos** al enrolar (se preservan los valores previos vía `Load` → mutar 2 campos → `Save`).
+Resto de campos (`org_id`, `dev_id`, `tools`, `sync_interval`, `logs_root`) quedan **intactos** al
+enrolar (se preservan los valores previos vía `Load` → mutar 2 campos → `Save`).
 
 **Persistencia**: `config.json` bajo el directorio de datos por SO (`config.DataDir`), permisos
 **`0600`**, reescritura atómica temp+rename (ya implementada en `config.Save`/`atomicWrite`).

@@ -79,7 +79,7 @@ Una versión futura de Claude Code añade al registro un dato nuevo que contiene
 | Modelo | Modelo empleado |
 | Tokens (entrada, salida, escritura de caché, lectura de caché) | Métricas de consumo |
 | Coste | Calculado en local |
-| Referencia de proyecto | Hash pseudónimo, nunca el nombre en claro (salvo opt-in explícito) |
+| Referencia de proyecto | Hash pseudónimo, nunca el nombre en claro (el opt-in explícito quedó **retirado en 004**: no hay modo alternativo) |
 | Referencia de sesión | Hash pseudónimo |
 | Referencia de máquina | Hash pseudónimo |
 | Identidad de desarrollador y de organización | Identidad, no contenido |

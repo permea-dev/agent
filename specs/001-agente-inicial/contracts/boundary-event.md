@@ -32,7 +32,7 @@ El evento se serializa como JSON. Esquema (informativo, JSON-Schema-like):
     "tokens_cache_read":     { "type": "integer", "minimum": 0 },
     "cost_usd":              { "type": "number", "description": "válido solo si cost_available" },
     "cost_available":        { "type": "boolean", "description": "false si el modelo no está en la tabla local" },
-    "project_ref":           { "type": "string", "description": "hash salado; ruta en claro solo con opt-in plain" },
+    "project_ref":           { "type": "string", "description": "hash salado, SIEMPRE; nunca la ruta en claro (opt-in plain retirado en 004)" },
     "session_ref":           { "type": "string", "description": "hash salado" },
     "machine_ref":           { "type": "string", "description": "hash salado" },
     "dev_id":                { "type": "string" },
@@ -83,7 +83,7 @@ contabilizan (edge case del spec).
 |---|---|---|
 | Texto de mensajes | prompts, respuestas | `rawRecord` no decodifica `message.content`. |
 | Código | ficheros, diffs, fragmentos | Sin campo en el struct. |
-| Identificadores en claro | rutas, nombres de proyecto/rama | Solo `*_ref` hasheados (salvo opt-in `plain`). |
+| Identificadores en claro | rutas, nombres de proyecto/rama | Solo `*_ref` hasheados, **siempre y sin modo alternativo** (el opt-in `plain` quedó **retirado en 004**). |
 | Llamadas a herramientas | argumentos, resultados | Sin campo en el struct. |
 | Secretos | env vars, claves de API | Sin campo en el struct. |
 | Cualquier dato no listado en la allowlist | — | deny-by-default: no existe el campo. |
