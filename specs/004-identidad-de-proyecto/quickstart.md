@@ -92,13 +92,21 @@ Usa el sandbox de los prerrequisitos, de modo que la pasada no toque la instalac
 git rev-parse --short HEAD          # el commit PREVIO a cualquier cambio de comportamiento
 make build
 
-# Dentro del sandbox (ver Prerrequisitos), con logs_root apuntando al fixture:
-./bin/permea --run
+# Dentro del sandbox (ver Prerrequisitos), con logs_root apuntando al fixture.
+# ANTES de la pasada: sembrar `salt` y `machine_id` con las semillas del bloque
+# REPRODUCCIÓN de specs/004-identidad-de-proyecto/baseline-sc004.tsv.
+./bin/permea --run                  # exit != 0 esperado: el envío falla a propósito
 
 # La cola contiene los eventos completos, con los tres refs sin truncar:
-jq -r '[.session_ref, .machine_ref] | @tsv' "$XDG_CONFIG_HOME/permea/queue.jsonl" \
-  | sort -u > specs/004-identidad-de-proyecto/baseline-sc004.tsv
+jq -r '[.project_ref, .session_ref, .machine_ref] | @tsv' "$XDG_CONFIG_HOME/permea/queue.jsonl" \
+  | sort -u   # → filas del .tsv;  y aparte:  wc -l queue.jsonl → events_total
 ```
+
+**Las semillas no son un detalle de montaje**: `LoadOrCreateSalt` genera un valor **aleatorio** si el
+fichero falta (`internal/config/identity.go:13-14`), y como los tres refs son `Ref(salt, valor)`, una
+línea base con salt aleatorio **no se puede reproducir** — V8 no tendría con qué comparar. Los valores
+viven en el **bloque REPRODUCCIÓN del propio `.tsv`**, que es su única fuente de verdad; aquí no se
+copian para que no puedan divergir.
 
 **Por qué la cola y no la salida por pantalla**: `queue.jsonl` contiene el **evento serializado
 completo** —es literalmente lo que cruzaría la frontera—, así que la línea base se toma del mismo
@@ -106,7 +114,7 @@ artefacto que V8 comparará después. La salida de `--scan` es un resumen para h
 referencia byte a byte.
 
 **Resultado esperado**: `baseline-sc004.tsv` **commiteado** antes del primer cambio de
-comportamiento, con las identidades de sesión y máquina previas al cambio.
+comportamiento, con las identidades previas al cambio **y** el recuento de eventos.
 
 ---
 
@@ -249,14 +257,32 @@ proceso— no aparezca por ningún camino.
 
 ---
 
-## V8 · Regresión cero en sesión y máquina (SC-004)
+## V8 · Regresión cero en sesión y máquina (SC-004) y recuento de eventos (SC-003)
+
+**Se repite la pasada de V0, no un `--scan`**: `--scan` solo imprime `project_ref`, y truncado a 8
+caracteres (`cmd/permea/main.go:329-334`), así que no sirve para comparar byte a byte. Misma receta,
+mismo sandbox y **las mismas semillas** del bloque REPRODUCCIÓN de `baseline-sc004.tsv` — con otras,
+los refs no comparan y una discrepancia no significaría nada.
 
 ```bash
-./bin/permea --scan internal/ingest/testdata/claude_code_sample.jsonl
+# Sandbox + config + semillas idénticas a V0, y después:
+./bin/permea --run                  # exit != 0 esperado (envío fallido a propósito)
+
+jq -r '[.project_ref, .session_ref, .machine_ref] | @tsv' "$XDG_CONFIG_HOME/permea/queue.jsonl" | sort -u
+wc -l < "$XDG_CONFIG_HOME/permea/queue.jsonl"
 ```
 
-**Esperado**: las identidades de **sesión** y **máquina** coinciden **byte a byte** con el artefacto
-de V0. Si alguna cambió, se ha tocado algo que FR-019 prohíbe tocar.
+**Esperado, en las dos dimensiones que el artefacto guarda**:
+
+- **Conjunto** (SC-004 / FR-019): las identidades de **sesión** y **máquina** coinciden **byte a
+  byte** con las filas de `baseline-sc004.tsv`. Si alguna cambió, se ha tocado algo que FR-019
+  prohíbe tocar.
+- **Recuento** (SC-003): el número de líneas de `queue.jsonl` coincide con `events_total` del
+  artefacto. Si bajó, se han perdido eventos — y el `sort -u` de la primera comprobación **no lo
+  habría detectado**, porque colapsa los eventos que comparten refs.
+
+*(El `project_ref` de la línea base es para la neutralidad de T007, no para V8: aquí ya cambió a
+propósito, y esa es toda la feature.)*
 
 ---
 
