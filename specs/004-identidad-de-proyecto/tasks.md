@@ -130,17 +130,17 @@ sintácticas convergen y rutas distintas no colisionan.
 
 ### Tests de US2
 
-- [ ] T016 [P] [US2] Test de variaciones sintácticas en `internal/project/resolve_test.go` — **Garantía G6**, casos **9 y 10** (barra final; `.` y `..` redundantes).
-- [ ] T017 [P] [US2] Test de no-colisión en `internal/project/resolve_test.go` — **Garantía G7** (no fusionar lo genuinamente distinto). Es la contra-prueba de T016: sin ella, `Clean` podría sustituirse por una constante y T016 seguiría verde.
-- [ ] T018 [P] [US2] Test de **mejor esfuerzo** en `internal/project/resolve_test.go` — **Garantía G8**, casos **12, 13 y 14** (inexistente, permisos denegados, enlace roto). Asevera que la salida es **no vacía** y que **no hay error**. El caso de permisos se omite con `t.Skip` documentado si la suite corre como root.
+- [x] T016 [P] [US2] Test de variaciones sintácticas en `internal/project/resolve_test.go` — **Garantía G6**, casos **9 y 10** (barra final; `.` y `..` redundantes).
+- [x] T017 [P] [US2] Test de no-colisión en `internal/project/resolve_test.go` — **Garantía G7** (no fusionar lo genuinamente distinto). Es la contra-prueba de T016: sin ella, `Clean` podría sustituirse por una constante y T016 seguiría verde.
+- [x] T018 [P] [US2] Test de **mejor esfuerzo** en `internal/project/resolve_test.go` — **Garantía G8**, casos **12, 13 y 14** (inexistente, permisos denegados, enlace roto). Asevera que la salida es **no vacía** y que **no hay error**. El caso de permisos se omite con `t.Skip` documentado si la suite corre como root.
   **Por qué aquí SÍ se permite el `t.Skip` que T010 prohíbe** (decidido por el orquestador, 2026-08-09): en T018 el caso de permisos es **1 de los 3** que cubren G8 —los otros dos siguen ejerciéndola— y es **físicamente inejecutable como root**, que puede leerlo todo. En T010, en cambio, el skip mataría **la única** cobertura de una promesa de la spec. La asimetría es deliberada; sin escribirla, el siguiente lector la leería como descuido y «armonizaría» una de las dos.
   **FR-010 es ESTRUCTURAL, no se prueba aquí**: «un fallo de resolución nunca detiene el procesamiento del resto del lote» se garantiza por la **firma** — `Derivar` **no devuelve error**, así que no existe rama que pueda propagar un fallo hacia arriba (contrato G8: *«Nunca devuelve error»*). Su verificación end-to-end es **V5, manual y declarada** (T036). **Si algún día `Derivar` ganara un error de retorno, esta nota es el sitio que lo prohíbe**: cambiar la firma convertiría una garantía estructural en una que habría que probar caso por caso.
-- [ ] T019 [P] [US2] Test de **ruta no absoluta** en `internal/project/resolve_test.go` — **Garantía: caso 15**. Asevera que **no** se ancla con `filepath.Abs`: la identidad de una ruta relativa no puede depender del directorio de trabajo del proceso agente.
-- [ ] T020 [P] [US2] Test de **entrada vacía y forma de salida** en `internal/project/resolve_test.go` — **Garantías G1 y G2** (vacío → vacío; no vacío → hex-64 minúscula). G2 protege FR-018: la forma no debe delatar si la identidad viene de raíz o de fallback.
+- [x] T019 [P] [US2] Test de **ruta no absoluta** en `internal/project/resolve_test.go` — **Garantía: caso 15**. Asevera que **no** se ancla con `filepath.Abs`: la identidad de una ruta relativa no puede depender del directorio de trabajo del proceso agente.
+- [x] T020 [P] [US2] Test de **entrada vacía y forma de salida** en `internal/project/resolve_test.go` — **Garantías G1 y G2** (vacío → vacío; no vacío → hex-64 minúscula). G2 protege FR-018: la forma no debe delatar si la identidad viene de raíz o de fallback.
 
 ### Implementación de US2
 
-- [ ] T021 [US2] Implementar el fallback normalizado en `internal/project/resolve.go` — `filepath.Clean` sobre el mejor valor disponible; **sin** `filepath.Abs`, **sin** expansión de `~` y **sin case-folding** (decisión confirmada, plan §Puntos, punto 2: lo canonicaliza la observación real y el residuo queda declarado). Pone en verde T016..T020.
+- [x] T021 [US2] Implementar el fallback normalizado en `internal/project/resolve.go` — `filepath.Clean` sobre el mejor valor disponible; **sin** `filepath.Abs`, **sin** expansión de `~` y **sin case-folding** (decisión confirmada, plan §Puntos, punto 2: lo canonicaliza la observación real y el residuo queda declarado). Pone en verde T016..T020.
 
 **Checkpoint**: US1 + US2 completas. La derivación cumple el contrato entero.
 

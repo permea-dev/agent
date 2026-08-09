@@ -1,22 +1,21 @@
 // Package project deriva la IDENTIDAD DE PROYECTO de un evento a partir del directorio de
 // trabajo que el log de la herramienta declara.
 //
-// ═══ ESTADO ACTUAL: ENLACES + ASCENSO CON TECHO (T014, T015). FALTAN DOS PIEZAS ════════════
+// ═══ ESTADO ACTUAL: LA DERIVACIÓN COMPLETA (T014, T015, T021). FALTA UNA PIEZA ═════════════
 //
-// Implementado:
+// Implementado, en el orden en que se aplica (contrato §Orden de resolución, D-004-2):
 //
-//	T015  resolución de enlaces PREVIA al ascenso (FR-006a / D-004-2) — `EvalSymlinks`
-//	T014  ascenso con techo hasta la raíz del árbol (FR-001/FR-004/FR-004a)
+//	T015  resolución de enlaces PREVIA al ascenso (FR-006a)     — `EvalSymlinks`
+//	T021  normalización sintáctica (FR-005/FR-006)              — `filepath.Clean`
+//	T014  ascenso con techo hasta la raíz (FR-001/FR-004/FR-004a)
 //
-// TODAVÍA NO, y por eso el fallback de aquí abajo devuelve el mejor valor disponible SIN
-// normalizar:
+// TODAVÍA NO:
 //
-//	T021  normalización del fallback (FR-005/FR-006)  — `filepath.Clean`
 //	T032  caché de pasada (SC-006)
 //
-// Mientras falte T021, dos grafías sintácticas de la misma ruta **que no exista** dan
-// identidades distintas. Las que sí existen ya convergen —`EvalSymlinks` las canonicaliza de
-// paso—, pero eso es un efecto lateral, no la garantía: G6 se cumple cuando T021 entre.
+// Las garantías G1..G8 del contrato están cubiertas. **G6 ya es garantía y no efecto lateral**:
+// las grafías de una misma ruta convergen tanto si el directorio existe —donde `EvalSymlinks`
+// también canonicalizaría— como si no, que es donde antes divergían.
 //
 // Lo que SÍ es definitivo es la SUPERFICIE (contrato §Superficie): `Derivar` no devuelve error,
 // y no lo devolverá nunca. Esa firma es la garantía estructural de FR-010 —un fallo de
@@ -49,24 +48,49 @@ func Derivar(cwdDeclarado, salt string) string {
 	// El techo se calcula sobre la MISMA ruta real, no sobre la declarada: si un enlace de fuera
 	// del directorio personal apuntara adentro (o al revés), un techo calculado sobre la forma
 	// literal acotaría un ascenso que ocurre en otro sitio.
-	ubicacion := ubicacionReal(cwdDeclarado)
+	ubicacion := mejorValorDisponible(cwdDeclarado)
 	return derivarConTecho(ubicacion, salt, techoDeProduccion(ubicacion))
 }
 
-// ubicacionReal resuelve los enlaces simbólicos del directorio declarado. Es de MEJOR ESFUERZO
-// (FR-009): si el sistema no permite resolver —el directorio ya no existe, faltan permisos, el
-// enlace está roto, la ruta es relativa—, devuelve la forma literal y **nunca** un error.
+// mejorValorDisponible obtiene la mejor forma del directorio declarado (data-model §entidad 4):
+// la UBICACIÓN REAL si el sistema permite resolverla, y la forma literal si no — y en los dos
+// casos NORMALIZADA.
 //
-// Que la rama de fallo exista desde ya no significa que esté probada: su testigo es el caso 14
-// del contrato, que llega con T018. Aquí se declara, no se da por cubierta.
-func ubicacionReal(declarado string) string {
+// Es de MEJOR ESFUERZO (FR-009): si `EvalSymlinks` falla —el directorio ya no existe, faltan
+// permisos, el enlace está roto, la ruta es relativa— se sigue con lo que hay, y **nunca** se
+// devuelve error.
+//
+// ═══ POR QUÉ EL `Clean` VA AQUÍ Y NO SOLO EN EL FALLBACK ═══════════════════════════════════
+//
+// La convergencia sintáctica (G6) solo se exige del fallback, así que limpiar únicamente allí
+// bastaría para el contrato. **Pero dejaría un agujero en el techo, y es de corrección:** la
+// parada del ascenso compara `actual == techo` como cadenas, y `"/home/u/."` NO es igual a
+// `"/home/u"` aunque designen el mismo directorio. Con una grafía sucia del propio directorio
+// personal, el ascenso no pararía donde debe y **examinaría el home** — violando FR-004a por
+// una barra y un punto.
+//
+// Normalizar una vez, al principio, cierra ese agujero y deja al ascenso y al fallback
+// operando sobre la misma forma. Es idempotente y no cambia ningún resultado de las rutas que
+// existen, porque `EvalSymlinks` ya devuelve forma limpia.
+//
+// Lo que NO hace, y son las tres decisiones confirmadas (plan §Puntos, punto 2):
+//
+//	· NO aplica `filepath.Abs` — anclaría una ruta relativa al cwd del proceso AGENTE, que no
+//	  tiene ninguna relación con el del log: sería una identidad inventada (caso 15).
+//	· NO expande `~` — exigiría asumir que el `~` del log es el mismo usuario que ejecuta el
+//	  agente, falso en cuanto alguien procesa logs de otra cuenta.
+//	· NO aplica case-folding — en Linux fusionaría directorios distintos; no aplicarlo separa
+//	  dos grafías de un directorio IRRESOLUBLE en un sistema insensible. Ese residuo está
+//	  declarado en el contrato §«Lo que este contrato NO promete», y es preferible a decidir
+//	  por sistema operativo lo que es propiedad del volumen.
+func mejorValorDisponible(declarado string) string {
 	if declarado == "" {
 		return ""
 	}
 	if resuelto, err := filepath.EvalSymlinks(declarado); err == nil {
-		return resuelto
+		return filepath.Clean(resuelto)
 	}
-	return declarado
+	return filepath.Clean(declarado)
 }
 
 // derivarConTecho es Derivar con el TECHO DEL ASCENSO EXPLÍCITO, y existe por una razón que no
@@ -85,7 +109,7 @@ func derivarConTecho(ubicacion, salt, techo string) string {
 		return event.Ref(salt, raiz)
 	}
 
-	// Fallback: el mejor valor disponible. TODAVÍA SIN `filepath.Clean` — eso es T021.
+	// Fallback: el mejor valor disponible, ya normalizado por `mejorValorDisponible` (G6).
 	return event.Ref(salt, ubicacion)
 }
 
@@ -159,7 +183,7 @@ func hayMarcador(dir string) bool {
 // el techo se calcularía mal justo en los sistemas donde más enlaces hay.
 func techoDeProduccion(ruta string) string {
 	if hogar, err := os.UserHomeDir(); err == nil && hogar != "" {
-		hogarReal := ubicacionReal(hogar)
+		hogarReal := mejorValorDisponible(hogar)
 		if cuelgaDe(ruta, hogarReal) {
 			return hogarReal
 		}

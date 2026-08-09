@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/permea-dev/agent/internal/testutil"
@@ -341,5 +342,248 @@ func exigirGit(t *testing.T) {
 			"saltarlo dejaría la suite en verde sin haber comprobado nada. Instala git y repite.\n"+
 			"(La implementación NO necesita git: reconoce el marcador con os.Lstat.)\n"+
 			"error: %v", err)
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// US2 · El fallback normalizado — T016..T020
+//
+// AVISO DE CONTEXTO, y determina sobre qué rutas trabaja cada test:
+//
+// `EvalSymlinks` (T015) canonicaliza DE PASO las rutas que EXISTEN — es un efecto lateral
+// declarado en la cabecera del paquete, no la garantía. Así que un test de G6 sobre rutas
+// existentes mediría ese efecto lateral y pasaría en verde SIN que la normalización
+// sintáctica exista. Los casos 9-10 se ejercitan por eso sobre rutas INEXISTENTES, que es
+// además donde la garantía tiene contenido propio: es justo cuando el sistema no puede
+// resolver nada cuando `filepath.Clean` es lo único que hace converger las grafías.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// T016 · Garantía G6 · casos 9 y 10 del contrato
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestDerivar_VariantesSintacticasConvergen trabaja sobre una ruta que NO EXISTE: es la
+// clase de ruta donde G6 tiene contenido propio (ver el aviso de arriba).
+//
+// Las variantes se construyen por CONCATENACIÓN DE CADENAS y no con filepath.Join, porque
+// Join normaliza al construir — usarlo aquí destruiría el caso antes de probarlo.
+func TestDerivar_VariantesSintacticasConvergen(t *testing.T) {
+	base := t.TempDir()
+	canonica := base + "/no-existe-jamas"
+
+	variantes := []struct {
+		nombre string
+		ruta   string
+	}{
+		{"canónica", canonica},
+		{"con barra final (caso 9)", canonica + "/"},
+		{"con ./ intercalado (caso 10)", base + "/./no-existe-jamas"},
+		{"con .. redundante (caso 10)", base + "/otro/../no-existe-jamas"},
+		{"con separadores repetidos", base + "//no-existe-jamas"},
+	}
+
+	esperada := Derivar(canonica, saltDePrueba)
+	for _, v := range variantes {
+		if got := Derivar(v.ruta, saltDePrueba); got != esperada {
+			t.Errorf("G6/casos 9-10: %s debe converger con la forma canónica\n"+
+				"  %s → %s\n  canónica %s → %s",
+				v.nombre, v.ruta, got, canonica, esperada)
+		}
+	}
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// T017 · Garantía G7
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestDerivar_RutasDistintasNoColisionan es la contra-prueba de T016: sin ella, sustituir la
+// normalización por una constante dejaría T016 en verde.
+//
+// NACE VERDE, y por construcción: dos cadenas distintas dan dos hashes distintos aunque no
+// haya normalización ninguna. Su testigo real es la mutación de I-9 («Clean por constante»),
+// que debe tumbarlo.
+//
+// El par `suelto` / `sueltoo` es el que caza la fusión por PREFIJO DE CADENA: una
+// normalización que comparase con strings.HasPrefix los uniría.
+func TestDerivar_RutasDistintasNoColisionan(t *testing.T) {
+	base := t.TempDir()
+
+	pares := []struct {
+		nombre string
+		a, b   string
+	}{
+		{"hermanos con prefijo común", base + "/suelto", base + "/sueltoo"},
+		{"hermanos sin relación", base + "/uno", base + "/dos"},
+		{"padre e hijo", base + "/a", base + "/a/b"},
+		{"mismo nombre, ramas distintas", base + "/x/comun", base + "/y/comun"},
+	}
+
+	for _, p := range pares {
+		if Derivar(p.a, saltDePrueba) == Derivar(p.b, saltDePrueba) {
+			t.Errorf("G7: %s — rutas genuinamente distintas NO pueden converger\n  %s\n  %s",
+				p.nombre, p.a, p.b)
+		}
+	}
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// T018 · Garantía G8 · casos 12, 13 y 14 del contrato
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestDerivar_MejorEsfuerzoNuncaFalla comprueba que ningún fallo del sistema de ficheros
+// deja al evento sin identidad. La firma ya impide devolver error (contrato §Superficie);
+// lo que se mide aquí es que la salida sea utilizable en las tres formas de fallo.
+//
+// NACE VERDE: el best-effort existe desde T015 (`ubicacionReal` devuelve la forma literal
+// cuando `EvalSymlinks` falla). El **caso 14** es además el testigo pendiente que I-7 dejó
+// declarado para esa rama. Su demostración real son las mutaciones de I-9.
+func TestDerivar_MejorEsfuerzoNuncaFalla(t *testing.T) {
+	base := t.TempDir()
+
+	t.Run("caso 12: el directorio no existe", func(t *testing.T) {
+		exigirIdentidadUtilizable(t, base+"/borrado/hace/tiempo")
+	})
+
+	t.Run("caso 14: enlace roto", func(t *testing.T) {
+		destino := filepath.Join(base, "destino-efimero")
+		crearDirs(t, destino)
+		enlace := filepath.Join(base, "enlace-roto")
+		if err := os.Symlink(destino, enlace); err != nil {
+			t.Fatalf("no se pudo crear el enlace: %v", err)
+		}
+		if err := os.RemoveAll(destino); err != nil {
+			t.Fatalf("no se pudo romper el enlace: %v", err)
+		}
+		exigirIdentidadUtilizable(t, enlace)
+	})
+
+	t.Run("caso 13: permisos denegados", func(t *testing.T) {
+		// El t.Skip documentado se permite AQUÍ y se prohíbe en T010, y la asimetría es
+		// deliberada (tasks.md:132): aquí el caso de permisos es 1 de los 3 que cubren G8
+		// —los otros dos siguen ejerciéndola— y es físicamente inejecutable como root, que
+		// puede leerlo todo. En T010 el skip mataría la ÚNICA cobertura de una promesa.
+		if os.Geteuid() == 0 {
+			t.Skip("ejecutando como root: los permisos no deniegan nada, el caso es inejecutable")
+		}
+		cerrado := filepath.Join(base, "cerrado")
+		dentro := filepath.Join(cerrado, "dentro")
+		crearDirs(t, dentro)
+		if err := os.Chmod(cerrado, 0o000); err != nil {
+			t.Fatalf("no se pudo cerrar el directorio: %v", err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(cerrado, 0o755) }) // para que t.TempDir pueda limpiar
+
+		exigirIdentidadUtilizable(t, dentro)
+	})
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// T019 · caso 15 del contrato
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestDerivar_RutaRelativaNoSeAncla comprueba que una ruta relativa NO se resuelve contra el
+// directorio de trabajo DEL PROCESO AGENTE. Anclarla con filepath.Abs produciría una
+// identidad inventada: el cwd del agente no tiene ninguna relación con el del log, que pudo
+// escribirse en otra máquina y hace días.
+//
+// La prueba es por CONSTRUCCIÓN, no por inspección: se deriva la MISMA entrada relativa desde
+// dos directorios de trabajo distintos y se exige el mismo resultado. Si alguien añadiera
+// Abs, los dos resultados divergirían.
+//
+// NACE VERDE (no hay Abs en ninguna parte); su testigo real es la mutación de I-9.
+//
+// Este test cambia el cwd del proceso, así que NO puede marcarse paralelo.
+func TestDerivar_RutaRelativaNoSeAncla(t *testing.T) {
+	relativa := "proyecto/relativo/src"
+
+	original, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("no se pudo leer el directorio de trabajo: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(original) })
+
+	derivarDesde := func(dir string) string {
+		if err := os.Chdir(dir); err != nil {
+			t.Fatalf("no se pudo cambiar a %q: %v", dir, err)
+		}
+		return Derivar(relativa, saltDePrueba)
+	}
+
+	primero := t.TempDir()
+	segundo := t.TempDir()
+	// En el segundo, la ruta relativa SÍ existe: si algo anclara, la diferencia sería máxima.
+	crearDirs(t, filepath.Join(segundo, relativa))
+
+	desdePrimero := derivarDesde(primero)
+	desdeSegundo := derivarDesde(segundo)
+
+	if desdePrimero != desdeSegundo {
+		t.Errorf("caso 15: una ruta relativa NO puede anclarse al cwd del proceso agente\n"+
+			"  desde %s → %s\n  desde %s → %s\n"+
+			"Anclar con filepath.Abs produciría una identidad inventada: el cwd del agente no\n"+
+			"tiene relación con el del log.", primero, desdePrimero, segundo, desdeSegundo)
+	}
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// T020 · Garantías G1 y G2
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestDerivar_EntradaVaciaYFormaDeSalida cubre las dos garantías de FORMA.
+//
+// G2 protege FR-018: el receptor no puede distinguir, mirando el valor, si la identidad viene
+// de una raíz de proyecto o de un directorio suelto. Por eso se comprueba en TODAS las ramas
+// —raíz reconocida, fallback sobre ruta existente y fallback sobre ruta inexistente— y no
+// solo en una: una rama que devolviera otra forma delataría su origen.
+//
+// NACE VERDE: G1 y G2 se cumplen por delegación en `event.Ref`. Su testigo es la mutación de
+// I-9.
+func TestDerivar_EntradaVaciaYFormaDeSalida(t *testing.T) {
+	base := t.TempDir()
+	proyecto := filepath.Join(base, "proy")
+	crearRepo(t, proyecto)
+	existente := filepath.Join(base, "suelto")
+	crearDirs(t, existente)
+
+	t.Run("G1: entrada vacía → identidad ausente", func(t *testing.T) {
+		if got := Derivar("", saltDePrueba); got != "" {
+			t.Errorf("G1/caso 1: sin directorio declarado la identidad debe estar AUSENTE, no inventada: %q", got)
+		}
+	})
+
+	hexadecimal := regexp.MustCompile(`^[0-9a-f]{64}$`)
+	ramas := []struct {
+		nombre string
+		ruta   string
+	}{
+		{"rama de raíz reconocida", filepath.Join(proyecto, "sub")},
+		{"rama de fallback, ruta existente", existente},
+		{"rama de fallback, ruta inexistente", base + "/no-existe"},
+	}
+
+	for _, r := range ramas {
+		t.Run("G2: "+r.nombre+" → hex-64 minúscula", func(t *testing.T) {
+			got := Derivar(r.ruta, saltDePrueba)
+			if !hexadecimal.MatchString(got) {
+				t.Errorf("G2/FR-018: toda identidad no vacía debe tener la MISMA forma en todas las ramas,\n"+
+					"para que el receptor no pueda deducir su origen\n  %s → %q", r.ruta, got)
+			}
+		})
+	}
+}
+
+// exigirIdentidadUtilizable comprueba lo que G8 promete de una derivación degradada: que hay
+// identidad, que tiene la forma del contrato y que no vino acompañada de ningún error (la
+// firma ya lo impide, y por eso esto último se comprueba por AUSENCIA de forma vacía).
+func exigirIdentidadUtilizable(t *testing.T, ruta string) {
+	t.Helper()
+
+	got := Derivar(ruta, saltDePrueba)
+	if got == "" {
+		t.Errorf("G8: un fallo del sistema de ficheros NUNCA puede dejar al evento sin identidad\n  %s → vacía", ruta)
+		return
+	}
+	if !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(got) {
+		t.Errorf("G8+G2: la identidad degradada debe conservar la forma del contrato\n  %s → %q", ruta, got)
 	}
 }
