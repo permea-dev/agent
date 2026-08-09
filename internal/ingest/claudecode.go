@@ -7,6 +7,7 @@ import (
 
 	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/pricing"
+	"github.com/permea-dev/agent/internal/project"
 )
 
 // rawRecord decodifica SOLO los campos permitidos del JSONL de Claude Code.
@@ -44,6 +45,13 @@ type Context struct {
 	DevID        string
 	OrgID        string
 	AgentVersion string
+	// Resolutor da a la derivación de identidad de proyecto memoria de UNA PASADA (P-004
+	// T032). Su ámbito es el de este Context, así que quien quiera la caché lo instancia por
+	// pasada — ver `generate()` en cmd/permea.
+	//
+	// NIL ES VÁLIDO: sin resolutor se deriva igual, solo que sin el ahorro. Ningún punto de
+	// construcción existente tiene que cambiar para seguir funcionando.
+	Resolutor *project.Resolutor
 }
 
 // FromClaudeCodeLine convierte una línea JSONL en un Event de frontera.
@@ -75,7 +83,7 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 		TokensCacheRead:     u.CacheReadTokens,
 		CostUSD:             cost,
 		CostAvailable:       costAvailable,
-		ProjectRef:          event.Ref(ctx.Salt, r.Cwd),
+		ProjectRef:          ctx.Resolutor.Derivar(r.Cwd, ctx.Salt),
 		SessionRef:          event.Ref(ctx.Salt, r.SessionID),
 		MachineRef:          event.Ref(ctx.Salt, ctx.MachineID),
 		DevID:               ctx.DevID,
