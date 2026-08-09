@@ -109,10 +109,18 @@ internal/
 │   ├── claudecode.go    # :78 — único punto de composición; cambia el VALOR de entrada
 │   ├── boundary_test.go # golden extendido (SC-005)
 │   └── testdata/        # fixture ampliado con rutas de raíz y subdirectorio
-└── project/             # NUEVO — resolución de identidad de proyecto (P1+P2+P3)
-    ├── resolve.go       # orden: enlaces → raíz → fallback normalizado
-    └── resolve_test.go
+├── project/             # NUEVO — resolución de identidad de proyecto (P1+P2+P3)
+│   ├── resolve.go       # orden: enlaces → raíz → fallback normalizado
+│   └── resolve_test.go
+└── testutil/            # NUEVO — helper de aislamiento de tests
+    └── sandbox.go       # HOME/USERPROFILE/XDG_CONFIG_HOME → t.TempDir()
 ```
+
+**Sobre `internal/testutil/`**: existe porque **tres familias de tests** —los de config, los de
+proceso y las validaciones— necesitan el mismo aislamiento, y replicarlo en cada una es la vía
+segura de que a alguna se le olvide y escriba en la instalación real del desarrollador. El helper
+incluye su propia aserción: un `config.DataDir()` que caiga fuera del temporal es **fallo inmediato
+del test**, no aviso.
 
 **Structure Decision**: proyecto único Go, con la estructura de referencia que fija la constitución
 (§Restricciones técnicas). **La resolución vive en un paquete nuevo `internal/project/`** y no dentro
@@ -211,7 +219,7 @@ Ninguno bloquea el diseño; los tres están resueltos con recomendación y se se
 | # | Punto | Estado | Nota |
 |---|---|---|---|
 | 1 | **Alcance de la parada** (P4) | ✅ **RESUELTO** — confirmado como **D-004-5** | Ya no requiere confirmación: la interpretación y su criterio están registrados arriba |
-| 2 | **Residuo de mayúsculas** (P2) | ⏳ pendiente | Recomendación: sin case-folding; lo canonicaliza la observación real. Deja un residuo declarado — dos grafías de un directorio **irresoluble** en un FS insensible dan dos identidades. La alternativa (folding por SO) es **peor**: decide por sistema operativo lo que es propiedad del volumen |
+| 2 | **Residuo de mayúsculas** (P2) | ✅ **RESUELTO** — confirmado por el orquestador el 2026-08-09 | **Opción A de research §P2**: sin case-folding; lo canonicaliza la observación real; **residuo declarado** — dos grafías de un directorio **irresoluble** en un FS insensible dan dos identidades. La alternativa (folding por `runtime.GOOS`) se descarta porque decide por sistema operativo lo que es propiedad **del volumen** |
 | 3 | **`Roadmap.md:260-266`** | ✅ **RESUELTO** — fuera de alcance | `Roadmap.md` está **gitignoreado** (`.gitignore:17`) y no está en el índice: no es documentación del repositorio, así que queda fuera de FR-014/SC-008. La entrada de deuda la cierra Basilio en el cierre de sesión, fuera de la feature |
 
 ## Complexity Tracking

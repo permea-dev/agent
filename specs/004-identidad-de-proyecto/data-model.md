@@ -66,6 +66,7 @@ proyecto. Si el reconocimiento fuera primero, el enlace no llegaría nunca a rec
 | Resultado | El **primer** marcador encontrado bajo el techo gana → proyecto más cercano (FR-004) |
 | Si no hay | Se cae a la entidad 4 |
 | Origen del home | `os.UserHomeDir()` — **y esa elección es deliberada**: hace FR-004a testeable por entorno (ver abajo) |
+| Forma del techo | **Parámetro interno inyectable.** En producción se resuelve solo (el home por `os.UserHomeDir()`, la raíz del FS por la estructura de la ruta); en test se **inyecta**, porque el techo de la **raíz del sistema** no es falseable por entorno sin privilegios y solo así puede ejercitarse el caso 8 (T012) |
 
 **Techo, no salto.** Ningún marcador se descarta «para seguir subiendo»: si existe un `.git` por
 debajo del techo, ese gana sin excepción. Un `.git` en `~/dev/proy` cuenta con total normalidad; lo
