@@ -126,7 +126,24 @@ func setup() (*agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := config.Load(filepath.Join(dir, "config.json"))
+	rutaCfg := filepath.Join(dir, "config.json")
+
+	// ═══ P-004 T027 · LA PARADA POR MODO RETIRADO VA ANTES QUE CUALQUIER OTRO FALLO ═══════
+	//
+	// Va aquí, y no más abajo, por una razón que no es de estilo: si un fallo de salt o de
+	// directorio de datos pudiera adelantarse, el usuario con `"plain"` recibiría **un error
+	// distinto del suyo** y la parada quedaría indistinguible de cualquier otra avería. La
+	// garantía de FR-013 incluye que el usuario sepa **QUÉ** le paró.
+	//
+	// Solo detiene los caminos que procesan hacia una emisión —`--run`, `--daemon` y el
+	// `tick()` del daemon—, porque los tres pasan por `setup()`. `status` y `enroll` NO
+	// cuelgan de aquí y siguen operativos a propósito (D-004-5): el primero diagnostica, el
+	// segundo repara.
+	if err := config.CheckRetiredProjectRefMode(rutaCfg); err != nil {
+		return nil, err
+	}
+
+	cfg, err := config.Load(rutaCfg)
 	if err != nil {
 		return nil, err
 	}
