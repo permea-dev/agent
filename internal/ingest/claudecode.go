@@ -7,6 +7,7 @@ import (
 
 	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/pricing"
+	"github.com/permea-dev/agent/internal/project"
 )
 
 // rawRecord decodifica SOLO los campos permitidos del JSONL de Claude Code.
@@ -75,7 +76,7 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 		TokensCacheRead:     u.CacheReadTokens,
 		CostUSD:             cost,
 		CostAvailable:       costAvailable,
-		ProjectRef:          event.Ref(ctx.Salt, r.Cwd),
+		ProjectRef:          project.Derivar(r.Cwd, ctx.Salt),
 		SessionRef:          event.Ref(ctx.Salt, r.SessionID),
 		MachineRef:          event.Ref(ctx.Salt, ctx.MachineID),
 		DevID:               ctx.DevID,

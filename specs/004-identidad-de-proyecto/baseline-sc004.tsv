@@ -6,7 +6,11 @@
 #
 # REPRODUCCIÓN (T007 y V8 deben usar EXACTAMENTE estas semillas o los refs no comparan):
 #   sandbox        HOME/USERPROFILE/XDG_CONFIG_HOME → temporal (quickstart §Aislamiento)
-#   logs_root      internal/ingest/testdata
+#   logs_root      directorio EFÍMERO del sandbox con UNA copia fresca de
+#                  internal/ingest/testdata/claude_code_sample.jsonl y nada más.
+#                  NUNCA la carpeta testdata/ entera: FindLogs recorre todos sus .jsonl,
+#                  así que un fixture añadido después contaminaría la pasada (pasó con
+#                  boundary_sample.jsonl de T004: 2 eventos se volvieron 4).
 #   endpoint       https://127.0.0.1:1   (rechazo inmediato; --run sale con exit 1: es la receta, no una avería)
 #   org_id/dev_id  org-baseline / dev-baseline
 #   salt           0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef

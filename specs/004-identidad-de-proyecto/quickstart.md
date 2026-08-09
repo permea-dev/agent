@@ -92,9 +92,14 @@ Usa el sandbox de los prerrequisitos, de modo que la pasada no toque la instalac
 git rev-parse --short HEAD          # el commit PREVIO a cualquier cambio de comportamiento
 make build
 
-# Dentro del sandbox (ver Prerrequisitos), con logs_root apuntando al fixture.
-# ANTES de la pasada: sembrar `salt` y `machine_id` con las semillas del bloque
-# REPRODUCCIÓN de specs/004-identidad-de-proyecto/baseline-sc004.tsv.
+# Dentro del sandbox (ver Prerrequisitos). ANTES de la pasada, dos siembras:
+#   1) logs_root → un directorio EFÍMERO del sandbox, con UNA copia fresca de
+#      internal/ingest/testdata/claude_code_sample.jsonl y nada más.
+#   2) `salt` y `machine_id` con las semillas del bloque REPRODUCCIÓN de
+#      specs/004-identidad-de-proyecto/baseline-sc004.tsv.
+mkdir -p "$PERMEA_SANDBOX/logs"
+cp internal/ingest/testdata/claude_code_sample.jsonl "$PERMEA_SANDBOX/logs/"
+
 ./bin/permea --run                  # exit != 0 esperado: el envío falla a propósito
 
 # La cola contiene los eventos completos, con los tres refs sin truncar:
@@ -107,6 +112,13 @@ fichero falta (`internal/config/identity.go:13-14`), y como los tres refs son `R
 línea base con salt aleatorio **no se puede reproducir** — V8 no tendría con qué comparar. Los valores
 viven en el **bloque REPRODUCCIÓN del propio `.tsv`**, que es su única fuente de verdad; aquí no se
 copian para que no puedan divergir.
+
+**Y el `logs_root` efímero tampoco es montaje**: `state.FindLogs` recorre **todos** los `.jsonl` bajo
+la raíz que se le dé (`internal/state/scan.go:20-31`). Apuntar a `internal/ingest/testdata/` haría que
+cualquier fixture que alguien añada ahí entrara en la pasada — **ya pasó** con el fixture de frontera
+de T004, que convirtió 2 eventos en 4 y bloqueó una verificación de neutralidad. Congelar el fichero
+no bastaba: **hay que congelar el directorio**, y un directorio efímero que solo contiene lo que la
+receta copia lo está por construcción.
 
 **Por qué la cola y no la salida por pantalla**: `queue.jsonl` contiene el **evento serializado
 completo** —es literalmente lo que cruzaría la frontera—, así que la línea base se toma del mismo
