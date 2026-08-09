@@ -1,0 +1,3 @@
+{"type":"assistant","timestamp":"2026-08-09T10:00:00Z","sessionId":"s-raiz","cwd":"{{BASE}}/proy","message":{"model":"claude-opus-4-6","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}
+{"type":"assistant","timestamp":"2026-08-09T10:01:00Z","sessionId":"s-sub","cwd":"{{BASE}}/proy/frontend/src","message":{"model":"claude-sonnet-4-6","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}
+{"type":"assistant","timestamp":"2026-08-09T10:02:00Z","sessionId":"s-otro","cwd":"{{BASE}}/otro-proy","message":{"model":"claude-sonnet-4-6","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}
