@@ -385,14 +385,23 @@ configuración con el valor retirado, sin depender de las historias 1 y 2.
   la segunda. Recogido en **FR-006** (solo sintaxis), **FR-006a** (ubicación real, precedencia
   explícita) y el escenario 6 de US1.
 
-- **D-004-3 (2026-08-09) — el directorio personal del usuario no es un proyecto.** Se añade una
-  exclusión explícita en vez de confiar en que la regla general lo resuelva.
+- **D-004-3 (2026-08-09) — ni el directorio personal del usuario ni la raíz del sistema de ficheros
+  son proyectos.** Se añade una exclusión explícita en vez de confiar en que la regla general lo
+  resuelva.
 
   El criterio es que el directorio personal **sí puede ser raíz de un árbol de trabajo** —versionar la
   configuración personal es práctica corriente—, así que la regla general lo reconocería como proyecto
   y colapsaría bajo **una sola identidad** todo lo que cuelga de él sin proyecto propio: exactamente
-  la fragmentación que esta feature corrige, pero al revés. Recogido en **FR-004a** y en su edge case,
-  que ahora dice **por qué** este caso no se resuelve como la raíz del sistema o los temporales.
+  la fragmentación que esta feature corrige, pero al revés.
+
+  **El mismo criterio alcanza a la raíz del sistema de ficheros** —hay sistemas gestionados por
+  repositorio—, y allí el defecto es el mismo **a la escala máxima**: absolutamente todo lo que no
+  perteneciera a un proyecto más cercano caería en un único bucket. Por eso la exclusión se enuncia
+  sobre los dos y no sobre uno, y por eso **no** se enuncia sobre «directorios que ningún proyecto
+  contiene», que es la razón —distinta— por la que caen los temporales.
+
+  Recogido en **FR-004a** (los dos sujetos) y en los edge cases, que dicen **por qué** estos dos casos
+  se resuelven por regla explícita y los temporales no.
 
 - **D-004-4 (2026-08-09) — la frontera de esta feature se acota a la salida hacia el exterior.**
   FR-017 pretendía cubrir «todo camino de salida, incluida cualquier salida diagnóstica», y eso
