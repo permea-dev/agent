@@ -14,7 +14,7 @@
 - **[P]**: **sin dependencia entre sí — escribibles en cualquier orden**, y cada una nace en su rojo
   con independencia de las otras del grupo.
   > ⚠️ **NO significa «ficheros distintos», y aquí no lo son.** Cuatro grupos marcados `[P]`
-  > —T008–T011, T013/T014, T016–T020, T022–T026— **comparten fichero**: es lo normal cuando lo que se
+  > —T008–T010, T013/T014, T016–T020, T022–T026— **comparten fichero**: es lo normal cuando lo que se
   > paraleliza son casos de un mismo sujeto. Lo que `[P]` promete es que **el orden entre ellas no
   > cambia el resultado**, no que puedan escribirse a la vez.
   >
@@ -106,13 +106,13 @@ cobertura de historias no se pierde: está en §Tabla de cobertura, fila a fila.
 rojo de compilación **no es un rojo legible** — no dice nada del comportamiento, solo que falta un
 nombre. 004 lo resolvió con su T006; aquí hacen falta tres puntos de extensión.
 
-- [ ] **T001** [P] En `internal/project/resolve.go`, añadir una función exportada que devuelva
+- [x] **T001** [P] En `internal/project/resolve.go`, añadir una función exportada que devuelva
   **(identidad, huboRaíz)**, **compartiendo cuerpo interno** con `Derivar`. `Derivar` **NO cambia de
   firma, ni de comportamiento, ni de nombre** (D-005-P5, FR-015, FR-016). Es el punto de extensión que
   permite a los tests de rehúse local nacer en rojo **por la razón correcta**.
   ⚠️ **Cuerpo compartido, no duplicado**: es lo que FR-005 exige —*no dos derivaciones que hoy den lo
   mismo*—, y lo que hace que SC-001 sea demostrable en **T028**.
-- [ ] **T002** [P] En `internal/transport/transport.go`, añadir el método de adhesión con **su firma
+- [x] **T002** [P] En `internal/transport/transport.go`, añadir el método de adhesión con **su firma
   final**, que **COMPONE Y EMITE la petición con el cuerpo definitivo `{code, project_ref}`** y, sea
   cual sea la respuesta, devuelve **un centinela propio: «adhesión no implementada»**.
   **`Send` no se toca** (D-005-P1).
@@ -122,7 +122,7 @@ nombre. 004 lo resolvió con su T006; aquí hacen falta tres puntos de extensió
     golden de frontera sin sujeto: no habría nada sobre lo que comprobar la allowlist de dos campos.
   - **T010 espera «no verificable».** Si el andamiaje devolviera ese mismo valor, **T010 nacería verde
     por accidente** —acertaría contra el stub, no contra el comportamiento— y su rojo no existiría.
-- [ ] **T003** En `cmd/permea/main.go` + `cmd/permea/project.go` (nuevo), el **despacho de dos
+- [x] **T003** En `cmd/permea/main.go` + `cmd/permea/project.go` (nuevo), el **despacho de dos
   niveles**: un tercer `if` para `project` en la escalera existente, **antes de `flag.Parse()`**, que
   delega en un despachador propio. De momento `join` **rehúsa siempre** con «no implementado».
   **Los flags de P-001/P-002 no se tocan** (D-005-P6, `main.go:42-43`).
@@ -135,7 +135,7 @@ nombre. 004 lo resolvió con su T006; aquí hacen falta tres puntos de extensió
   quitarlo, ni revisarlo a ojo. La retirada deja de ser **intención** y pasa a ser **garantía**.
   *(T017 y T020 cazan además los dos casos de error de uso, por la misma vía.)*
 
-- [ ] **T029** **SC-009 · escritura y PRIMERA ejecución** — en
+- [x] **T029** **SC-009 · escritura y PRIMERA ejecución** — en
   **`internal/ingest/baseline_regresion_test.go`** (nuevo, **paquete EXISTENTE**): comparar las **tres
   columnas** de `specs/004-identidad-de-proyecto/baseline-sc004.tsv` contra las identidades que produce
   una pasada, **con las semillas del bloque REPRODUCCIÓN** vía `testutil.SandboxConSemillas`.
@@ -148,6 +148,30 @@ nombre. 004 lo resolvió con su T006; aquí hacen falta tres puntos de extensió
   ⚠️ **Y NO en un paquete nuevo, que es lo crítico**: el checkpoint de abajo compara contra **9 ok**.
   Un paquete nuevo lo convertiría en **10** y **rompería la puerta que dice «nada cambió» justo al
   escribir la prueba de que nada cambió**.
+  > ### ⚠️ NACE VERDE — y aquí la mutación no es ceremonia, es lo único que lo sostiene
+  > **Es un test de regresión cero**: si T001 está bien hecha, **no ha cambiado nada** y el test da
+  > verde **desde el primer instante**. La disciplina 3 exige validarlo por mutación, y en éste **es
+  > crítico**: T029 es **la ÚNICA puerta que dice que el camino de ingesta no se movió**, y
+  > **un T029 que lea mal el `.tsv`, que reciba cero semillas o que compare dos conjuntos vacíos DA
+  > EXACTAMENTE EL MISMO VERDE que uno correcto.**
+  >
+  > **Validación**: alterar deliberadamente **el cuerpo compartido de T001**, comprobar que T029
+  > **CAE**, **transcribir el mensaje de fallo real** y revertir **por edición inversa** —nunca por
+  > `git checkout`—. **Si la mutación no lo tumba, el test no está mirando: se PARA y se reporta.**
+  > ### ⚠️ LÍMITE CONOCIDO — qué acredita T029 y qué NO
+  > Compara **el CONJUNTO deduplicado de identidades** y **el recuento de eventos**. Eso demuestra que
+  > **aparecen las mismas identidades y no se ha perdido ningún evento** — pero **NO que una entrada
+  > dada siga produciendo la misma identidad**: el dedup colapsa la correspondencia entrada→salida, y
+  > el conjunto podría coincidir con las filas permutadas entre entradas distintas.
+  >
+  > **Y la base es fina**: `# meta events_total 2`. **Dos eventos y una sola fila de identidades.** Un
+  > cambio que afectara solo a entradas que el fixture no ejerce **pasaría inadvertido**.
+  >
+  > **Es limitación del artefacto de 004, no de esta tarea, y no se arregla aquí**: ampliar el fixture
+  > cambiaría el conjunto y **rompería la comparación por la razón equivocada** —lo dice la cabecera del
+  > propio `.tsv`, que ya lo sufrió con `boundary_sample.jsonl`—. Se escribe como límite para que nadie
+  > lea el verde de T029 como más de lo que dice. **Quien necesite la correspondencia entrada→salida
+  > tiene SC-001 (T028)**, que sí compara por entrada sobre cuatro clases de árbol.
 
 **Checkpoint**: la suite sigue en **9 ok**. **Ningún comportamiento observable ha cambiado** — y eso
 **se comprueba contra artefacto, no de memoria**: comparar las identidades derivadas contra
@@ -189,27 +213,103 @@ es barata de encontrar**: antes de que nada más cambie.
   **no son idénticas** (`research.md` §R4) — `enrollment.go` **funde** análisis y esquema en un
   desenlace, las otras dos los **separan** —, así que un booleano cambiaría el comportamiento de una
   de las tres.
-- [ ] **T005** Sustituir las tres réplicas por llamadas a T004: `internal/config/enrollment.go:78-80`
-  (**funde los dos hechos** en su error genérico, **sin reproducir el argumento** — lleva el token),
-  `internal/config/config.go:100-106` (**dos ramas**, sus mensajes) y
-  `internal/transport/transport.go:105-111` (**dos ramas**, y **conserva el centinela `ErrScheme`**).
+- [ ] **T011** [P] Test de que **la guarda de esquema muerde en el método nuevo** en el mismo fichero —
+  **Garantía**: FR-017. Destino en claro → no se completa, **con el centinela `ErrScheme`**. Nace en
+  **rojo** porque **T002 SÍ tiene guarda —una réplica inline— pero devuelve `errEsquemaAndamiaje`, no
+  `ErrScheme`**: nace rojo **por el centinela, no por ausencia de guarda**.
+  > ### ⚠️ LÍMITE CONOCIDO — qué acredita T011 y qué NO
+  > Este enunciado decía **«es la prueba de que la unificación LLEGÓ aquí»**, y **no puede serlo.**
+  >
+  > **T011 observa comportamiento: que `Adherir` devuelva `ErrScheme`.** Y eso **se satisface cambiando
+  > una palabra en la réplica inline** —`errEsquemaAndamiaje` → `ErrScheme`— **sin unificar nada**: las
+  > cuatro condiciones seguirían copiadas a mano y el test estaría verde.
+  >
+  > **Dónde vive el juicio es ESTRUCTURA, y ningún test la ve.** Un test no puede distinguir «llama a
+  > la función unificada» de «tiene una copia que devuelve lo mismo».
+  >
+  > **Lo que T011 SÍ acredita, y no es poco**: que la segunda puerta de la frontera **tiene guarda de
+  > esquema y devuelve el centinela correcto** —el mismo que la ingesta—, así que quien compruebe
+  > `errors.Is(err, ErrScheme)` obtiene la misma respuesta por las dos puertas. **Es la mitad de
+  > comportamiento.**
+  >
+  > **La garantía de unificación es la OTRA mitad, y está en T005**: la mutación de la función
+  > unificada que exige que **los cuatro llamantes cambien a la vez**. Esa sí ve la estructura, porque
+  > **una copia no se mueve cuando muta el original**.
+  > ### ⚠️ VIVE EN PHASE 2, ENTRE T004 Y T005 — y el sitio es el mecanismo
+  > **En Phase 4 este test NACERÍA VERDE.** T005 —Phase 2— sustituye la réplica de andamiaje de
+  > `Adherir` por la función unificada, así que **para cuando llegara el turno de Phase 4, `Adherir`
+  > llevaría dos fases devolviendo `ErrScheme`** y el test pasaría a la primera. **El rojo dependía de
+  > un estado que T005 destruye antes de que a T011 le llegue el turno.**
+  >
+  > Aquí, en cambio, **nace ROJO contra `errEsquemaAndamiaje`** —el centinela de andamiaje que T002
+  > dejó puesto— y **T005 lo pone VERDE**.
+  >
+  > **Y con eso T005 gana un criterio POSITIVO que no tenía.** Su único gate era «los cuatro tests
+  > existentes siguen verdes», y **«nada se rompió» es compatible con «no pasó nada»**: la tarea de
+  > mayor alcance del plan no tenía ninguna prueba de que **hizo su trabajo**. T011 aporta **la mitad
+  > de comportamiento**; la de estructura la aporta **la mutación de T005**.
+
+- [ ] **T005** Sustituir **las CUATRO réplicas** por llamadas a T004:
+  1. `internal/config/enrollment.go:78-80` — **funde los dos hechos** en su error genérico, **sin
+     reproducir el argumento** (lleva el token dentro).
+  2. `internal/config/config.go:100-106` — **dos ramas**, con sus mensajes.
+  3. `internal/transport/transport.go`, en **`Send`** — **dos ramas**, y **conserva el centinela
+     `ErrScheme`**, del que dependen tests por `errors.Is`.
+  4. `internal/transport/transport.go`, en **`Adherir`** — **la réplica de andamiaje que introdujo
+     T002**, que hoy devuelve `errEsquemaAndamiaje`. **Al sustituirla pasa a devolver `ErrScheme`**, y
+     eso es **lo que pone T011 en verde**. Con ella desaparece también la declaración de
+     `errEsquemaAndamiaje`.
+  > ⚠️ **Son CUATRO, no tres.** La cuarta nació en T002 —Phase 1— y **un ejecutor que siga la lista
+  > vieja al pie de la letra la deja viva**: la segunda puerta de la frontera seguiría con una
+  > condición copiada a mano, que es exactamente lo que D-005-P2 existe para eliminar.
   > ### ⛔ CONDICIÓN DE PARADA
   > **Los cuatro tests existentes deben seguir en verde SIN TOCARLOS**:
   > `internal/transport/transport_test.go:151` · `internal/config/config_test.go:61` ·
   > `internal/config/enrollment_test.go:97` · `cmd/permea/enroll_reject_test.go:129`.
   > **Si hay que modificar alguno, la unificación cambió comportamiento: SE PARA Y SE REPORTA.**
   > No se «ajusta el test»: el test es la red, y una red que se ajusta no sujeta nada.
+  > ### ✅ PRUEBA POSITIVA DE UNIFICACIÓN — mutar el original y ver moverse a los cuatro
+  > La condición de parada de arriba es **negativa**: dice que nada se rompió. Y **«nada se rompió» es
+  > compatible con «no pasó nada»**: una T005 que **dejara las cuatro réplicas en pie** y se limitara a
+  > cambiar el centinela de `Adherir` **pasaría el checkpoint entero** —los cuatro tests verdes, T011
+  > verde— sin haber unificado nada.
+  >
+  > **T011 no lo caza**, y no puede: observa comportamiento, y dónde vive el juicio es estructura (ver
+  > su §LÍMITE CONOCIDO). **Esto sí lo caza:**
+  >
+  > **Al terminar la sustitución, MUTAR LA FUNCIÓN UNIFICADA de T004** —alterar el juicio de esquema
+  > en su único cuerpo— **y comprobar que LOS CUATRO LLAMANTES CAMBIAN A LA VEZ**:
+  >
+  > 1. `internal/config/enrollment.go` — su test de tabla debe caer;
+  > 2. `internal/config/config.go` — su test de `Validate()` debe caer;
+  > 3. `internal/transport/transport.go` (`Send`) — `TestSend_RejectsHTTP` debe caer;
+  > 4. `internal/transport/transport.go` (`Adherir`) — **T011 debe caer**.
+  >
+  > **⛔ Si UNO SOLO no se mueve, ese llamante NO está unificado: conserva su copia. SE PARA Y SE
+  > REPORTA.** Es la misma forma que este fichero ya usa en **T001** —cuerpo compartido: alterarlo
+  > cambia las dos identidades a la vez— y en la **cláusula (a) de T028** —punto único del que salen
+  > las dos—. **Una copia no se mueve cuando muta el original**, y eso sí es observable.
+  >
+  > **TRANSCRIBIR los cuatro mensajes de fallo** (disciplina 2 y 3) y **revertir POR EDICIÓN INVERSA**,
+  > nunca por `git checkout` — para que el diff final demuestre que se revirtió lo mismo que se
+  > introdujo.
 - [ ] **T006** Remisión cruzada en los dos sitios (D-005-P2 §encontrabilidad): en
   `internal/transport/transport.go` —donde estaba la condición— un comentario que dice **dónde vive
   ahora el juicio y por qué se movió**; en `internal/config/` —donde vive— **quiénes son sus
   llamantes**. Sin las dos, unificar mejora el código y **empeora el hallazgo de la frontera**
   (Principio III).
-  ⚠️ **Hoy son TRES, no cuatro**: `enrollment.go`, `config.go` y `transport.go` (`Send`). **El cuarto
-  —el método de adhesión— NO EXISTE todavía**: llega en T012. La lista se escribe con los tres reales
-  y **nombra el cuarto como pendiente**, con su número de tarea. Escribir «cuatro» aquí sería
-  documentar un llamante que nadie puede encontrar.
+  ⚠️ **Son CUATRO, y los cuatro existen ya** —`enrollment.go`, `config.go`, `transport.go` (`Send`) y
+  `transport.go` (`Adherir`)—, porque **T002 creó el cuarto en Phase 1**. La lista se escribe con los
+  cuatro, sin ningún «pendiente».
+  *(Esta nota decía «hoy son tres, el cuarto llega en T012». **Dejó de ser cierto al ejecutarse T002**:
+  el llamante existe desde Phase 1, y quien lo busque lo encuentra.)*
 
-**Checkpoint**: **9 ok**, y los cuatro tests de la red **sin una línea tocada**.
+**Checkpoint**: **9 ok** · los cuatro tests de la red **sin una línea tocada** · **y T011 EN VERDE**.
+
+> **Las dos mitades del checkpoint dicen cosas distintas, y hacen falta las dos.** «Los cuatro
+> intactos» es el criterio **negativo**: nada se rompió. **«T011 en verde» es el positivo**: la
+> unificación **llegó al método nuevo**. Sin él, una T005 que extrajera la función y **se olvidara de
+> `Adherir`** pasaría el checkpoint entero — porque «nada se rompió» es compatible con «no pasó nada».
 
 ---
 
@@ -236,7 +336,8 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ### Tests (rojo antes de verde)
 
-- [ ] **T008** [P] Test del **desenlace de éxito** en `internal/transport/adhesion_test.go` (nuevo) —
+- [ ] **T008** [P] Test del **desenlace de éxito** en `internal/transport/adhesion_test.go` —
+  **el fichero ya existe: lo creó T011 en Phase 2** al mudarse allí—
   **Garantía**: `adhesion.md` desenlaces 3 y 4. `200` con `{"project":{"name":…}}` → devuelve **la
   denominación**. Nace en **rojo**: T002 devuelve siempre «adhesión no implementada». Transcribir la
   razón.
@@ -251,19 +352,19 @@ es barata de encontrar**: antes de que nada más cambie.
   declarado de D-005-P1: un éxito sin nombre no es un éxito.*
   ⚠️ **Este es el rojo más frágil del fichero** y por eso T002 lo protege explícitamente: si el
   andamiaje devolviera «no verificable», **este test nacería verde acertando contra el stub**.
-- [ ] **T011** [P] Test de que **la guarda de esquema muerde en el método nuevo** en el mismo fichero —
-  **Garantía**: FR-017. Destino en claro → no se completa, con el centinela del transporte. Nace en
-  **rojo**: T002 no llama a la guarda. **Es la prueba de que la unificación de Phase 2 LLEGÓ aquí.**
 
 ### Implementación
 
 - [ ] **T012** Implementar el método de adhesión en `internal/transport/transport.go`: llama a la
   guarda (T004), compone la petición, **lee y decodifica** la respuesta y **distingue por estado**.
   Reutiliza el `http.Client`, su timeout y la cabecera de autenticación. **Un solo intento, sin cola**
-  (D-005-P4, siguiendo `Verify()` en `transport.go:91-99`). Pone en verde **T008–T011**.
-  ⚠️ **Y AÑADIRSE a la lista de llamantes de T006**, en `internal/config/`, dejando de ser «pendiente»
-  para pasar a ser el cuarto real. Es la mitad de T006 que **solo se puede cerrar aquí**: si no se
-  hace, la remisión cruzada queda describiendo un mundo de tres llamantes que dejó de existir.
+  (D-005-P4, siguiendo `Verify()` en `transport.go:91-99`). Pone en verde **T008, T009 y T010**.
+  ⚠️ **Ya NO pone en verde T011**: esa la puso **T005**, en Phase 2, al sustituir la réplica de
+  andamiaje de `Adherir` por la guarda unificada. Cuando T012 llega, **T011 lleva dos fases en verde**.
+  ⚠️ **T012 ya NO añade ningún llamante a la lista de T006**: el cuarto lo creó **T002** en Phase 1 y
+  lo reconvirtió **T005**. Aquí solo se implementan **los desenlaces** —leer el cuerpo, distinguir por
+  estado—; **la guarda ya está puesta y ya es la unificada**. *(Esta tarea llevaba el deber de
+  «añadirse a la lista»; se retiró al ejecutarse T002, que adelantó el llamante a Phase 1.)*
 
 ---
 
@@ -484,11 +585,11 @@ y **no reescriben sus pasos**.
 ```
 Phase 1 (extensión)     T001, T002, T003  ─►  T029  (se ESCRIBE y ejecuta aquí)
         │
-Phase 2 (guarda)        T004 ─► T005 ─► T006        ⛔ parada si hay que tocar los 4 tests
+Phase 2 (guarda)        T004 ─► T011 (rojo) ─► T005 ─► T006   ⛔ parada si hay que tocar los 4 tests
         │
 Phase 3 (frontera)      T007                         Principio IV — antes de la lógica
         │
-Phase 4 (transporte)    T008..T011 (rojo) ─► T012
+Phase 4 (transporte)    T008, T009, T010 (rojo) ─► T012
         │
 Phase 5 (destino)       T013, T014 (rojo) ─► T015
         │
@@ -505,8 +606,11 @@ Phase 10 (ceremonia)    T033 ─► T034 ─► T035 ─► T036          manual
 
 ### Dependencias que no son de fase
 
-- **T011 depende de T005**, no solo de T002: es **la prueba de que la unificación llegó al método
-  nuevo**. Si se ejecutara antes de T005 pasaría por la réplica vieja y no probaría nada.
+- **T005 depende de T011, y no al revés — la relación se invirtió.** Antes se leía «T011 depende de
+  T005»: había que esperar a la unificación para que el test pasara. **Ahora es T005 quien necesita que
+  T011 exista y esté ROJA antes de empezar**, porque **T011 es su criterio positivo**: es lo único que
+  demuestra que la unificación **llegó al método nuevo** en vez de limitarse a no romper nada.
+  **Orden obligado en Phase 2: T004 → T011 (rojo) → T005 (la pone verde) → T006.**
 - **T029 depende SOLO de T001**, y por eso **tiene dos casillas**: **T029** la escribe y ejecuta en
   Phase 1 —en cuanto T001 existe, sin esperar a nada más— y **T029-R** la re-ejecuta en Phase 8 como
   puerta de SC-009. Dejarla solo al final habría hecho que una regresión de T001 se descubriera **con
@@ -528,7 +632,7 @@ justo cómo se cuela un verde vacío en un grupo de cinco.
 | **T008** | T001–T007 | **rojo** | T002 devuelve «adhesión no implementada», no una denominación |
 | **T009** | T001–T007 | **rojo** | T002 no distingue `422` de `409`: devuelve el mismo centinela para los dos |
 | **T010** | T001–T007 | **rojo** | **solo porque el centinela de T002 es OTRO.** Si T002 devolviera «no verificable», este test **nacería verde acertando contra el stub** — es la razón de que el cambio 1 exista |
-| **T011** | T001–**T005** | **rojo** | T002 no llama a la guarda. **Depende de T005**, no solo de T002: antes de T005 pasaría por la réplica vieja |
+| **T011** | **T001–T004** | **rojo** | **T002 SÍ tiene guarda —una réplica inline— pero devuelve `errEsquemaAndamiaje`, no `ErrScheme`**, que es el centinela que este test exige. Nace rojo **por el centinela, no por ausencia de guarda**. **Vive en Phase 2, entre T004 y T005**: en Phase 4 habría nacido VERDE, porque T005 ya habría puesto `ErrScheme` dos fases antes |
 | **T013** | T001–T012 | **rojo** | la derivación del destino no existe hasta T015 |
 | **T014** | T001–T012 | **rojo** | ídem: no hay validación ruidosa que rehusar |
 | **T016** | T001–T015 | **rojo** | T003 rehúsa siempre; no hay dos vías que comparar |
@@ -541,6 +645,7 @@ justo cómo se cuela un verde vacío en un grupo de cinco.
 | **T024** | T001–T021 | ⚠️ **VERDE** | **una ausencia la satisface un comando que no imprime.** Se valida por **su caso positivo** |
 | **T025** | T001–T021 | ⚠️ **VERDE** | **una ausencia la satisface un comando que no escribe.** Se valida por **su caso positivo** |
 | **T026** | T001–T021 | ⚠️ **VERDE** | **una ausencia la satisface un comando que no encola.** Se valida por **su caso positivo** |
+| **T029** | T001 | ⚠️ **VERDE** | **es regresión cero: si T001 está bien, nada cambió y da verde de entrada.** Se valida **por mutación del cuerpo compartido de T001** — y es la única puerta del camino de ingesta, así que un test que no mire da el mismo verde que uno correcto |
 
 > **Por qué esta comprobación tiene sección propia**: *«ya mordió dos veces en P-010»*. Un rojo que
 > nace verde porque una tarea anterior ya lo satisfizo **no es un rojo**, y el test que lo sigue no
@@ -554,7 +659,10 @@ justo cómo se cuela un verde vacío en un grupo de cinco.
 
 ### Oportunidades de paralelismo
 
-`T001`/`T002` · `T008`–`T011` · `T013`/`T014` · `T016`–`T020` · `T022`–`T026` · `T028`/`T030`.
+`T001`/`T002` · **`T008`–`T010`** · `T013`/`T014` · `T016`–`T020` · `T022`–`T026` · `T028`/`T030`.
+
+> **T011 salió del grupo de Phase 4** al mudarse a Phase 2, donde **no es paralelizable con nada**: su
+> sitio en la secuencia `T004 → T011 → T005` **es el mecanismo**, no una preferencia de orden.
 
 > ⚠️ **La ceremonia NO es paralelizable, y T034–T036 quedan FUERA de esta lista.** Es **estrictamente
 > secuencial**: **C3 presupone que C1/C2 ya unieron** —no se puede comprobar que «repetir es
@@ -594,7 +702,7 @@ justo cómo se cuela un verde vacío en un grupo de cinco.
 | FR-014 | PRJ | T001 · **T029**, T029-R |
 | FR-015 | PRJ | T001 · T029, T029-R |
 | FR-016 | PRJ | T001 · T029, T029-R |
-| FR-017 | TR · CFG · **CER** | **T012** · T011, **T030** · **T004, T005** · T033 *(ni la ceremonia exime)* |
+| FR-017 | TR · CFG · **CER** | **T004, T005** *(impl, Phase 2)* · **T011** *(su prueba, Phase 2)* · T012, **T030** · T033 *(ni la ceremonia exime)* |
 | FR-018 | TR · CMD | T012 · **T026** |
 | FR-019 | CMD · **CER** | **T025** · **T036** |
 | FR-020 | CFG · CMD | T014, **T015** · **T024**, **T027** |
@@ -634,6 +742,9 @@ el defecto que se corrigió el 2026-08-18: un checkpoint que exige una comprobac
 intención, no una puerta.
 
 **Recuento oficial: 36 tareas · 37 casillas · 1 tarea con dos casillas (T029/T029-R).**
+
+**Y cuatro tests nacen verdes, no tres**: **T024, T025, T026** (ausencias, validadas por su caso
+positivo) **y T029** (regresión cero, validada por mutación del cuerpo compartido de T001).
 
 ### El barrido en el sentido que faltaba — de la TAREA al requisito
 

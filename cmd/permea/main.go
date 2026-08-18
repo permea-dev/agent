@@ -55,6 +55,12 @@ func main() {
 		}
 		return
 	}
+	// P-005 T003 — `project` es el PRIMER subcomando con verbo. Va en esta misma escalera y **antes
+	// de `flag.Parse()`**, por la razón que el comentario de arriba ya declara: los flags de
+	// P-001/P-002 se conservan intactos. El segundo nivel lo resuelve `runProject`, no `main`.
+	if len(os.Args) >= 2 && os.Args[1] == "project" {
+		os.Exit(runProjectOS(os.Args[2:]))
+	}
 
 	scan := flag.String("scan", "", "ruta a un JSONL de Claude Code para dry-run (imprime eventos, no envía)")
 	run := flag.Bool("run", false, "una pasada: escanea, encola en queue.jsonl y drena al backend (US1 + US2)")

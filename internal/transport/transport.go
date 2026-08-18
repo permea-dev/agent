@@ -30,6 +30,42 @@ const (
 // antes de transmitir nada en claro (FR-009).
 var ErrScheme = errors.New("transport: el endpoint debe usar https://")
 
+// ErrAdhesionNoImplementada es el centinela del PUNTO DE EXTENSIÓN de la adhesión (P-005 T002).
+//
+// ═══ POR QUÉ ES UN CENTINELA PROPIO Y NO «NO VERIFICABLE» ══════════════════════════════════
+//
+// Es andamiaje, y desaparece cuando P-005 T012 implemente los desenlaces. Existe para que los tests
+// de desenlace **nazcan en rojo por comportamiento** y no por «símbolo no existe» —un rojo de
+// compilación no dice nada—, y **DEBE ser distinto del desenlace de "no verificable"**: si fueran el
+// mismo valor, el test que espera «no verificable» ante una respuesta ininterpretable (T010)
+// **nacería VERDE acertando contra el andamiaje**, no contra el comportamiento, y su rojo no
+// existiría.
+var ErrAdhesionNoImplementada = errors.New("transport: adhesión no implementada")
+
+// errEsquemaAndamiaje es el centinela que la guarda INLINE de `Adherir` devuelve mientras dura el
+// andamiaje de P-005 (T002 → T005).
+//
+// ═══ POR QUÉ NO DEVUELVE `ErrScheme`, QUE ES LO NATURAL ════════════════════════════════════
+//
+// Porque **P-005 T011 exige ver `ErrScheme`**, y T011 es precisamente la prueba de que la guarda
+// unificada de T004/T005 **llegó al método nuevo**. Si esta réplica inline devolviera `ErrScheme`,
+// T011 **nacería VERDE acertando contra el andamiaje** —contra una condición copiada aquí a mano—
+// en vez de contra la unificación, y su rojo no existiría.
+//
+// Es el mismo criterio que `ErrAdhesionNoImplementada` y que el código de salida 70 del comando:
+// **el andamiaje devuelve algo que ningún test espera.**
+//
+// ═══ Y POR QUÉ LA GUARDA NO SE QUITA, QUE SERÍA MÁS SIMPLE ═════════════════════════════════
+//
+// Quitarla dejaría **la segunda puerta de la frontera sin guarda durante toda la Phase 2**, y eso es
+// Principio I: un `Adherir` sin comprobación de esquema puede emitir por canal en claro. La réplica
+// es deuda deliberada y de vida corta, no un descuido.
+//
+// **Quién la retira: P-005 T005**, que sustituye las CUATRO réplicas por la función unificada. Con
+// ella desaparece este centinela y `Adherir` pasa a devolver `ErrScheme`, que es lo que pone T011 en
+// verde.
+var errEsquemaAndamiaje = errors.New("transport: andamiaje P-005 — el endpoint debe usar https:// (guarda inline, se retira en T005)")
+
 // sendError clasifica el fallo de un envío para decidir la acción del agente según
 // contracts/transport.md: reintentar (5xx/red), detener el sync (401/403 auth), o
 // registrar sin reintentar en bucle (otros 4xx).
@@ -163,4 +199,75 @@ func (c *Client) sendWithRetry(events []event.Event) error {
 			delay = c.MaxBackoff
 		}
 	}
+}
+
+// ═══ P-005 T002 · PUNTO DE EXTENSIÓN DE LA ADHESIÓN ════════════════════════════════════════
+
+// peticionAdhesion es el cuerpo de la adhesión: **exactamente dos campos y nada más**.
+//
+// Es la allowlist de la SEGUNDA PUERTA de la frontera de datos (Principio I), y su forma la fija
+// `specs/005-adhesion-a-proyecto/contracts/adhesion.md` §La petición. Struct **cerrada por
+// construcción**: lo que no está aquí no puede viajar, y añadir un campo es ampliar la frontera.
+type peticionAdhesion struct {
+	Code       string `json:"code"`
+	ProjectRef string `json:"project_ref"`
+}
+
+// Adherir presenta un código de adhesión y devuelve la denominación del Proyecto al que la
+// instalación queda unida.
+//
+// ═══ ESTADO: PUNTO DE EXTENSIÓN (P-005 T002). NO INTERPRETA DESENLACES TODAVÍA ═════════════
+//
+// Hoy **compone y emite la petición con su cuerpo definitivo** y devuelve siempre
+// `ErrAdhesionNoImplementada`. Componer y emitir de verdad **no es adorno**: sin cuerpo real, el
+// golden test de frontera de la adhesión (P-005 T007) **no tendría sujeto que observar** —no habría
+// nada sobre lo que comprobar que solo viajan dos campos—.
+//
+// La interpretación de los cuatro desenlaces —leer el cuerpo, distinguir por estado— llega en
+// **P-005 T012**, y con ella desaparece el centinela.
+//
+// ═══ LO QUE YA ES DEFINITIVO ═══════════════════════════════════════════════════════════════
+//
+//	· la FIRMA — para que T012 no obligue a tocar a sus llamantes;
+//	· el CUERPO de la petición — dos campos, `contracts/adhesion.md` §La petición;
+//	· UN SOLO INTENTO, SIN COLA (P-005 FR-018) — se emite aquí y se espera, sin pasar por
+//	  `sendWithRetry` ni por `Append`/`Drain`. La cola no está DENTRO del cliente, está ENCIMA:
+//	  quien llama a este método directamente transmite y espera, y eso no requiere desactivar nada.
+//	  Es el mismo criterio que `Verify` (`:91-99`) ya razonó para el enrolamiento.
+//
+// ⚠️ **`Send` no se toca.** Su descarte del cuerpo (`:131`) está razonado —reutiliza la conexión en
+// los reintentos del camino caliente— y esta operación **no puede** reutilizarlo: `Send` serializa
+// `[]event.Event`, y aquí el cuerpo es otro.
+func (c *Client) Adherir(codigo, projectRef string) (denominacion string, err error) {
+	// GUARDA INLINE DE ANDAMIAJE — réplica deliberada y de vida corta; la retira T005 (ver
+	// `errEsquemaAndamiaje`). Devuelve un centinela PROPIO, no `ErrScheme`, para que T011 nazca rojo.
+	u, err := url.Parse(c.Endpoint)
+	if err != nil {
+		return "", fmt.Errorf("%w: endpoint inválido %q", errEsquemaAndamiaje, c.Endpoint)
+	}
+	if u.Scheme != "https" {
+		return "", fmt.Errorf("%w: %q", errEsquemaAndamiaje, c.Endpoint)
+	}
+
+	body, err := json.Marshal(peticionAdhesion{Code: codigo, ProjectRef: projectRef})
+	if err != nil {
+		return "", err
+	}
+	req, err := http.NewRequest(http.MethodPost, c.Endpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.DeviceToken)
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		// Sin respuesta del enlace. El desenlace real —«no verificable», P-005 FR-013— lo decide
+		// T012; aquí el andamiaje responde lo mismo que en cualquier otro caso, a propósito.
+		return "", ErrAdhesionNoImplementada
+	}
+	defer func() { _ = resp.Body.Close() }() // solo lectura de la respuesta
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	return "", ErrAdhesionNoImplementada
 }
