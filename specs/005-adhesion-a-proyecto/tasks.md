@@ -63,6 +63,31 @@ sin cambios**, más una que esta feature añade.
 3. **Todo test que nazca verde se valida por mutación**, y la validación exige **leer el mensaje de
    fallo** que produce la mutación. La mutación se revierte **por edición inversa**, nunca por
    `git checkout` — para que el diff final demuestre que se revirtió lo mismo que se introdujo.
+   > **Y una mutación VÁLIDA deja el paquete COMPILANDO y mata SÓLO el hecho que altera.** Esta mitad
+   > faltaba, y **se aprendió midiendo**: de las cuatro alteraciones que se probaron en T004, **dos no
+   > acreditaban nada** (registro en T004 §HALLAZGO DE MÉTODO). Hay **dos formas de mutación inválida**,
+   > y las dos se leen como éxito si no se mira:
+   >
+   > - **La que PANICA.** Un panic **aborta el binario de test entero**, y con él **la observación del
+   >   otro hecho** — que era el punto de la mutación. Se ve un `FAIL` rojo y abundante que **no dice
+   >   qué murió**.
+   > - **La que NO COMPILA.** Un `[build failed]` **falla igual aunque el test no mire nada**, así que
+   >   **no dice nada del test**: es el mismo desenlace con un test correcto y con uno vacío.
+   >
+   > **Si una alteración produce cualquiera de las dos, se DESCARTA y se busca otra forma de alterar el
+   > mismo hecho** — no se apunta como mutación superada. Y si no existe ninguna forma que compile y
+   > mate sólo ese hecho, **se PARA y se reporta**: eso ya no es un problema de la mutación, es que los
+   > hechos no están separados.
+   >
+   > **Rige las CUATRO mutaciones que quedan**: **T007**, la **mutación de unificación de T005**, y las
+   > cláusulas **(a)** y **(c)** de **T028**.
+   >
+   > ⚠️ **La de T005 es la más expuesta de las cuatro, y por su propia naturaleza**: muta la función que
+   > usan **cuatro llamantes en tres paquetes**, así que una mutación mal escrita **rompe la compilación
+   > de los cuatro a la vez** — y **un `build failed` en los cuatro se lee exactamente igual que “los
+   > cuatro se movieron”**, que es lo que esa mutación existe para demostrar. **La forma inválida
+   > FALSIFICA el resultado que se busca, no sólo lo oculta.** La mutación de T005 tiene que **compilar**
+   > y hacer fallar **tests**, no el `go build`.
 4. **Tests de proceso**: comparar `ExitCode()`, **nunca** texto (puente Windows/WSL).
 5. **La ausencia de aviso se comprueba por canal VACÍO**, no por *matching* de mensaje: comprobar que
    un texto no aparece pasa también cuando aparece otro texto distinto.
@@ -205,7 +230,7 @@ es barata de encontrar**: antes de que nada más cambie.
 > única que puede romper algo que hoy funciona**: toca tres ficheros verdes que esta feature no
 > necesitaba tocar.
 
-- [ ] **T004** En `internal/config/`, extraer el juicio de esquema a una función que devuelva **los dos
+- [x] **T004** En `internal/config/`, extraer el juicio de esquema a una función que devuelva **los dos
   hechos por separado** —«no analizable» y «esquema no admisible»— y **que NO formatee ningún
   mensaje**. **Nace verde** (no hay llamantes aún) → **se valida por mutación**: alterar cada uno de
   los dos hechos debe producir un fallo legible, y el otro quedar en pie.
@@ -213,10 +238,95 @@ es barata de encontrar**: antes de que nada más cambie.
   **no son idénticas** (`research.md` §R4) — `enrollment.go` **funde** análisis y esquema en un
   desenlace, las otras dos los **separan** —, así que un booleano cambiaría el comportamiento de una
   de las tres.
-- [ ] **T011** [P] Test de que **la guarda de esquema muerde en el método nuevo** en el mismo fichero —
-  **Garantía**: FR-017. Destino en claro → no se completa, **con el centinela `ErrScheme`**. Nace en
-  **rojo** porque **T002 SÍ tiene guarda —una réplica inline— pero devuelve `errEsquemaAndamiaje`, no
-  `ErrScheme`**: nace rojo **por el centinela, no por ausencia de guarda**.
+
+  > ### ✅ MEDIDO — T004 nació verde y las dos mutaciones son independientes
+  > `internal/config/endpoint.go` · `JuzgarEndpoint(endpoint string) (errAnalisis error, admisible bool)`.
+  > **Devuelve el error, no un segundo booleano**, y no fue una preferencia: `config.go:102` y
+  > `transport.go:143` **envuelven la causa con `%w`**, así que dos booleanos habrían roto sus mensajes.
+  >
+  > El test se partió en **tres funciones** —`_HechoAnalisis`, `_HechoEsquema`,
+  > `_NoAnalizableNoAfirmaEsquema`— precisamente para que **cada mutación pueda tumbar una y dejar la
+  > otra en pie**; con una sola función de tabla, las dos mutaciones habrían sido indistinguibles.
+  >
+  > **Mutación (a)** — se altera «no analizable» (`return err, false` → `return nil, false`):
+  > ```
+  > --- FAIL: TestJuzgarEndpoint_HechoAnalisis/no_analizable_devuelve_la_causa
+  >     endpoint_test.go:25: JuzgarEndpoint("https://ejemplo\x7f.test/ingest"): errAnalisis = nil, se esperaba la causa de url.Parse
+  > --- FAIL: TestJuzgarEndpoint_NoAnalizableNoAfirmaEsquema
+  >     endpoint_test.go:80: el caso base falló: "https://ejemplo\x7f.test/ingest" debería no ser analizable
+  > ```
+  > `TestJuzgarEndpoint_HechoEsquema` → **PASS** (el otro hecho, EN PIE).
+  >
+  > **Mutación (b)** — se altera «esquema no admisible» (`u.Scheme == esquemaAdmisible` → `!=`):
+  > ```
+  > --- FAIL: TestJuzgarEndpoint_HechoEsquema/https_es_admisible
+  >     endpoint_test.go:68: JuzgarEndpoint("https://api.permea.example/api/v1/ingest"): admisible = false, want true
+  > --- FAIL: TestJuzgarEndpoint_HechoEsquema/http_NO_es_admisible
+  >     endpoint_test.go:68: JuzgarEndpoint("http://api.permea.example/api/v1/ingest"): admisible = true, want false
+  > ```
+  > `TestJuzgarEndpoint_HechoAnalisis` → **PASS** (el otro hecho, EN PIE).
+  >
+  > Las dos revertidas **por edición inversa**, fichero verificado **idéntico byte a byte** al original.
+  >
+  > ### ⚠️ HALLAZGO DE MÉTODO — dos alteraciones DESCARTADAS por no ser fallos legibles
+  > La disciplina 3 pide que la mutación **falle legiblemente**, y **no toda alteración lo hace**:
+  > - `if err != nil` → `if false` dejó `u` nil y produjo **`panic: nil pointer dereference`**. Un panic
+  >   **aborta el binario de test entero**, así que el otro hecho **no se pudo observar en pie** — que es
+  >   justo lo que la mutación tenía que demostrar.
+  > - `return nil, u.Scheme == …` → `return nil, true` **no compiló** (`u declared and not used`).
+  >   Un fallo de compilación **no dice nada del test**: falla igual aunque el test no mire nada.
+  >
+  > **Una mutación que revienta o que no compila no acredita separación.** Descartadas y sustituidas
+  > por alteraciones que **compilan y fallan por comportamiento**.
+- [x] **T011** [P] Test de que **la guarda de esquema muerde en el método nuevo** en
+  `internal/transport/adhesion_test.go` — **Garantía**: FR-017, y la separación que T004 existe para
+  sostener. **DOS CASOS**, y hacen falta los dos:
+  1. **El centinela.** Destino en claro (analiza bien, esquema `http`) → no se completa, **con el
+     centinela `ErrScheme`** — el mismo que la ingesta, para que `errors.Is` conteste igual por las dos
+     puertas. Nace **rojo** porque **T002 SÍ tiene guarda —una réplica inline— pero devuelve
+     `errEsquemaAndamiaje`**: rojo **por el centinela, no por ausencia de guarda**.
+  2. **La distinguibilidad.** Los **dos hechos** producen desenlaces **distinguibles**: en claro →
+     `errors.Is(err, ErrScheme)`; **no analizable** → no se completa **y NO es `ErrScheme`**. Nace
+     **rojo** porque hoy **los dos devuelven el mismo `errEsquemaAndamiaje`**, así que **son
+     indistinguibles**.
+  3. **La causa conservada** — **Garantía: D-005-P2**. Con un endpoint **no analizable**, el error
+     **conserva la causa de `url.Parse`**, **con la misma forma que `Send`** (`transport.go:143`, que
+     la envuelve con `%w`). Nace **rojo** porque `Adherir` hoy hace **lo contrario**: envuelve el
+     centinela y **descarta la causa**.
+  > ### ⚠️ El caso 2 es lo que impide REFUNDIR lo que T004 separó
+  > **Con sólo el caso 1, T005 puede ponerlo verde devolviendo `ErrScheme` TAMBIÉN cuando la URL no se
+  > puede analizar** — verde, y habiendo fundido los dos hechos en uno. El caso 1 no lo ve: sólo mira
+  > el canal en claro, y ahí la respuesta sería la correcta por accidente.
+  >
+  > **La aserción del caso 2 es la DISTINGUIBILIDAD, no el texto de ningún mensaje**: compara **las dos
+  > respuestas entre sí** —`errors.Is(·, ErrScheme)` no puede contestar lo mismo a los dos hechos— más
+  > el sentido (`ErrScheme` es un juicio **sobre** el esquema: sólo puede afirmarlo quien pudo leerlo).
+  > Comparar texto lo ataría a una redacción, y **T004 no formatea ninguna**: la redacción es de cada
+  > llamante.
+  >
+  > **Lo que el caso 2 deliberadamente NO fija**: que el error de «no analizable» conserve la causa de
+  > `url.Parse`. Hoy `Adherir` es una **CUARTA VARIANTE** de la guarda —**ofrece centinela y tira la
+  > causa**, al revés que `Send` (`transport.go:143`), que **conserva la causa y no ofrece centinela**.
+  > El caso 2 sólo le prohíbe a T005 **la opción que borra la diferencia entre los dos hechos**; **la
+  > causa la fija el CASO 3**, y ya no queda como decisión libre.
+  > ### ⚠️ El caso 3 es la PREMISA de D-005-P2, no una preferencia de estilo
+  > **Unificar el juicio y dejar que una puerta conserve la causa y la otra la tire es unificar el
+  > código y mantener la divergencia justo donde se nota: en lo que la persona lee cuando su
+  > configuración está rota.** El juicio compartido no le sirve de nada a quien tiene un endpoint mal
+  > escrito si una puerta le dice **qué** está mal y la otra sólo que algo lo está. **D-005-P2 unifica
+  > EL DESENLACE, no sólo la condición** — si no, el trabajo se queda a medias exactamente en la mitad
+  > que el usuario ve.
+  >
+  > **La aserción es `errors.As` sobre `*url.Error`, nunca texto** — y **no puede ser `errors.Is`**:
+  > **medido**, `url.Parse` devuelve un `*url.Error` **nuevo en cada llamada** y `url.Error` **no
+  > implementa `Is`**, así que `errors.Is(err, <causa de una segunda llamada>)` da **false aunque la
+  > causa esté perfectamente conservada** — compara punteros. Se comprueba con `errors.As` (tipo que
+  > **sólo** produce `url.Parse`) más sus **campos estructurados** `Op` y `URL`.
+  >
+  > **Y `Send` es EL ORÁCULO del caso 3**: se comprueba **la misma propiedad en las dos puertas**, así
+  > que «misma forma que `Send`» **es la aserción y no una afirmación del comentario**. Si la rama de
+  > `Send` fallara, lo que cambió es **la referencia**, y entonces se revisa el test antes que
+  > `Adherir` — el test lo dice en su propio mensaje.
   > ### ⚠️ LÍMITE CONOCIDO — qué acredita T011 y qué NO
   > Este enunciado decía **«es la prueba de que la unificación LLEGÓ aquí»**, y **no puede serlo.**
   >
@@ -248,6 +358,44 @@ es barata de encontrar**: antes de que nada más cambie.
   > existentes siguen verdes», y **«nada se rompió» es compatible con «no pasó nada»**: la tarea de
   > mayor alcance del plan no tenía ninguna prueba de que **hizo su trabajo**. T011 aporta **la mitad
   > de comportamiento**; la de estructura la aporta **la mutación de T005**.
+  >
+  > ### 🔴 MEDIDO — T011 nació ROJO, y por EL CENTINELA
+  > `internal/transport/adhesion_test.go` · `TestAdherir_RechazaCanalEnClaro`, dos casos (`http` remoto
+  > y `http` a la máquina local). Mensaje de fallo **real**:
+  > ```
+  > --- FAIL: TestAdherir_RechazaCanalEnClaro/http_en_claro
+  >     adhesion_test.go:65: Adherir("http://api.permea.example/api/v1/projects/adhesion"): errors.Is(err, ErrScheme) = false, err = transport: andamiaje P-005 — el endpoint debe usar https:// (guarda inline, se retira en T005): "http://api.permea.example/api/v1/projects/adhesion"
+  >           la guarda de la segunda puerta no devuelve el centinela de la ingesta
+  > ```
+  > **El rojo es exactamente el previsto**: las dos primeras aserciones —no se completa, no hay
+  > denominación— **ya pasan**, porque la guarda inline de T002 sí muerde. Lo único que falla es
+  > `errors.Is(err, ErrScheme)`. **Queda en rojo a propósito; la pone en verde T005.**
+  >
+  > ### 🔴 MEDIDO — el CASO 2 nació ROJO, y por INDISTINGUIBILIDAD
+  > `TestAdherir_LosDosHechosSonDistinguibles`. Mensaje de fallo **real**:
+  > ```
+  > adhesion_test.go:133: los dos hechos son INDISTINGUIBLES: errors.Is(·, ErrScheme) contesta false a los dos
+  >       en claro       ("http://api.permea.example/api/v1/projects/adhesion") → false
+  >       no analizable  ("https://ejemplo\x7f.test/api/v1/projects/adhesion") → false
+  >       la segunda puerta funde «no analizable» y «esquema no admisible» en un solo desenlace
+  > adhesion_test.go:143: errors.Is(err, ErrScheme) = false para "http://…": el esquema se leyó y no es admisible
+  > ```
+  > **La premisa del test SÍ se cumple hoy**: los dos endpoints se rechazan y ninguno devuelve
+  > denominación — la guarda inline muerde en ambos. Lo que falla es que **muerde igual**. Y la aserción
+  > de sentido en la rama «no analizable» (**no debe ser `ErrScheme`**) **pasa hoy** por accidente: hoy
+  > no es `ErrScheme` porque **nada** lo es. **Es exactamente la que T005 puede romper.**
+  >
+  > ### 🔴 MEDIDO — el CASO 3 nació ROJO, y con las dos puertas lado a lado
+  > `TestAdherir_ConservaLaCausaDelParseo`. Mensaje de fallo **real**:
+  > ```
+  > adhesion_test.go:220: Adherir("https://ejemplo\x7f.test/api/v1/projects/adhesion"): errors.As(err, **url.Error) = false — LA CAUSA SE PERDIÓ.
+  >       err = transport: andamiaje P-005 — el endpoint debe usar https:// (guarda inline, se retira en T005): endpoint inválido "https://ejemplo\x7f.test/…"
+  >       Send, con el mismo endpoint, SÍ la conserva: transport: endpoint inválido "https://ejemplo\x7f.test/…": parse "https://ejemplo\x7f.test/…": net/url: invalid control character in URL
+  >       D-005-P2: las dos puertas deben dar el mismo desenlace, no sólo compartir la condición
+  > ```
+  > **La rama del oráculo PASÓ**: `Send` conserva la causa hoy, así que la referencia se sostiene y el
+  > rojo es **inequívocamente de `Adherir`**. El mensaje **enseña las dos puertas juntas**, que es lo
+  > que hace legible la divergencia sin comparar texto en ninguna aserción.
 
 - [ ] **T005** Sustituir **las CUATRO réplicas** por llamadas a T004:
   1. `internal/config/enrollment.go:78-80` — **funde los dos hechos** en su error genérico, **sin
@@ -293,6 +441,45 @@ es barata de encontrar**: antes de que nada más cambie.
   > **TRANSCRIBIR los cuatro mensajes de fallo** (disciplina 2 y 3) y **revertir POR EDICIÓN INVERSA**,
   > nunca por `git checkout` — para que el diff final demuestre que se revirtió lo mismo que se
   > introdujo.
+  > #### ⛔ CÓMO SABER QUE LA MUTACIÓN VALE — dos comprobaciones, y son obligatorias
+  > El párrafo de arriba dice **qué mutar**. Esto dice **cómo saber que la mutación acredita algo**, que
+  > no es lo mismo y **se aprendió midiendo** en T004 (disciplina 3 §mutación válida).
+  >
+  > **(a) ANTES de ejecutar ningún test: `go build ./...` DEBE PASAR con la mutación puesta.** Si no
+  > compila, **la mutación se descarta y se busca otra forma de alterar el mismo juicio** — no se apunta
+  > como mutación superada.
+  > > **Y aquí no es higiene, es la diferencia entre medir y engañarse.** Ésta es la **única mutación de
+  > > la feature donde el fallo de método produce EL ASPECTO DEL ÉXITO**: muta la función que usan
+  > > **cuatro llamantes en tres paquetes**, así que una mutación mal escrita **rompe la compilación de
+  > > los cuatro a la vez** — y **un `build failed` en los cuatro paquetes SE LEE EXACTAMENTE IGUAL que
+  > > «los cuatro llamantes se movieron»**, que es justo lo que esta mutación existe para demostrar.
+  > > **La mutación tiene que hacer fallar TESTS, no el `go build`.**
+  >
+  > **(b) DESPUÉS: los cuatro tests deben fallar con CUATRO MENSAJES DISTINTOS**, transcritos **uno a
+  > uno y atribuidos a su llamante** (enrollment · config · `Send` · `Adherir`). **Cuatro fallos
+  > idénticos no distinguen «se movieron los cuatro» de «se rompió algo común»** — y con un cuerpo
+  > compartido recién introducido, «algo común» es la hipótesis más probable, no la menos. Cuatro
+  > mensajes distintos, cada uno con la voz de su llamante, **son la prueba de que el juicio llegó a
+  > los cuatro sitios**; cuatro copias del mismo texto no prueban nada.
+  > ### ⛔ DEBER DE CIERRE — hacer FALSABLE la aserción de sentido del CASO 2 de T011
+  > **Al terminar la unificación**, y además de la mutación de arriba: comprobar que la aserción de
+  > sentido del **caso 2 de T011** —«**no analizable NO es `ErrScheme`**»— **es falsable**. Hacer que la
+  > rama no analizable devuelva `ErrScheme` **debe TUMBARLA**.
+  >
+  > **Por qué hace falta, y por qué SÓLO PUEDE HACERSE AQUÍ:** hoy esa aserción **pasa por accidente**
+  > —no es `ErrScheme` porque **nada** lo es, ni siquiera el canal en claro—, así que **verde no
+  > significa nada** mientras dure el andamiaje. **El comportamiento que podría violarla no existe hasta
+  > que T005 unifica**: sólo después hay un `ErrScheme` de verdad en esta puerta, y sólo entonces
+  > «devolverlo también para lo no analizable» es un error posible en vez de una imposibilidad.
+  >
+  > **Es exactamente el fallo que T005 puede introducir**: refundir los dos hechos en un solo desenlace
+  > es la forma natural de simplificar al unificar, y **el caso 2 es lo único que lo impide**. Una
+  > guardia que no se puede disparar no guarda nada — y ésta se queda así de por vida si nadie la
+  > dispara **el día en que empieza a poder dispararse**.
+  >
+  > **Revertir POR EDICIÓN INVERSA**, y transcribir el mensaje. **Si NO la tumba, la aserción no está
+  > mirando: SE PARA Y SE REPORTA** — la unificación habrá dejado el caso 2 verde y vacío, que es peor
+  > que no tenerlo, porque parece una red.
 - [ ] **T006** Remisión cruzada en los dos sitios (D-005-P2 §encontrabilidad): en
   `internal/transport/transport.go` —donde estaba la condición— un comentario que dice **dónde vive
   ahora el juicio y por qué se movió**; en `internal/config/` —donde vive— **quiénes son sus
@@ -632,7 +819,9 @@ justo cómo se cuela un verde vacío en un grupo de cinco.
 | **T008** | T001–T007 | **rojo** | T002 devuelve «adhesión no implementada», no una denominación |
 | **T009** | T001–T007 | **rojo** | T002 no distingue `422` de `409`: devuelve el mismo centinela para los dos |
 | **T010** | T001–T007 | **rojo** | **solo porque el centinela de T002 es OTRO.** Si T002 devolviera «no verificable», este test **nacería verde acertando contra el stub** — es la razón de que el cambio 1 exista |
-| **T011** | **T001–T004** | **rojo** | **T002 SÍ tiene guarda —una réplica inline— pero devuelve `errEsquemaAndamiaje`, no `ErrScheme`**, que es el centinela que este test exige. Nace rojo **por el centinela, no por ausencia de guarda**. **Vive en Phase 2, entre T004 y T005**: en Phase 4 habría nacido VERDE, porque T005 ya habría puesto `ErrScheme` dos fases antes |
+| **T011** (1) *el centinela* | **T001–T004** | **rojo** | **T002 SÍ tiene guarda —una réplica inline— pero devuelve `errEsquemaAndamiaje`, no `ErrScheme`**, que es el centinela que este test exige. Nace rojo **por el centinela, no por ausencia de guarda**. **Vive en Phase 2, entre T004 y T005**: en Phase 4 habría nacido VERDE, porque T005 ya habría puesto `ErrScheme` dos fases antes |
+| **T011** (2) *la distinguibilidad* | **T001–T004** | **rojo** | **la réplica de T002 devuelve el MISMO `errEsquemaAndamiaje` para los dos hechos**, así que «no analizable» y «esquema no admisible» son **indistinguibles**. Rojo **por indistinguibilidad**, que es un rojo distinto del de (1): (1) mira **qué** centinela; (2) mira que **no sea el mismo para los dos**. **Sin este caso, T005 puede ponerse verde REFUNDIENDO lo que T004 separó** |
+| **T011** (3) *la causa conservada* | **T001–T004** | **rojo** | **la réplica de T002 envuelve el CENTINELA y DESCARTA la causa de `url.Parse`** — la **cuarta variante**, al revés que `Send` (`transport.go:143`), que **conserva la causa**. Tercer rojo **distinto** de los otros dos: (1) y (2) miran **el centinela**; (3) mira **lo que hay debajo de él**. Su rama de oráculo —la misma propiedad sobre `Send`— **pasa hoy**, así que el rojo es **atribuible sólo a `Adherir`** |
 | **T013** | T001–T012 | **rojo** | la derivación del destino no existe hasta T015 |
 | **T014** | T001–T012 | **rojo** | ídem: no hay validación ruidosa que rehusar |
 | **T016** | T001–T015 | **rojo** | T003 rehúsa siempre; no hay dos vías que comparar |
