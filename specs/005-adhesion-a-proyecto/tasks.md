@@ -82,6 +82,24 @@ sin cambios**, más una que esta feature añade.
    > **Rige las CUATRO mutaciones que quedan**: **T007**, la **mutación de unificación de T005**, y las
    > cláusulas **(a)** y **(c)** de **T028**.
    >
+   > ### ⛔ TODA ASERCIÓN DETRÁS DE UN `t.Fatalf` ES INMUNE A LA MUTACIÓN
+   > **Y es un verde INALCANZABLE, no un verde vacío**, que es peor: no hay forma de tumbarla **mientras
+   > la anterior aguante**. La mutación que debería probarla dispara el `Fatalf`, **el subtest se corta
+   > ahí** y la aserción de abajo **nunca llega a evaluarse**. Pasa el test, pasa la revisión, y esa
+   > línea **no ha probado nada en su vida**.
+   >
+   > **Medido en T010** (`tasks.md` T012 §PASO 2): sus dos aserciones «nunca éxito» y «ninguna
+   > denominación» necesitaron **dos mutaciones distintas**, porque la primera es un `t.Fatalf`. Una
+   > sola no podía tumbar las dos, y con una sola se habría dado por validada la segunda.
+   >
+   > **Regla:**
+   > - **Aserciones independientes → `t.Errorf`**, para que **TODAS se evalúen** en la misma pasada.
+   > - **`t.Fatalf` sólo para PRECONDICIONES**: aquello sin lo cual continuar no significa nada —el
+   >   servidor no respondió, el fixture no existe, el caso base no se cumple—.
+   > - **Si se encadenan de todas formas, hacen falta TANTAS MUTACIONES COMO ASERCIONES**, y cada una
+   >   tiene que dejar en pie las anteriores para alcanzar la suya. Se escribe en la tarea, no se
+   >   descubre al validar.
+   >
    > ⚠️ **La de T005 es la más expuesta de las cuatro, y por su propia naturaleza**: muta la función que
    > usan **cuatro llamantes en tres paquetes**, así que una mutación mal escrita **rompe la compilación
    > de los cuatro a la vez** — y **un `build failed` en los cuatro se lee exactamente igual que “los
@@ -118,11 +136,28 @@ sin cambios**, más una que esta feature añade.
    > Una regla que se comprueba leyendo es una regla que nadie comprueba. **Ésta se comprueba así:**
    >
    > ```sh
-   > grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml|tsv|mod|gitignore):[0-9]+' \
+   > grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml|tsv|mod|gitignore):[0-9]+|[(`]:[0-9]+' \
    >      --include='*.go' --include='*.sh' .
    > ```
    >
    > **Salida esperada: NADA.**
+   >
+   > ##### ⛔ LA SEGUNDA RAMA — `\(:[0-9]+` — Y POR QUÉ HIZO FALTA AÑADIRLA
+   > La primera rama exige **`fichero.ext:N`**, así que **no ve el idioma `(:131)`**: la cita corta que
+   > se escribe cuando el fichero «se sobreentiende» porque es el mismo en el que se está. **Medido en
+   > T012**: la cabecera de `Adherir` remitía a `Send` con «(`:131`)» y a `Verify` con «`:91-99`», y el
+   > grep daba **cero**. Es la forma **más frágil de todas** —no dice ni de qué fichero habla— y era
+   > **invisible para el instrumento**.
+   >
+   > **`[(`]:[0-9]+` la caza con casi cero falsos positivos**: un paréntesis o un acento grave seguidos
+   > de dos puntos y un número no aparecen en Go fuera de este idioma. Van **las dos variantes** porque
+   > **las dos estaban escritas**: «(`:131`)» y «`:91-99`».
+   >
+   > **Y aquí el patrón PARA, medido.** La forma general —«dos puntos y un número tras algo que no es
+   > identificador, dentro de un comentario»— se probó y **da falso positivo**: caza `"name":42`, que es
+   > **JSON dentro de un comentario**, no una cita. Un grep ruidoso acaba desactivado, así que **se
+   > prefiere el par de idiomas concretos a la forma general**. *(Límite conocido: una cita escrita de
+   > una tercera manera seguiría siendo invisible. Se anota, no se disimula.)*
    >
    > ##### ⛔ LA LISTA DE EXTENSIONES NO SE INVENTA — SE MIDE, Y ASÍ
    > ```sh
@@ -980,17 +1015,55 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ## Phase 5: El destino derivado (D-005-P3)
 
-- [ ] **T013** [P] Test de **derivación correcta** en `internal/config/config_test.go` — **Garantía**:
+- [x] **T013** [P] Test de **derivación correcta** en `internal/config/config_test.go` — **Garantía**:
   `adhesion.md` §Cómo se obtiene `<base>`. Conserva **esquema, host, puerto y prefijo**, y sustituye
   solo el último segmento. **El puerto no estándar es caso obligatorio**: el banco local usa `:8443`.
   Nace en **rojo**.
-- [ ] **T014** [P] Test de **forma inesperada** en el mismo fichero — **Garantía**: FR-009 **y
+- [x] **T014** [P] Test de **forma inesperada** en el mismo fichero — **Garantía**: FR-009 **y
   FR-020**. Un endpoint cuya ruta no termina en el segmento conocido → **rehúsa**, nombrando **la
   forma** de lo hallado, y **el mensaje NO contiene material sensible** aunque estuviera en lo
   hallado. Nace en **rojo**.
-- [ ] **T015** Implementar la derivación con **validación ruidosa** en `internal/config/`. **Cita el
+- [x] **T015** Implementar la derivación con **validación ruidosa** en `internal/config/`. **Cita el
   contrato** (`contracts/adhesion.md` §Cómo se obtiene `<base>`) en el comentario: los dos hechos de
   ruta son **contrato, no literal local** (D-005-P3, D-005-P11). Pone en verde **T013–T014**.
+  > ### 🔴 MEDIDO — los dos rojos, observados ANTES de T015
+  > La derivación no existía, así que hubo que declarar **la firma y el centinela** en
+  > `internal/config/adhesion_endpoint.go` para que los tests **compilaran** —un `[build failed]` no es
+  > un rojo legible—, con un `errDerivacionAndamiaje` **distinto de `ErrFormaDeEndpointInesperada`**
+  > para que T014 no naciera verde. **T015 lo retiró**; `grep` → cero.
+  > ```
+  > T013  config_test.go:345: DerivarEndpointDeAdhesion("https://api.permea.example/api/v1/ingest") devolvió err = config: andamiaje P-005 — derivación no implementada; es una forma válida
+  >       config_test.go:348:   obtenido: ""   quiere: "https://api.permea.example/api/v1/projects/adhesion"
+  > T014  config_test.go:399: errors.Is(err, ErrFormaDeEndpointInesperada) = false; err = config: andamiaje P-005 — derivación no implementada
+  >       config_test.go:434: el rehúse NO nombra la forma: las dos formas dan el MISMO mensaje "config: andamiaje P-005 — derivación no implementada"
+  > ```
+  > **Las DOS aserciones de T013 dispararon en el mismo subtest**, que es la disciplina 3 §inmunidad
+  > funcionando: con `t.Fatalf` la segunda no se habría visto.
+  >
+  > ### ✅ T013 — siete casos, y tres no son adorno
+  > Además del puerto `:8443` **obligatorio** (el banco local; perderlo manda la adhesión al 443, a un
+  > servidor que no es el que se estaba probando), se cubren **los tres sitios donde «sustituir el
+  > último» se confunde con otra cosa**: prefijo de **varios segmentos** —cortar por el primero da otro
+  > destino—, **host que contiene «ingest»** —no se toca—, y **segmento intermedio homónimo**
+  > (`/ingest/v1/ingest`), donde sustituir *el primero que coincida* manda la petición a otro sitio.
+  >
+  > ### ✅ T014 — «nombrar la forma» se comprueba SIN casar texto
+  > FR-009 pide nombrar la forma; la disciplina prohíbe aserciones sobre texto de mensajes. Se resuelve
+  > por **distinguibilidad**, en test aparte: **dos formas estructuralmente distintas deben dar mensajes
+  > distintos**. Un mensaje constante —«forma inesperada»— **no nombra nada**, y eso es lo que impide.
+  >
+  > **Y FR-020 manda sobre FR-009**: la forma se describe **estructuralmente** —ruta vacía, cuántos
+  > segmentos, cuál se esperaba— y **nunca citando lo hallado**, porque el último segmento de un
+  > endpoint mal configurado puede ser cualquier cosa. **Por eso T015 DESCARTA la causa de `url.Parse`**
+  > —un `*url.Error` lleva la URL entera dentro—, al revés que `transport.Adherir`, que la conserva.
+  > **Tercera puerta, tercera decisión, mismo juicio**: es exactamente para esto que `JuzgarEndpoint` no
+  > formatea mensajes.
+  >
+  > ### ⚠️ Decisión no cubierta por ningún test, y se dice
+  > La derivación **copia la URL entera y sustituye la ruta**, así que **arrastra lo que traiga**
+  > (usuario, query, fragmento). Ninguna prueba lo fija porque **el contrato no lo menciona** y un
+  > endpoint de ingesta no los lleva. Se elige **conservar** por ser lo menos sorprendente; si algún día
+  > importa, es una decisión que hay que tomar a la vista, no descubrir.
 
 ---
 
@@ -1095,6 +1168,15 @@ es barata de encontrar**: antes de que nada más cambie.
   > **Si alguno no falla, no está mirando**, y el criterio que dice sostener —SC-005, SC-007, SC-010—
   > **no cuenta como pasado**. Decir «T027 pone en verde T022–T026» habría sido cómodo y falso: tres de
   > los cinco ya estaban verdes, y lo que les faltaba era exactamente esto.
+  > ### ⛔ ANTES DE MUTAR: REVISAR LOS `t.Fatalf` DE LOS TRES (disciplina 3 §inmunidad)
+  > **Toda aserción que quede DETRÁS de un `t.Fatalf` es inmune a la mutación**: el `Fatalf` corta el
+  > subtest y la de abajo nunca se evalúa, así que **la mutación la da por validada sin haberla tocado
+  > jamás**. Es un verde **inalcanzable**, y no se distingue de uno bueno mirando la salida.
+  >
+  > **Al ejecutar los tres casos positivos**: comprobar primero que cada aserción independiente usa
+  > `t.Errorf` —y `t.Fatalf` sólo donde continuar no significa nada—. **Si alguna quedó encadenada,
+  > hacen falta tantas mutaciones como aserciones**, cada una dejando en pie las anteriores. *(Medido
+  > en T010: dos aserciones, dos mutaciones, y con una sola se habría dado la segunda por buena.)*
 
 ---
 
@@ -1109,6 +1191,10 @@ es barata de encontrar**: antes de que nada más cambie.
   comparación sobre **cuatro clases de árbol** —raíz, subdirectorio profundo, árbol paralelo,
   directorio sin raíz—; (c) **una alteración deliberada en el punto único pone (b) en rojo**.
   **Sin (c) el criterio no es falsable.**
+  > ⛔ **Y (c) sólo alcanza lo que (b) deje alcanzar** (disciplina 3 §inmunidad): si (b) encadena
+  > aserciones detrás de un `t.Fatalf`, **la alteración de (c) tumba la primera y para ahí**, dejando
+  > las demás sin tocar y **aparentando validadas**. Antes de mutar, que las aserciones independientes
+  > de (b) usen `t.Errorf`; si no, **tantas mutaciones como aserciones**.
   ⚠️ **En las TRES primeras clases se compara carácter a carácter que las dos identidades son la
   misma. En la cuarta —directorio sin raíz— NO hay identidades que comparar**, y hay que escribirlo
   porque invita a un test que compara dos valores vacíos y da verde por nada:
@@ -1340,12 +1426,13 @@ justo cómo se cuela un verde vacío en un grupo de cinco.
 
 **Los 24 FR y los 11 SC tienen tarea. Ningún hueco.**
 
-### ⚠️ Verificación de recuento — **36 tareas, 37 casillas**, y no es un desajuste
+### ⚠️ Verificación de recuento — **37 tareas, 38 casillas**, y no es un desajuste
 
-**Un barrido mecánico contará 37 `- [ ]` y 36 identificadores `T0xx`, y dirá que sobra una.** No sobra:
+**Un barrido mecánico contará 38 `- [ ]` y sólo 36 identificadores `T0nn` distintos** —porque los dos
+sufijados colapsan sobre su número— **y dirá que sobran dos.** No sobran, y son dos casos distintos:
 
-**`T029` y `T029-R` son DOS CASILLAS DE UN SOLO MECANISMO** —el mismo fichero de test, escrito una vez
-y pasado dos—. Tienen casilla separada porque **se cierran en momentos distintos**: T029 al acabar
+**1 · `T029` y `T029-R` son DOS CASILLAS DE UN SOLO MECANISMO** —el mismo fichero de test, escrito una
+vez y pasado dos—. Tienen casilla separada porque **se cierran en momentos distintos**: T029 al acabar
 Phase 1, cuando su única dependencia (T001) ya está y **un fallo tiene un solo sospechoso**; T029-R al
 acabar Phase 8, con todo el código escrito, **acreditando** SC-009.
 
@@ -1353,7 +1440,17 @@ acabar Phase 8, con todo el código escrito, **acreditando** SC-009.
 el defecto que se corrigió el 2026-08-18: un checkpoint que exige una comprobación sin casilla es una
 intención, no una puerta.
 
-**Recuento oficial: 36 tareas · 37 casillas · 1 tarea con dos casillas (T029/T029-R).**
+**2 · `T010-E` es una TAREA NUEVA, no una segunda casilla de T010.** Nació en Phase 4 (2026-08-18): el
+**estado que el contrato no enumera** —`5xx`, `403`, `404`, un `2xx` que no sea `200`— tiene que ser
+**no verificable** por Principio I, y **el enunciado de T010 no lo cubría**: T010 mira un `200` cuyo
+cuerpo no se puede leer, que es otro hecho. Lleva sufijo en vez de número propio para **no renumerar
+las veintiséis tareas siguientes**, que romperían todas las referencias cruzadas del fichero.
+
+**Su casilla es la razón de que exista, igual que la de T029-R**: sin ella, su rojo —observado antes de
+T012— **no habría tenido dónde registrarse**, y el hueco del contrato que destapó no tendría ancla.
+
+**Recuento oficial: 37 tareas · 38 casillas · 1 tarea con dos casillas (T029/T029-R) · 1 tarea con
+identificador sufijado (T010-E).**
 
 **Y cuatro tests nacen verdes, no tres**: **T024, T025, T026** (ausencias, validadas por su caso
 positivo) **y T029** (regresión cero, validada por mutación del cuerpo compartido de T001).
@@ -1367,6 +1464,11 @@ tarea dice «Garantía: FR-021» y la fila de FR-021 no la nombra, una de las do
 es lo que se lee al cerrar, gana la tabla y el trabajo de esa tarea se pierde de vista.
 
 **Recorridas las 36 tareas contra sus propias declaraciones de garantía. Tres desajustes, corregidos:**
+
+> *(Barrido del 2026-08-18 sobre las 36 de entonces. **T010-E se añadió después**, en Phase 4, y se
+> comprobó al crearla: declara **Principio I** —no un FR ni un SC—, así que **no le corresponde fila**
+> en la tabla de requisitos, igual que a T020. Queda dicho aquí para que el próximo barrido no la
+> cuente como huérfana.)*
 
 | Hallazgo | Qué pasaba | Corregido |
 |---|---|---|

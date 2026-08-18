@@ -149,6 +149,17 @@ argumento**, luego `200` por defecto) · y los desenlaces **3 y 4 son literalmen
 | **1 vs. 2** | **Sí** | **Por los dos**: estado distinto (`422` / `409`) **y** cuerpo distinto (`adhesion_rejected` / `identity_already_assigned`) | **Ramificar por el ESTADO**, que es el discriminante barato y el que no depende de interpretar el cuerpo. El cuerpo sirve de confirmación, no de discriminante |
 | **3 vs. 4** | **NO, y no puede** | — | **Nada.** Son idénticos en estado y en cuerpo, y salen del mismo método. **El cliente no debe intentar distinguirlos** |
 | **Entre las 5 causas del 1** | **NO, y no puede** | — | **Nada.** *«Ni el cuerpo, ni el código HTTP, ni las cabeceras distinguen las cinco»* (`ProjectAdhesionController.php:158`) |
+| **Cualquier OTRO estado** (`5xx`, `403`, `404`, un `2xx` que no sea `200`…) | — | **El estado**: no es ninguno de los tres contemplados | **NO VERIFICABLE** (FR-013). **NUNCA éxito, y NUNCA un rechazo**: afirmar un rechazo también es afirmar un desenlace |
+
+> ⚠️ **La primera fila dice «`200` frente a `4xx`», y eso NO es el reparto completo.** Distingue
+> *éxito* de *no-éxito* **entre los cuatro desenlaces contratados**, y nada más. **Un estado fuera de
+> los tres no es un rechazo**: es una respuesta que no permite determinar el desenlace, y cae en la
+> cláusula de §Reglas para el cliente. La fila de arriba está para que nadie lea la primera como
+> exhaustiva y escriba `if 200 { éxito } else { rechazo }` — que convertiría un `500` en un **rechazo
+> afirmado**, exactamente lo que FR-013 prohíbe.
+>
+> *(Añadido tras validar el cliente contra esta tabla: la cláusula general de §Reglas para el cliente
+> ya lo cubría, pero **la tabla es lo que se lee primero**.)*
 
 > **Un éxito cuyo cuerpo no se pueda interpretar no es un éxito.** El estado `200` no basta: FR-002
 > exige comunicar la denominación, así que un `200` sin `project.name` legible se trata como **no
