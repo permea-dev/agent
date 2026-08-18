@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/permea-dev/agent/internal/config"
@@ -30,33 +31,14 @@ const (
 // antes de transmitir nada en claro (FR-009).
 var ErrScheme = errors.New("transport: el endpoint debe usar https://")
 
-// ErrAdhesionNoImplementada es el centinela del PUNTO DE EXTENSIÓN de la adhesión (P-005 T002).
+// ═══ P-005 · LOS DESENLACES DE LA ADHESIÓN ════════════════════════════════════════════════
 //
-// ═══ POR QUÉ ES UN CENTINELA PROPIO Y NO «NO VERIFICABLE» ══════════════════════════════════
+// `contracts/adhesion.md` §Los cuatro desenlaces. Los devuelve `Adherir`, **distinguiendo por el
+// ESTADO** de la respuesta; el cuerpo confirma, nunca decide.
 //
-// Es andamiaje, y desaparece cuando P-005 T012 implemente los desenlaces. Existe para que los tests
-// de desenlace **nazcan en rojo por comportamiento** y no por «símbolo no existe» —un rojo de
-// compilación no dice nada—, y **DEBE ser distinto del desenlace de "no verificable"**: si fueran el
-// mismo valor, el test que espera «no verificable» ante una respuesta ininterpretable (T010)
-// **nacería VERDE acertando contra el andamiaje**, no contra el comportamiento, y su rojo no
-// existiría.
-var ErrAdhesionNoImplementada = errors.New("transport: adhesión no implementada")
-
-// ═══ P-005 · LOS TRES DESENLACES DE LA ADHESIÓN — DECLARADOS, TODAVÍA NO CABLEADOS ════════
-//
-// `contracts/adhesion.md` §Los cuatro desenlaces. **Existen desde Phase 4 y los cablea T012**: hasta
-// entonces `Adherir` devuelve `ErrAdhesionNoImplementada` para todo, y **ninguno de estos tres se
-// devuelve jamás**.
-//
-// **Por qué se declaran antes de usarse, que parece al revés.** Los tests de Phase 4 —T008, T009,
-// T010— tienen que **compilar para poder nacer rojos**, y un `[build failed]` **no es un rojo
-// legible**: falla igual con un test correcto y con uno vacío (disciplina 3). Es el mismo criterio que
-// aplicó T002 con `ErrAdhesionNoImplementada`: **el andamiaje declara lo que los tests necesitan y
-// devuelve algo que ninguno espera.**
-//
-// ⚠️ **T010 depende de esto para existir.** Sin `ErrNoVerificable`, su única aserción posible sería
-// «hay error y no hay denominación» — **y eso ya lo cumple el andamiaje**, así que **nacería VERDE**
-// contra el stub. Es el rojo más frágil del fichero, y esta declaración es lo que lo hace posible.
+// *(Se declararon una fase antes de cablearse, para que los tests de desenlace pudieran **compilar y
+// nacer rojos**: un `[build failed]` no es un rojo legible. El centinela de andamiaje que `Adherir`
+// devolvía entretanto lo retiró T012 junto con esta nota.)*
 
 // ErrCodigoNoUtilizable es el desenlace 1 (`422`): inexistente · de otra organización · revocado ·
 // prefijo desconocido · `project_ref` no conforme. **Las cinco causas son indistinguibles por
@@ -241,28 +223,28 @@ type peticionAdhesion struct {
 // Adherir presenta un código de adhesión y devuelve la denominación del Proyecto al que la
 // instalación queda unida.
 //
-// ═══ ESTADO: PUNTO DE EXTENSIÓN (P-005 T002). NO INTERPRETA DESENLACES TODAVÍA ═════════════
+// ═══ HISTORIA — nació como PUNTO DE EXTENSIÓN en P-005 T002 ════════════════════════════════
 //
-// Hoy **compone y emite la petición con su cuerpo definitivo** y devuelve siempre
-// `ErrAdhesionNoImplementada`. Componer y emitir de verdad **no es adorno**: sin cuerpo real, el
-// golden test de frontera de la adhesión (P-005 T007) **no tendría sujeto que observar** —no habría
-// nada sobre lo que comprobar que solo viajan dos campos—.
+// Durante Phase 1–3 **componía y emitía la petición con su cuerpo definitivo** pero devolvía siempre
+// un centinela de andamiaje, ya retirado. Componer y emitir de verdad **no fue adorno**: sin cuerpo
+// real, el golden test de frontera de la adhesión (P-005 T007) **no habría tenido sujeto que
+// observar** —nada sobre lo que comprobar que solo viajan dos campos—.
 //
-// La interpretación de los cuatro desenlaces —leer el cuerpo, distinguir por estado— llega en
-// **P-005 T012**, y con ella desaparece el centinela.
+// **P-005 T012 cerró la interpretación de los desenlaces** —leer el cuerpo, distinguir por estado— y
+// retiró el centinela con ella.
 //
-// ═══ LO QUE YA ES DEFINITIVO ═══════════════════════════════════════════════════════════════
+// ═══ LO QUE NO CAMBIÓ AL IMPLEMENTARSE, Y ERA EL PUNTO ═════════════════════════════════════
 //
-//	· la FIRMA — para que T012 no obligue a tocar a sus llamantes;
+//	· la FIRMA — T012 no obligó a tocar a ningún llamante;
 //	· el CUERPO de la petición — dos campos, `contracts/adhesion.md` §La petición;
 //	· UN SOLO INTENTO, SIN COLA (P-005 FR-018) — se emite aquí y se espera, sin pasar por
 //	  `sendWithRetry` ni por `Append`/`Drain`. La cola no está DENTRO del cliente, está ENCIMA:
 //	  quien llama a este método directamente transmite y espera, y eso no requiere desactivar nada.
-//	  Es el mismo criterio que `Verify` (`:91-99`) ya razonó para el enrolamiento.
+//	  Es el mismo criterio que `Client.Verify` ya razonó para el enrolamiento.
 //
-// ⚠️ **`Send` no se toca.** Su descarte del cuerpo (`:131`) está razonado —reutiliza la conexión en
-// los reintentos del camino caliente— y esta operación **no puede** reutilizarlo: `Send` serializa
-// `[]event.Event`, y aquí el cuerpo es otro.
+// ⚠️ **`Send` no se toca.** Su descarte del cuerpo está razonado —reutiliza la conexión en los
+// reintentos del camino caliente— y esta operación **no puede** reutilizarlo: `Send` serializa
+// `[]event.Event`, y aquí el cuerpo es otro. Por eso `Adherir` lee el suyo y `Send` lo descarta.
 func (c *Client) Adherir(codigo, projectRef string) (denominacion string, err error) {
 	// El juicio de esquema vive en `internal/config.JuzgarEndpoint` — ver la nota larga en `Send`, y la
 	// lista de llamantes en `internal/config/endpoint.go`. Aquí estuvo la réplica inline de andamiaje
@@ -290,14 +272,87 @@ func (c *Client) Adherir(codigo, projectRef string) (denominacion string, err er
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.DeviceToken)
 
+	// UN SOLO INTENTO, SIN COLA (D-005-P4), igual que `Verify()`: encolar la petición de alguien que
+	// está mirando la pantalla sería mentirle, y reintentar no aporta nada —el código no se agota y
+	// unirse dos veces es indistinguible de unirse una (FR-013a)—.
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		// Sin respuesta del enlace. El desenlace real —«no verificable», P-005 FR-013— lo decide
-		// T012; aquí el andamiaje responde lo mismo que en cualquier otro caso, a propósito.
-		return "", ErrAdhesionNoImplementada
+		// Servidor inalcanzable: el desenlace remoto queda INDETERMINADO. No se afirma ninguno.
+		return "", fmt.Errorf("%w: %v", ErrNoVerificable, err)
 	}
 	defer func() { _ = resp.Body.Close() }() // solo lectura de la respuesta
-	_, _ = io.Copy(io.Discard, resp.Body)
 
-	return "", ErrAdhesionNoImplementada
+	// Se lee siempre —también en los rechazos— para drenar la conexión y poder reutilizarla. El tope
+	// es defensivo: un cuerpo truncado no decodifica, y eso cae en «no verificable», que es el lado
+	// seguro. Un nombre de Proyecto no se acerca de lejos a este tamaño.
+	cuerpo, err := io.ReadAll(io.LimitReader(resp.Body, maxCuerpoAdhesion))
+	if err != nil {
+		return "", fmt.Errorf("%w: no se pudo leer la respuesta: %v", ErrNoVerificable, err)
+	}
+
+	// ═══ EL DISCRIMINANTE ES EL ESTADO. EL CUERPO CONFIRMA, NUNCA DECIDE ═══════════════════
+	//
+	// `contracts/adhesion.md` §Qué distingue a qué: el estado es «el discriminante barato y el que no
+	// depende de interpretar el cuerpo». Un `422` que llegue con el cuerpo del `409` sigue siendo el
+	// desenlace 1.
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return denominacionDe(cuerpo)
+
+	case http.StatusUnprocessableEntity: // desenlace 1
+		// Las CINCO causas son indistinguibles por construcción, y el cliente NUNCA debe intentar
+		// deducir cuál fue: lo convertiría en un oráculo para averiguar qué códigos existen.
+		return "", ErrCodigoNoUtilizable
+
+	case http.StatusConflict: // desenlace 2
+		// NUNCA nombra el Proyecto ajeno: la plataforma no lo revela y el cliente no lo inventa.
+		return "", ErrIdentidadYaAsignada
+
+	default:
+		// ⛔ PRINCIPIO I — un desenlace que NO SE RECONOCE no puede tratarse como conforme.
+		//
+		// El contrato enumera tres estados y su cláusula general manda sobre el resto: «una respuesta
+		// que no permite determinar el desenlace» es **no verificable** (FR-013). Clasificarlo como
+		// rechazo también sería afirmar un desenlace, así que tampoco.
+		//
+		// ⚠️ Esto NO es el `default` que sobra de un `switch`: es el punto exacto donde un cliente
+		// descuidado decide que un `500` fue un rechazo, o que un `204` fue una unión. Lo cubre
+		// `TestAdherir_EstadoNoContempladoEsNoVerificable`.
+		return "", fmt.Errorf("%w: estado %d no contemplado por el contrato", ErrNoVerificable, resp.StatusCode)
+	}
+}
+
+// maxCuerpoAdhesion acota la lectura de la respuesta. Ver el motivo en `Adherir`.
+const maxCuerpoAdhesion = 1 << 20 // 1 MiB
+
+// denominacionDe extrae la denominación del Proyecto de un cuerpo de éxito, o devuelve
+// `ErrNoVerificable`.
+//
+// ═══ UN ÉXITO CUYO CUERPO NO SE PUEDE INTERPRETAR NO ES UN ÉXITO ══════════════════════════
+//
+// El estado `200` **no basta**: P-005 FR-002 exige comunicar la denominación, así que un `200` sin
+// `project.name` legible se trata como **no verificable** (P-005 FR-013), no como unión conseguida.
+//
+// **Las dos comprobaciones hacen falta, y cubren cosas distintas:**
+//   - el error de `Unmarshal` caza los **tipos equivocados** —`"name":42`, `"name":{…}`,
+//     `"project":"…"`— y el cuerpo que ni siquiera es JSON de objeto;
+//   - la comprobación de vacío caza lo que **decodifica sin protestar**: clave ausente, `null`,
+//     objeto `project` ausente y cadena vacía **producen los cuatro el mismo cero silencioso**.
+//
+// Sin la segunda, esos cuatro devolverían `""` **como si fuera una denominación**. Es el desenlace que
+// `TestAdherir_DoscientosSinNombreLegibleEsNoVerificable` enumera en trece formas.
+func denominacionDe(cuerpo []byte) (string, error) {
+	var respuesta struct {
+		Project struct {
+			Name string `json:"name"`
+		} `json:"project"`
+	}
+	if err := json.Unmarshal(cuerpo, &respuesta); err != nil {
+		return "", fmt.Errorf("%w: la respuesta de éxito no se pudo interpretar: %v", ErrNoVerificable, err)
+	}
+	nombre := strings.TrimSpace(respuesta.Project.Name)
+	if nombre == "" {
+		return "", fmt.Errorf("%w: la respuesta de éxito no trae denominación legible", ErrNoVerificable)
+	}
+	return nombre, nil
 }

@@ -245,7 +245,7 @@ func TestAdherir_ConservaLaCausaDelParseo(t *testing.T) {
 // ═══ P-005 Phase 4 · LOS DESENLACES DE LA ADHESIÓN ════════════════════════════════════════
 //
 // `contracts/adhesion.md` §Los cuatro desenlaces. Los pone en verde **T012**; aquí nacen **rojos**
-// contra el andamiaje de T002, que devuelve `ErrAdhesionNoImplementada` para todo.
+// contra el andamiaje de T002, que devolvía un centinela propio para todo — retirado por T012.
 //
 // ═══ ⛔ LAS ASERCIONES SE DERIVAN DE LO QUE LA RESPUESTA LLEVA ═════════════════════════════
 //
@@ -447,6 +447,78 @@ func TestAdherir_DoscientosSinNombreLegibleEsNoVerificable(t *testing.T) {
 			if !errors.Is(err, ErrNoVerificable) {
 				t.Errorf("200 con cuerpo %q: errors.Is(err, ErrNoVerificable) = false; err = %v",
 					c.cuerpo, err)
+			}
+		})
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// T010-E · EL ESTADO QUE EL CONTRATO NO ENUMERA — Principio I
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+// TestAdherir_EstadoNoContempladoEsNoVerificable exige que un estado fuera de los tres del contrato
+// —`200`, `422`, `409`— sea **NO VERIFICABLE**, y **NUNCA** un éxito.
+//
+// ═══ POR QUÉ NO ES DISCRECIONAL ═══════════════════════════════════════════════════════════
+//
+// **Principio I: un desenlace que no se reconoce NO PUEDE tratarse como conforme.** La implementación
+// natural de «distinguir por estado» es un `switch`, y **un `switch` tiene un `default` que hará algo
+// que nadie especificó**. Sin este test, ese `default` es una decisión tomada por descuido en el punto
+// exacto donde el cliente decide si afirmar que se unió a un Proyecto.
+//
+// ═══ QUÉ DICE EL CONTRATO, MEDIDO ═════════════════════════════════════════════════════════
+//
+// `contracts/adhesion.md` **no enumera ningún estado fuera de esos tres**, pero **tampoco calla**: su
+// cláusula general dice que *«si el desenlace no puede establecerse —servidor inalcanzable, o
+// **respuesta que no permite determinarlo**—, el cliente informa de que no se pudo completar y NUNCA
+// afirma ningún desenlace (FR-013)»*, y `contracts/cli.md` repite la fórmula en su fila **NV**. Un
+// `500` es exactamente «una respuesta que no permite determinar el desenlace».
+//
+// ⚠️ **Lo que sí es un hueco, y va anotado al backlog** (no se arregla aquí: `adhesion.md` es artefacto
+// de Phase 1 del plan): la tabla §Qué distingue a qué resume el reparto como **«`200` frente a `4xx`»**,
+// **como si fuera exhaustivo**. Quien implemente leyendo esa fila escribe `if 200 {éxito} else
+// {rechazo}` — y convierte un `500` en un rechazo afirmado. **La cláusula general lo cubre; la tabla
+// invita a lo contrario.**
+func TestAdherir_EstadoNoContempladoEsNoVerificable(t *testing.T) {
+	_ = testutil.Sandbox(t)
+
+	casos := []struct {
+		nombre string
+		estado int
+		cuerpo string
+	}{
+		{"500 · error del servidor", http.StatusInternalServerError, `{"error":"boom"}`},
+		{"403 · prohibido", http.StatusForbidden, `{"error":"forbidden"}`},
+		{"404 · no encontrado", http.StatusNotFound, `{"error":"not_found"}`},
+		// El más traicionero: es 2xx, así que un `if estado/100 == 2` lo daría por éxito.
+		{"204 · sin contenido (2xx que NO es 200)", http.StatusNoContent, ``},
+	}
+
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			cliente := backendAdhesion(t, c.estado, c.cuerpo)
+
+			denominacion, err := cliente.Adherir("pmeaj1.codigo-de-prueba", "ref-de-prueba")
+
+			if err == nil {
+				t.Fatalf("estado %d devolvió err = nil y denominación %q: un desenlace no reconocido "+
+					"NO puede tratarse como conforme (Principio I)", c.estado, denominacion)
+			}
+			if denominacion != "" {
+				t.Errorf("estado %d devolvió denominación %q: no hubo unión que afirmar", c.estado, denominacion)
+			}
+			// NO VERIFICABLE, y no un rechazo: afirmar un rechazo también es afirmar un desenlace.
+			if !errors.Is(err, ErrNoVerificable) {
+				t.Errorf("estado %d: errors.Is(err, ErrNoVerificable) = false; err = %v", c.estado, err)
+			}
+			for _, prohibido := range []struct {
+				nombre string
+				err    error
+			}{{"ErrCodigoNoUtilizable", ErrCodigoNoUtilizable}, {"ErrIdentidadYaAsignada", ErrIdentidadYaAsignada}} {
+				if errors.Is(err, prohibido.err) {
+					t.Errorf("estado %d se clasificó como %s: el contrato NO lo asigna a ningún rechazo",
+						c.estado, prohibido.nombre)
+				}
 			}
 		})
 	}

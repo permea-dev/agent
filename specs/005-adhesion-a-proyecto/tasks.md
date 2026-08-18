@@ -896,7 +896,7 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ### Implementación
 
-- [ ] **T012** Implementar el método de adhesión en `internal/transport/transport.go`: llama a la
+- [x] **T012** Implementar el método de adhesión en `internal/transport/transport.go`: llama a la
   guarda (T004), compone la petición, **lee y decodifica** la respuesta y **distingue por estado**.
   Reutiliza el `http.Client`, su timeout y la cabecera de autenticación. **Un solo intento, sin cola**
   (D-005-P4, siguiendo `Verify()` en `transport.go:91-99`). Pone en verde **T008, T009 y T010**.
@@ -906,6 +906,75 @@ es barata de encontrar**: antes de que nada más cambie.
   lo reconvirtió **T005**. Aquí solo se implementan **los desenlaces** —leer el cuerpo, distinguir por
   estado—; **la guarda ya está puesta y ya es la unificada**. *(Esta tarea llevaba el deber de
   «añadirse a la lista»; se retiró al ejecutarse T002, que adelantó el llamante a Phase 1.)*
+- [x] **T010-E** [P] Test del **estado que el contrato NO enumera** en `internal/transport/adhesion_test.go`
+  — **Garantía**: Principio I. `500`, `403`, `404` y `204` → **no verificable**, y **NUNCA éxito**.
+  **Nació rojo**, y se observó **antes de escribir una línea de T012**.
+  > ### 📏 MEDIDO — QUÉ DICE EL CONTRATO DE UN ESTADO FUERA DE LOS TRES
+  > **No enumera ninguno** —`adhesion.md` sólo nombra `200`, `422` y `409`— **pero NO calla**: su
+  > cláusula general dice *«si el desenlace no puede establecerse —servidor inalcanzable, **o respuesta
+  > que no permite determinarlo**—, el cliente informa de que no se pudo completar y **NUNCA afirma
+  > ningún desenlace** (FR-013)»*, y `cli.md` repite la fórmula en su fila **NV**. **Un `500` es
+  > exactamente eso**, así que el comportamiento está cubierto.
+  >
+  > ### ⚠️ HUECO DEL CONTRATO — AL BACKLOG, no se arregla aquí
+  > **`adhesion.md` §Qué distingue a qué resume el reparto como «`200` frente a `4xx`»**, y esa fila
+  > **se lee como exhaustiva**. Quien implemente desde ella escribe `if 200 {éxito} else {rechazo}` — y
+  > **convierte un `500` en un rechazo afirmado**, que es precisamente lo que FR-013 prohíbe. **La
+  > cláusula general lo cubre; la tabla invita a lo contrario**, y la tabla es lo que se lee primero.
+  >
+  > **No se toca aquí**: `adhesion.md` es artefacto de la Phase 1 del plan, y además está **definido en
+  > dos sitios** hasta que se cierre la ventana de A′ — corregirlo es otra conversación. *(Lo que sí
+  > queda cerrado es el comportamiento: el test existe y `Adherir` lo cumple.)*
+  >
+  > ### 🔴 El rojo, transcrito
+  > ```
+  > adhesion_test.go:512: estado 500: errors.Is(err, ErrNoVerificable) = false; err = transport: adhesión no implementada
+  > adhesion_test.go:512: estado 204: errors.Is(err, ErrNoVerificable) = false; err = transport: adhesión no implementada
+  > ```
+  > **`204` es el caso que justifica el test entero**: es `2xx`, así que un `if estado/100 == 2` lo
+  > daría por unión conseguida. Los cuatro casos comprueban además que **no** casan con ninguno de los
+  > dos centinelas de rechazo: afirmar un rechazo también es afirmar un desenlace.
+  > ### ✅ MEDIDO — T012 ejecutada: los cuatro rojos en verde y el andamiaje retirado
+  > **La implementación**: guarda unificada → cuerpo → **un solo intento, sin cola** (`HTTP.Do`, sin
+  > `sendWithRetry` ni `Append`/`Drain`) → lectura acotada del cuerpo → **`switch` por ESTADO** con
+  > `default` explícito a `ErrNoVerificable`. Reutiliza `http.Client`, su timeout y la cabecera de
+  > autenticación. **Ningún llamante nuevo en la lista de T006**, como estaba previsto.
+  >
+  > **La lectura del nombre lleva DOS comprobaciones, y cubren cosas distintas**: el error de
+  > `Unmarshal` caza **los tipos equivocados** (`"name":42`, `"name":{…}`, `"project":"…"`, cuerpo no
+  > JSON); la comprobación de vacío caza **lo que decodifica sin protestar** —clave ausente, `null`,
+  > `project` ausente, cadena vacía—, que **producen los cuatro el mismo cero silencioso**. Sin la
+  > segunda, esos cuatro devolverían `""` **como si fuera una denominación**.
+  >
+  > ### ✅ PASO 2 — las dos aserciones «verdes dentro del rojo» de T010 SON FALSABLES
+  > Hicieron falta **dos mutaciones, y el motivo es del propio test**: la aserción (1) es un
+  > `t.Fatalf`, así que **corta el subtest** y la (2) no llega a evaluarse. Una sola mutación no podía
+  > tumbar las dos.
+  >
+  > **Mutación A** —se retira la comprobación de vacío: un `200` sin nombre pasa por éxito—. Compila, y
+  > cae **la aserción (1)**:
+  > ```
+  > adhesion_test.go:437: 200 con cuerpo "{\"project\":{}}" devolvió err = nil y denominación "": un éxito sin nombre NO es un éxito (P-005 FR-002)
+  > ```
+  > **Mutación B** —error correcto pero denominación inventada, que **aísla la (2)**—. Compila, y cae:
+  > ```
+  > adhesion_test.go:442: 200 con cuerpo "{\"project\":{}}" devolvió denominación "(sin nombre)": no había nombre que leer
+  > ```
+  > **Las dos mataron sólo su hecho**: con A cayeron **6 de 13** —las seis que decodifican en silencio;
+  > las otras siete siguen fallando en `Unmarshal`, que es otro hecho—, y con B **ningún otro test del
+  > paquete se movió**. Las dos revertidas por edición inversa; `transport.go` verificado idéntico.
+  >
+  > ### ✅ PASO 3 — andamiaje retirado
+  > `grep -rn ErrAdhesionNoImplementada internal/ cmd/` → **cero**. Con él se fueron su declaración y
+  > su bloque de motivos. **Los comentarios que lo citaban pasaron a pasado y sin el identificador
+  > muerto** —en `transport.go` y en `adhesion_test.go`—: *un comentario en presente que nombra un
+  > símbolo retirado no es historia, es una afirmación falsa.*
+  >
+  > **Y de paso cayó una cita por línea que la disciplina 8 NO caza**: la cabecera de `Adherir` decía
+  > que `Send` descarta el cuerpo «(`:131`)» y que `Verify` está en «`:91-99`». **Sin nombre de fichero
+  > delante, el grep no las ve** — el patrón exige `fichero.ext:N`. Pasadas a nombre (`Client.Verify`,
+  > `Send`). **Queda anotado como límite conocido del grep**, no como excepción: una cita `:NNN` a secas
+  > es igual de frágil y **es invisible para el instrumento**.
 
 ---
 
