@@ -822,22 +822,77 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ### Tests (rojo antes de verde)
 
-- [ ] **T008** [P] Test del **desenlace de éxito** en `internal/transport/adhesion_test.go` —
+- [x] **T008** [P] Test del **desenlace de éxito** en `internal/transport/adhesion_test.go` —
   **el fichero ya existe: lo creó T011 en Phase 2** al mudarse allí—
   **Garantía**: `adhesion.md` desenlaces 3 y 4. `200` con `{"project":{"name":…}}` → devuelve **la
   denominación**. Nace en **rojo**: T002 devuelve siempre «adhesión no implementada». Transcribir la
   razón.
-- [ ] **T009** [P] Test de **los dos rechazos, distintos entre sí** en el mismo fichero —
+- [x] **T009** [P] Test de **los dos rechazos, distintos entre sí** en el mismo fichero —
   **Garantía**: desenlaces 1 y 2. `422` → rechazo; `409` → conflicto; **y son ramas distintas**. Nace
   en **rojo**.
   ⚠️ **Ramificar por el ESTADO**, no por el cuerpo (`adhesion.md` §Qué distingue a qué). El cuerpo se
   comprueba como confirmación, no como discriminante.
-- [ ] **T010** [P] Test de **respuesta ininterpretable** en el mismo fichero — **Garantía**: FR-002 +
+- [x] **T010** [P] Test de **respuesta ininterpretable** en el mismo fichero — **Garantía**: FR-002 +
   FR-013. Un `200` **sin `project.name` legible** → **no verificable**, **NUNCA éxito**. Nace en
   **rojo** porque **T002 devuelve «adhesión no implementada», que es OTRO centinela**. *Es el riesgo
   declarado de D-005-P1: un éxito sin nombre no es un éxito.*
   ⚠️ **Este es el rojo más frágil del fichero** y por eso T002 lo protege explícitamente: si el
   andamiaje devolviera «no verificable», **este test nacería verde acertando contra el stub**.
+  > ### 🔴 MEDIDO — los TRES nacieron rojos, y con el mensaje previsto
+  > **T008** `TestAdherir_ExitoDevuelveLaDenominacion`:
+  > ```
+  > adhesion_test.go:291: Adherir con 200 y denominación legible devolvió err = transport: adhesión no implementada; se esperaba éxito
+  > ```
+  > **T009** `TestAdherir_LosDosRechazos` (6 subtests, los 6 en rojo) y
+  > `TestAdherir_LosDosRechazosSonDistinguibles`:
+  > ```
+  > adhesion_test.go:348: estado 422: errors.Is(err, transport: el código de adhesión no es utilizable) = false; err = transport: adhesión no implementada
+  > adhesion_test.go:348: estado 409: errors.Is(err, transport: esta identidad ya pertenece a otro proyecto) = false; err = transport: adhesión no implementada
+  > adhesion_test.go:386: los desenlaces 1 y 2 son INDISTINGUIBLES: errors.Is(·, ErrCodigoNoUtilizable) contesta false a los dos
+  >       422 → transport: adhesión no implementada
+  >       409 → transport: adhesión no implementada
+  > ```
+  > **T010** `TestAdherir_DoscientosSinNombreLegibleEsNoVerificable` (**13 formas, 13 en rojo**):
+  > ```
+  > adhesion_test.go:448: 200 con cuerpo "{\"project\":{}}": errors.Is(err, ErrNoVerificable) = false; err = transport: adhesión no implementada
+  > ```
+  >
+  > ### ⚠️ PARA QUE LOS TRES PUDIERAN NACER ROJOS HUBO QUE DECLARAR TRES CENTINELAS
+  > `ErrCodigoNoUtilizable`, `ErrIdentidadYaAsignada` y `ErrNoVerificable`, en `transport.go`,
+  > **declarados y SIN CABLEAR**: `Adherir` sigue devolviendo `ErrAdhesionNoImplementada` para todo, y
+  > **ninguno de los tres se devuelve todavía**. Los cablea **T012**.
+  >
+  > **No es adelantar T012, es la condición para que estos tests existan.** Un test que no compila da
+  > `[build failed]`, y eso **no es un rojo legible**: falla igual con un test correcto y con uno vacío
+  > (disciplina 3). Es **exactamente el criterio que ya aplicó T002** con `ErrAdhesionNoImplementada`:
+  > el andamiaje declara lo que los tests necesitan y **devuelve algo que ninguno espera**.
+  >
+  > ⛔ **Y T010 no existiría sin esto, que es el punto.** Sin `ErrNoVerificable` su única aserción
+  > posible sería «hay error y no hay denominación» — **y el andamiaje ya lo cumple**, así que
+  > **habría nacido VERDE**. Medido en el rojo real: sus aserciones (1) «nunca éxito» y (2) «ninguna
+  > denominación» **pasan hoy**; lo único que falla es **el centinela**. Era el rojo más frágil del
+  > fichero y **sólo el centinela distinto lo sostiene**.
+  >
+  > ### ✅ DOS DECISIONES DE T009 QUE VAN MÁS ALLÁ DEL ENUNCIADO
+  > 1. **«Ramificar por el estado» se comprueba CRUZANDO LOS CUERPOS.** Dos casos rectos —`422` con su
+  >    cuerpo, `409` con el suyo— **los pasa igual una implementación que ramifique por el cuerpo**. Así
+  >    que la tabla lleva `422` con el cuerpo del `409`, `409` con el del `422`, `422` sin cuerpo y
+  >    `409` con cuerpo ilegible. **Sólo así el estado queda demostrado como discriminante** y el cuerpo
+  >    como confirmación.
+  > 2. **La distinguibilidad va en test APARTE**, y compara **las respuestas de los dos centinelas a los
+  >    dos errores**. Un error que envolviera ambos pasaría las aserciones individuales; esto no.
+  >
+  > ### ✅ T010 — se ENUMERAN 13 formas, y la razón es el decodificador
+  > clave ausente · objeto `project` ausente · `null` · cadena vacía · sólo espacios · numérico ·
+  > objeto · lista · `project` no objeto · `project` null · cuerpo vacío · cuerpo no JSON · JSON que no
+  > es objeto. **Con `encoding/json` y una struct de campos, las tres primeras producen el mismo cero
+  > silencioso**, y el tipo equivocado da un error fácil de tratar como «campo vacío». **Probar una sola
+  > forma deja las otras abiertas.**
+  >
+  > **Y los cuerpos se escriben como JSON literal, nunca serializando una struct de este repositorio**
+  > (disciplina de las tres veces): serializarla haría que el test viera **lo que ese tipo admite** en
+  > vez de **lo que el servidor mandó** — y T010 existe precisamente para los cuerpos que una struct
+  > decodifica sin protestar.
 
 ### Implementación
 

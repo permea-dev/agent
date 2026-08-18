@@ -2,6 +2,8 @@ package transport
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -237,5 +239,215 @@ func TestAdherir_ConservaLaCausaDelParseo(t *testing.T) {
 			"  Adherir:  Op=%q URL=%q\n"+
 			"  Send:     Op=%q URL=%q",
 			causaDeAdherir.Op, causaDeAdherir.URL, causaDeSend.Op, causaDeSend.URL)
+	}
+}
+
+// ═══ P-005 Phase 4 · LOS DESENLACES DE LA ADHESIÓN ════════════════════════════════════════
+//
+// `contracts/adhesion.md` §Los cuatro desenlaces. Los pone en verde **T012**; aquí nacen **rojos**
+// contra el andamiaje de T002, que devuelve `ErrAdhesionNoImplementada` para todo.
+//
+// ═══ ⛔ LAS ASERCIONES SE DERIVAN DE LO QUE LA RESPUESTA LLEVA ═════════════════════════════
+//
+// Los cuerpos se escriben **como JSON literal, tal cual sale del servidor**, y **nunca** serializando
+// una struct de este repositorio. Serializarla haría que el test viera **lo que ese tipo admite** en
+// vez de **lo que el servidor mandó** — es el defecto que ya se midió tres veces en esta feature
+// (`tasks.md` disciplina 8 §un grep que da cero certifica). Aquí importa el doble, porque **T010
+// existe precisamente para los cuerpos que una struct decodifica sin protestar**.
+
+// backendAdhesion levanta un backend HTTPS de test que responde SIEMPRE con `estado` y con `cuerpo`
+// **literal**, y devuelve un Client que confía en su certificado. Nada de red real (disciplina 6).
+func backendAdhesion(t *testing.T, estado int, cuerpo string) *Client {
+	t.Helper()
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(estado)
+		_, _ = w.Write([]byte(cuerpo))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := New(srv.URL, "tok-de-prueba")
+	c.HTTP = srv.Client()
+	return c
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// T008 · EL DESENLACE DE ÉXITO — desenlaces 3 y 4
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+// TestAdherir_ExitoDevuelveLaDenominacion cubre los desenlaces 3 y 4, que **son la misma respuesta**:
+// `200` con `{"project":{"name":…}}`. El contrato prohíbe distinguirlos —quien pega un código dos
+// veces no debe poder saber cuál de las dos surtió efecto—, así que aquí hay **un solo caso**, y eso
+// es fiel al contrato, no un atajo.
+func TestAdherir_ExitoDevuelveLaDenominacion(t *testing.T) {
+	_ = testutil.Sandbox(t)
+
+	const denominacionEsperada = "Plataforma Permea"
+	cliente := backendAdhesion(t, http.StatusOK, `{"project":{"name":"Plataforma Permea"}}`)
+
+	denominacion, err := cliente.Adherir("pmeaj1.codigo-de-prueba", "ref-de-prueba")
+
+	if err != nil {
+		t.Fatalf("Adherir con 200 y denominación legible devolvió err = %v; se esperaba éxito", err)
+	}
+	if denominacion != denominacionEsperada {
+		t.Errorf("denominación = %q, want %q — P-005 FR-002 exige comunicar la del Proyecto",
+			denominacion, denominacionEsperada)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// T009 · LOS DOS RECHAZOS, DISTINTOS ENTRE SÍ — desenlaces 1 y 2
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+// TestAdherir_LosDosRechazos cubre los desenlaces 1 (`422`) y 2 (`409`) **y que no son el mismo**.
+//
+// ⛔ **El discriminante es EL ESTADO, no el cuerpo** (`adhesion.md` §Qué distingue a qué): es el
+// barato y el que no depende de interpretar nada. El cuerpo **confirma**, no decide — y este test lo
+// exige de la única forma que lo demuestra: **cruzando los cuerpos**. Un `422` que llegue con el
+// cuerpo del `409` **sigue siendo el desenlace 1**. Una implementación que ramificara por el cuerpo
+// pasaría los dos casos rectos y caería aquí.
+func TestAdherir_LosDosRechazos(t *testing.T) {
+	_ = testutil.Sandbox(t)
+
+	casos := []struct {
+		nombre    string
+		estado    int
+		cuerpo    string
+		centinela error
+		otro      error // el centinela del OTRO rechazo: nunca debe casar
+	}{
+		{"422 · código no utilizable", http.StatusUnprocessableEntity,
+			`{"error":"adhesion_rejected"}`, ErrCodigoNoUtilizable, ErrIdentidadYaAsignada},
+		{"409 · identidad ya asignada", http.StatusConflict,
+			`{"error":"identity_already_assigned"}`, ErrIdentidadYaAsignada, ErrCodigoNoUtilizable},
+
+		// EL DISCRIMINANTE ES EL ESTADO — cuerpos cruzados, y el desenlace no se mueve.
+		{"422 con el cuerpo del 409 · manda el estado", http.StatusUnprocessableEntity,
+			`{"error":"identity_already_assigned"}`, ErrCodigoNoUtilizable, ErrIdentidadYaAsignada},
+		{"409 con el cuerpo del 422 · manda el estado", http.StatusConflict,
+			`{"error":"adhesion_rejected"}`, ErrIdentidadYaAsignada, ErrCodigoNoUtilizable},
+
+		// Y sin cuerpo interpretable: el estado basta, porque el cuerpo nunca fue el discriminante.
+		{"422 sin cuerpo · el estado basta", http.StatusUnprocessableEntity,
+			``, ErrCodigoNoUtilizable, ErrIdentidadYaAsignada},
+		{"409 con cuerpo ilegible · el estado basta", http.StatusConflict,
+			`no soy json`, ErrIdentidadYaAsignada, ErrCodigoNoUtilizable},
+	}
+
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			cliente := backendAdhesion(t, c.estado, c.cuerpo)
+
+			denominacion, err := cliente.Adherir("pmeaj1.codigo-de-prueba", "ref-de-prueba")
+
+			if denominacion != "" {
+				t.Errorf("un rechazo devolvió denominación %q: no hay desenlace de éxito", denominacion)
+			}
+			if !errors.Is(err, c.centinela) {
+				t.Errorf("estado %d: errors.Is(err, %v) = false; err = %v", c.estado, c.centinela, err)
+			}
+			if errors.Is(err, c.otro) {
+				t.Errorf("estado %d: casa TAMBIÉN con %v — los dos rechazos se han fundido", c.estado, c.otro)
+			}
+		})
+	}
+}
+
+// TestAdherir_LosDosRechazosSonDistinguibles es la aserción de DISTINGUIBILIDAD, y va aparte de las
+// individuales a propósito.
+//
+// **Dos aserciones individuales correctas pasan igual si la implementación funde los dos desenlaces en
+// uno solo** cuyo error case con los dos centinelas —envolviendo ambos, por ejemplo—. Y **refundir es
+// la forma natural de simplificar**: es exactamente lo que ya pasó en la segunda puerta con «no
+// analizable» y «esquema no admisible» (caso 2 de T011). Esto lo impide.
+func TestAdherir_LosDosRechazosSonDistinguibles(t *testing.T) {
+	_ = testutil.Sandbox(t)
+
+	_, err422 := backendAdhesion(t, http.StatusUnprocessableEntity,
+		`{"error":"adhesion_rejected"}`).Adherir("pmeaj1.codigo-de-prueba", "ref-de-prueba")
+	_, err409 := backendAdhesion(t, http.StatusConflict,
+		`{"error":"identity_already_assigned"}`).Adherir("pmeaj1.codigo-de-prueba", "ref-de-prueba")
+
+	if err422 == nil || err409 == nil {
+		t.Fatalf("premisa rota: los dos deben rechazar; 422 → %v, 409 → %v", err422, err409)
+	}
+
+	// Las respuestas de los DOS centinelas a los DOS errores, comparadas entre sí.
+	for _, cent := range []struct {
+		nombre string
+		err    error
+	}{
+		{"ErrCodigoNoUtilizable", ErrCodigoNoUtilizable},
+		{"ErrIdentidadYaAsignada", ErrIdentidadYaAsignada},
+	} {
+		a, b := errors.Is(err422, cent.err), errors.Is(err409, cent.err)
+		if a == b {
+			t.Errorf("los desenlaces 1 y 2 son INDISTINGUIBLES: errors.Is(·, %s) contesta %v a los dos\n"+
+				"  422 → %v\n  409 → %v\n"+
+				"  el contrato los distingue por estado; fundirlos borra esa distinción",
+				cent.nombre, a, err422, err409)
+		}
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// T010 · LA RESPUESTA ININTERPRETABLE — P-005 FR-002 + P-005 FR-013
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+// TestAdherir_DoscientosSinNombreLegibleEsNoVerificable exige que **un `200` sin `project.name`
+// legible sea NO VERIFICABLE y NUNCA un éxito**: *«un éxito cuyo cuerpo no se pueda interpretar no es
+// un éxito»* (`contracts/adhesion.md`).
+//
+// ⛔ **Se ENUMERAN las formas de «sin nombre legible», no se elige una con suerte.** Cada fila es **un
+// camino distinto por el que un decodificador descuidado devuelve la cadena vacía como si fuera una
+// denominación**: con `encoding/json` y una struct de campos, la clave ausente, el `null` y el objeto
+// anidado ausente **producen los tres el mismo cero silencioso**, y el tipo equivocado produce un
+// error que es fácil tratar como «campo vacío». Probar una sola forma deja las otras abiertas.
+func TestAdherir_DoscientosSinNombreLegibleEsNoVerificable(t *testing.T) {
+	_ = testutil.Sandbox(t)
+
+	casos := []struct {
+		nombre string
+		cuerpo string
+	}{
+		{"clave name ausente", `{"project":{}}`},
+		{"objeto project ausente", `{}`},
+		{"name null", `{"project":{"name":null}}`},
+		{"name cadena vacía", `{"project":{"name":""}}`},
+		{"name sólo espacios", `{"project":{"name":"   "}}`},
+		{"name numérico", `{"project":{"name":42}}`},
+		{"name objeto", `{"project":{"name":{"es":"Plataforma"}}}`},
+		{"name lista", `{"project":{"name":["Plataforma"]}}`},
+		{"project no es objeto", `{"project":"Plataforma"}`},
+		{"project null", `{"project":null}`},
+		{"cuerpo vacío", ``},
+		{"cuerpo no JSON", `no soy json`},
+		{"JSON que no es objeto", `[1,2,3]`},
+	}
+
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			cliente := backendAdhesion(t, http.StatusOK, c.cuerpo)
+
+			denominacion, err := cliente.Adherir("pmeaj1.codigo-de-prueba", "ref-de-prueba")
+
+			// (1) NUNCA éxito. Un `200` no basta: P-005 FR-002 exige comunicar la denominación.
+			if err == nil {
+				t.Fatalf("200 con cuerpo %q devolvió err = nil y denominación %q: "+
+					"un éxito sin nombre NO es un éxito (P-005 FR-002)", c.cuerpo, denominacion)
+			}
+			// (2) Y ninguna denominación inventada: la cadena vacía tampoco vale como nombre.
+			if denominacion != "" {
+				t.Errorf("200 con cuerpo %q devolvió denominación %q: no había nombre que leer",
+					c.cuerpo, denominacion)
+			}
+			// (3) El desenlace es NO VERIFICABLE, no un rechazo: el estado remoto queda
+			//     indeterminado, y afirmar un rechazo sería afirmar un desenlace (P-005 FR-013).
+			if !errors.Is(err, ErrNoVerificable) {
+				t.Errorf("200 con cuerpo %q: errors.Is(err, ErrNoVerificable) = false; err = %v",
+					c.cuerpo, err)
+			}
+		})
 	}
 }

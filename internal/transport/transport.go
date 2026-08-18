@@ -42,6 +42,37 @@ var ErrScheme = errors.New("transport: el endpoint debe usar https://")
 // existiría.
 var ErrAdhesionNoImplementada = errors.New("transport: adhesión no implementada")
 
+// ═══ P-005 · LOS TRES DESENLACES DE LA ADHESIÓN — DECLARADOS, TODAVÍA NO CABLEADOS ════════
+//
+// `contracts/adhesion.md` §Los cuatro desenlaces. **Existen desde Phase 4 y los cablea T012**: hasta
+// entonces `Adherir` devuelve `ErrAdhesionNoImplementada` para todo, y **ninguno de estos tres se
+// devuelve jamás**.
+//
+// **Por qué se declaran antes de usarse, que parece al revés.** Los tests de Phase 4 —T008, T009,
+// T010— tienen que **compilar para poder nacer rojos**, y un `[build failed]` **no es un rojo
+// legible**: falla igual con un test correcto y con uno vacío (disciplina 3). Es el mismo criterio que
+// aplicó T002 con `ErrAdhesionNoImplementada`: **el andamiaje declara lo que los tests necesitan y
+// devuelve algo que ninguno espera.**
+//
+// ⚠️ **T010 depende de esto para existir.** Sin `ErrNoVerificable`, su única aserción posible sería
+// «hay error y no hay denominación» — **y eso ya lo cumple el andamiaje**, así que **nacería VERDE**
+// contra el stub. Es el rojo más frágil del fichero, y esta declaración es lo que lo hace posible.
+
+// ErrCodigoNoUtilizable es el desenlace 1 (`422`): inexistente · de otra organización · revocado ·
+// prefijo desconocido · `project_ref` no conforme. **Las cinco causas son indistinguibles por
+// construcción**, y el cliente NUNCA debe intentar deducir cuál fue.
+var ErrCodigoNoUtilizable = errors.New("transport: el código de adhesión no es utilizable")
+
+// ErrIdentidadYaAsignada es el desenlace 2 (`409`): la identidad ya está en OTRO Proyecto. **NUNCA
+// nombra el Proyecto ajeno**: la plataforma no lo revela y el cliente no puede inventarlo.
+var ErrIdentidadYaAsignada = errors.New("transport: esta identidad ya pertenece a otro proyecto")
+
+// ErrNoVerificable es P-005 FR-013: el desenlace **no se pudo establecer**. Cubre el servidor
+// inalcanzable y —lo que es menos evidente— **un `200` cuyo cuerpo no permite leer la denominación**:
+// *«un éxito cuyo cuerpo no se pueda interpretar no es un éxito»* (`contracts/adhesion.md`). El estado
+// remoto queda indeterminado, y el cliente **NUNCA afirma ningún desenlace**.
+var ErrNoVerificable = errors.New("transport: no se pudo verificar el desenlace de la adhesión")
+
 // sendError clasifica el fallo de un envío para decidir la acción del agente según
 // contracts/transport.md: reintentar (5xx/red), detener el sync (401/403 auth), o
 // registrar sin reintentar en bucle (otros 4xx).
