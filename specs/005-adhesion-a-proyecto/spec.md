@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-18
 
-**Status**: Draft
+**Status**: CONGELADA
 
 **Input**: Descripción de Basilio, 2026-08-18, tras el descubrimiento de la plataforma: la entidad
 Proyecto y su código de adhesión existen y están demostrados sobre base real; falta el lado del agente.

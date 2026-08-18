@@ -210,6 +210,24 @@ un proyecto recién creado **no habría histórico que apareciera**.
 Banco TLS levantado (arriba), agente enrolado contra `https://localhost:8443/...`, y un código de
 adhesión acuñado desde el panel para el Proyecto destino.
 
+### ⚠️ Y LAS DOS CAPTURAS PREVIAS — antes de tocar nada
+
+**C2 y C4 comparan contra un "antes", y ese "antes" hay que tomarlo aquí.** Sin estas dos capturas, las
+dos comprobaciones se hacen contra un recuerdo:
+
+| Captura | Para qué | Por qué antes |
+|---|---|---|
+| **El recuento de eventos de `~/dev/test/RecetApp`** | **C2** — que **no cambie** durante la unión | Lo que se comprueba **no es una cifra absoluta**: es que **no se mueva**. Si alguien ha trabajado ahí desde que se eligió el sujeto, la cifra es otra — y sigue valiendo, mientras se tome antes |
+| **El directorio de datos del agente, íntegro** | **C4** — «byte a byte igual» | «Igual **a qué**». Sin la captura, C4 no tiene contra qué comparar |
+
+```bash
+# 1 · el recuento del día (contra la plataforma, antes de unir)
+# 2 · el estado íntegro del directorio de datos del agente
+cp -a "$XDG_CONFIG_HOME/permea" "$PERMEA_SANDBOX/datadir-antes"
+```
+
+**Las dos se anotan y se conservan hasta C4.**
+
 ## C1 · La unión, desde el árbol correcto
 
 ```bash
@@ -236,8 +254,11 @@ Ejecutar C1 otra vez, sin cambiar nada.
 
 ## C4 · Nada quedó en local
 
-Comparar el directorio de datos del agente con su estado previo: **byte a byte igual**. La unión no
-dejó rastro.
+Comparar el directorio de datos del agente **contra la captura tomada en §Preparación**
+(`datadir-antes`): **byte a byte igual**. La unión no dejó rastro.
+
+> **El «estado previo» sale de §Preparación, no de aquí.** C4 no toma ninguna captura: si se intentara
+> tomar ahora, ya estaría contaminada por C1–C3.
 
 ---
 

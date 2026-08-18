@@ -28,8 +28,8 @@ Hasta 005 el binario tiene **dos subcomandos, los dos planos** —`enroll` y `st
 |---|---|
 | **Despacho** | El primer nivel (`project`) se resuelve **antes del parseo de flags**, igual que `enroll` y `status`. El segundo nivel (`join`) lo resuelve el propio `project` |
 | **Flags intactos** | `--scan`, `--run`, `--daemon` y `--version` **conservan su comportamiento sin cambio alguno**. La gramática nueva **NUNCA** los intercepta ni los reordena |
-| **`project` sin verbo** | **Error de uso**: mensaje por **stderr** con los verbos disponibles, **exit ≠ 0**. NUNCA hace nada por defecto |
-| **Verbo desconocido** | `permea project <lo-que-sea>` → **error de uso**, por **stderr**, **exit ≠ 0**, nombrando el verbo no reconocido y los disponibles. **NUNCA** se intenta interpretar ni corregir |
+| **`project` sin verbo** | **Error de uso**: mensaje por **stderr** con los verbos disponibles, **exit `1`** (§Los códigos de salida). NUNCA hace nada por defecto |
+| **Verbo desconocido** | `permea project <lo-que-sea>` → **error de uso**, por **stderr**, **exit `1`**, nombrando el verbo no reconocido y los disponibles. **NUNCA** se intenta interpretar ni corregir |
 | **Ayuda** | La ayuda del binario **DEBE** listar `project join` junto a `enroll` y `status`. Un comando que no aparece en la ayuda no existe para quien lo busca |
 
 **Por qué sustantivo + verbo y no un verbo plano**: deja sitio a la familia (`project leave`,
@@ -55,7 +55,7 @@ de órdenes**. Qué haga después el entorno con lo que se teclee es del entorno
 |---|---|
 | Con argumento posicional | Usa ese valor |
 | Sin argumento, con stdin disponible (pipe) | Lee el código de stdin y sigue el flujo |
-| Sin argumento y sin stdin (terminal interactiva sin pipe) | **Error de uso, exit ≠ 0**. NUNCA un prompt que se cuelgue esperando |
+| Sin argumento y sin stdin (terminal interactiva sin pipe) | **Error de uso, exit `1`**. NUNCA un prompt que se cuelgue esperando |
 
 **La ayuda del comando DEBE mencionar la vía stdin como la recomendada**, igual que hace `enroll`.
 
@@ -96,6 +96,16 @@ nada: una salida combinada no vacía es compatible con cualquier reparto, inclui
 
 El binario tiene hoy **`0` y `1`**, y esta feature **no amplía el vocabulario**. La distinción viaja
 en el **mensaje**, no en el número.
+
+> **El ERROR DE USO sale con `1`.** Cubre los tres casos que **no son desenlaces de la adhesión**
+> —`project` sin verbo, verbo desconocido, y entrada ausente sin pipe (§La gramática, §Entrada)—, y por
+> eso **no figura en la tabla de arriba**: en los tres, **el comando no llegó a intentar la adhesión**,
+> así que no hay desenlace que numerar. Pero **el valor sí queda fijado aquí**: `1`, como todo lo que
+> no es éxito.
+>
+> **Y se fija con un número y no con «≠ 0» a propósito.** «Distinto de cero» deja elegir `2`, o `70`,
+> y los deja a los dos conformes con el contrato — con lo que un test que compare «≠ 0» **pasa contra
+> cualquier andamiaje** que también salga distinto de cero, y deja de probar nada.
 
 > ### ⚠️ **D3 y D4 comparten código de salida, y no es negociable**
 >

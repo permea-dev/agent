@@ -95,22 +95,32 @@ specs/005-adhesion-a-proyecto/
 cmd/permea/
 ├── main.go            # MODIFICADO: despacho de dos niveles (D-005-P6)
 ├── project.go         # NUEVO: runProject + join, patrón de dos capas de enroll.go
+├── project_test.go    # NUEVO: comando — entrada, rehúses, canales, salidas, secretos
 ├── enroll.go          # sin tocar — es el molde
 └── status.go          # sin tocar
 
 internal/transport/
-├── transport.go       # MODIFICADO: extraer la guarda de esquema (D-005-P2) + Join (D-005-P1)
-└── queue.go           # sin tocar
+├── transport.go               # MODIFICADO: extraer la guarda de esquema (D-005-P2) + Join (D-005-P1)
+├── adhesion_test.go           # NUEVO: los cuatro desenlaces + SC-008
+├── boundary_adhesion_test.go  # NUEVO: golden de frontera de la adhesión (D-005-P14)
+└── queue.go                   # sin tocar
 
 internal/project/
-└── resolve.go         # MODIFICADO: exponer «hubo raíz» por vía adicional (D-005-P5)
+├── resolve.go         # MODIFICADO: exponer «hubo raíz» por vía adicional (D-005-P5)
+└── resolve_test.go    # MODIFICADO: SC-001, origen compartido
+
+internal/ingest/
+├── baseline_regresion_test.go # NUEVO: SC-009 contra baseline-sc004.tsv — aquí porque las TRES
+│                              #        columnas las produce claudecode.go:86-88
+└── boundary_test.go           # MODIFICADO: solo la nota de remisión cruzada (D-005-P14)
 
 internal/config/
 ├── config.go          # MODIFICADO: usar la guarda extraída; derivar destino (D-005-P3)
+├── config_test.go     # MODIFICADO: derivación del destino y validación ruidosa
 └── enrollment.go      # MODIFICADO: usar la guarda extraída (solo la condición)
 
 internal/testutil/
-└── sandbox.go         # sin tocar — se reutiliza
+└── sandbox.go         # sin tocar — se reutiliza (SandboxConSemillas)
 ```
 
 **Structure Decision**: se conserva la disposición existente. **No se crea ningún paquete nuevo**: la
@@ -572,7 +582,7 @@ Con esto, 005 lleva **los mismos artefactos que 004** salvo los que no le corres
 
 ### Phase 2 — Tasks
 
-**No la genera este comando.** Tres cosas que `/speckit.tasks` tiene que respetar, y se dejan escritas
+**No la genera este comando.** **Cuatro** cosas que `/speckit.tasks` tiene que respetar, y se dejan escritas
 aquí porque un troceo ingenuo las rompe:
 
 1. **El golden test de frontera de la adhesión va PRIMERO**, antes de cualquier código — Principio IV,
@@ -581,8 +591,13 @@ aquí porque un troceo ingenuo las rompe:
 3. **La unificación de la guarda (D-005-P2) es tarea temprana y aislada**, con los cuatro tests
    existentes como red, **antes** de escribir el método nuevo que la va a usar.
 4. **La documentación es tarea de la feature, no un extra** (D-005-P12): la entrada del comando en el
-   README **y la sección de comandos que hoy no existe**. Y **el contrato público** (D-005-P11), que
-   además es de quien depende que D-005-P3 pueda citar los dos hechos de ruta que usa.
+   README **y la sección de comandos que hoy no existe**.
+
+   > ⚠️ **Ajustado el 2026-08-18.** Esta regla decía también «y **el contrato público** (D-005-P11)».
+   > **Ya está escrito** —`contracts/adhesion.md` y `contracts/cli.md`, Phase 1— así que **no genera
+   > tarea**: generarla sería trabajo para algo hecho. Lo que sí queda de aquella frase es la
+   > dependencia que señalaba, y sigue viva: **D-005-P3 cita los dos hechos de ruta del contrato**, y
+   > esa cita hay que ponerla en el código cuando se escriba.
 
 ---
 
