@@ -10,9 +10,43 @@ import "net/url"
 // una molestia. Es el defecto de clase que la plataforma ya pagó y dejó escrito —*«una condición
 // replicada, corregida en un sitio y olvidada en cuatro»*—.
 //
-// **Las réplicas las sustituye P-005 T005, no esta tarea.** Aquí solo nace el cuerpo.
+// **Las réplicas las sustituyó P-005 T005.** Aquí nació el cuerpo; allí se fueron las copias.
+//
+// ═══ QUIÉN LLAMA AQUÍ — LOS CUATRO, Y LOS CUATRO EXISTEN ═══════════════════════════════════
+//
+// Esta lista es **la contrapartida de haber movido el juicio**: quien busque dónde se decide si un
+// destino es admisible ya **no** lo encuentra donde estaba, así que el camino de vuelta tiene que
+// estar escrito. **Son cuatro, ninguno pendiente:**
+//
+//	internal/config/enrollment.go   ParseEnrollmentString  — FUNDE los dos hechos y DESCARTA la causa
+//	internal/config/config.go       Config.Validate        — DOS ramas, dos mensajes
+//	internal/transport/transport.go Client.Send            — DOS ramas · centinela ErrScheme · causa con %w
+//	internal/transport/transport.go Client.Adherir         — ídem: la SEGUNDA PUERTA de la frontera
+//
+// **Los cuatro difieren en el desenlace y coinciden en el juicio, que es exactamente el objetivo.**
+// `enrollment.go` descarta la causa porque su argumento **lleva el token dentro**; `Adherir` la
+// conserva porque su usuario necesita saber **qué** está mal en su configuración. Unificar el juicio y
+// uniformar además el desenlace habría sido pasarse de largo.
+//
+// ═══ CÓMO SE COMPRUEBA QUE NO QUEDA NINGUNA COPIA — Y NO ES LEYENDO ════════════════════════
+//
+// Hay **dos pruebas, y hacen falta las dos** porque cubren mitades distintas:
+//
+//  1. **De comportamiento (P-005 T005 §PASO 2)**: mutar este cuerpo hace caer **los cuatro** tests de
+//     los cuatro llamantes, con cuatro mensajes distintos. Demuestra que **todos dependen de aquí**.
+//  2. **Estructural, y salió sola**: `enrollment.go` y `config.go` **perdieron el import de
+//     `net/url`** —no por limpieza: **porque el compilador dejó de aceptarlo**—. Una réplica
+//     disfrazada, una copia local que devolviera lo mismo, **habría conservado ese import**, porque
+//     seguiría llamando a `url.Parse`. Demuestra que **ninguno guarda copia**.
+//
+// **Ninguna de las dos sola basta**: la primera no distingue «usa el original» de «tiene una copia que
+// hace lo mismo»; la segunda no dice que el original se use de verdad. **Y la segunda se verifica con
+// `go build`, no leyendo el código** — que es lo que la hace útil dentro de seis meses.
+//
+// La retirada del andamiaje de P-005 T002 se comprobó igual, por barrido: `grep -rn
+// errEsquemaAndamiaje internal/ cmd/` → cero.
 
-// esquemaAdmisible es el único esquema por el que este agente transmite. FR-017 no admite exención,
+// esquemaAdmisible es el único esquema por el que este agente transmite. P-005 FR-017 no admite exención,
 // modo de desarrollo ni variante: es la misma frontera para la ingesta y para la adhesión.
 const esquemaAdmisible = "https"
 
@@ -24,7 +58,7 @@ const esquemaAdmisible = "https"
 //
 // ═══ POR QUÉ DOS HECHOS Y NO UN BOOLEANO ═══════════════════════════════════════════════════
 //
-// **Las tres réplicas NO son idénticas** (`research.md` §R4): `enrollment.go` **funde** el fallo de
+// **Las réplicas NO eran idénticas** (`research.md` §R4 las contó tres; T002 añadió la cuarta): `enrollment.go` **funde** el fallo de
 // análisis y el esquema equivocado en **un solo desenlace** —y nunca reproduce el argumento, porque el
 // `pmea2` lleva el token dentro—, mientras que `config.go` y `Send` los **separan en dos ramas** con
 // mensajes distintos. Un `bool` obligaría a elegir: o `enrollment.go` pasa a distinguir dos casos
@@ -34,8 +68,9 @@ const esquemaAdmisible = "https"
 //
 // ═══ POR QUÉ DEVUELVE EL ERROR Y NO UN SEGUNDO BOOLEANO ════════════════════════════════════
 //
-// Porque **dos de los llamantes ENVUELVEN la causa** en su mensaje: `config.go:102` hace
-// `fmt.Errorf("endpoint inválido %q: %w", …, err)` y `transport.go:143` lo mismo. Con un booleano no
+// Porque **TRES de los cuatro llamantes ENVUELVEN la causa** en su mensaje —`Config.Validate`,
+// `Send` y `Adherir`— con `fmt.Errorf("endpoint inválido %q: %w", …, errAnalisis)`.
+// *(Sin número de línea a propósito: las citas de línea envejecen y ésta ya envejeció una vez.)* Con un booleano no
 // tendrían qué envolver, y su mensaje **cambiaría** — que es exactamente lo que la condición de parada
 // de T005 prohíbe. Devolver la causa **no es formatear**: el mensaje lo sigue construyendo cada
 // llamante, que es el punto entero de la función.

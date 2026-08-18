@@ -98,6 +98,120 @@ sin cambios**, más una que esta feature añade.
    conjunta no vacía es compatible con cualquier reparto, **incluido el equivocado**, así que un
    montaje que los una **no cuenta como pasado** (SC-011 B). Es el caso particular de la disciplina 5
    para esta feature, y se escribe aparte porque aquí **el canal es requisito**, no detalle.
+8. **⚠️ MEDIDA EN 005 · En COMENTARIOS DE CÓDIGO se cita por NOMBRE, nunca por línea.** Fichero,
+   función, símbolo: `internal/config.JuzgarEndpoint`, `Client.Adherir`. **En artefactos fechados
+   —`spec.md`, `plan.md`, `tasks.md`, `research.md`— sí se puede citar por línea**, porque son **fotos
+   con fecha**: dicen lo que era cierto el día que se escribieron y nadie espera otra cosa. **Un
+   comentario en el código no tiene fecha**: se lee como si fuera cierto ahora.
+   > **Se dedujo tropezando, y en el peor sitio posible.** La cabecera de `internal/config/endpoint.go`
+   > citaba `transport.go:143` como el llamante que envuelve la causa. Al ejecutarse T005 esa línea dejó
+   > de ser esa — **dentro del texto de la tarea (T006) que existe precisamente para que las remisiones
+   > de la frontera no envejezcan**. La cita no falló por descuido: falló **porque las citas de línea en
+   > código fallan por construcción**, y el sitio donde más duele es justo donde más se cuidan.
+   >
+   > **El nombre sobrevive al refactor y la línea no**, y hay una asimetría que decide: **una cita por
+   > nombre que se rompe la caza el compilador o un `grep`; una cita por línea que se rompe no la caza
+   > nadie** — sigue apuntando a una línea que existe y que ahora dice otra cosa. **Falla en silencio, y
+   > apuntando a algo plausible**, que es la peor forma de fallar.
+   >
+   > #### ✅ LA REGLA ES MECÁNICA — y el patrón SE DERIVA, no se enumera de memoria
+   > Una regla que se comprueba leyendo es una regla que nadie comprueba. **Ésta se comprueba así:**
+   >
+   > ```sh
+   > grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml|tsv|mod|gitignore):[0-9]+' \
+   >      --include='*.go' --include='*.sh' .
+   > ```
+   >
+   > **Salida esperada: NADA.**
+   >
+   > ##### ⛔ LA LISTA DE EXTENSIONES NO SE INVENTA — SE MIDE, Y ASÍ
+   > ```sh
+   > git ls-files | grep -oE '\.[A-Za-z0-9]+$' | sort -u
+   > ```
+   > **El patrón es esa salida.** Y **un tipo de fichero nuevo en el repositorio obliga a rehacerlo**:
+   > mientras no se rehaga, el grep sigue dando cero **sin haber mirado los ficheros nuevos**.
+   >
+   > **Por qué esto y no una lista mejor:** la primera versión enumeró `go|md|json|tsv|yml` **de
+   > memoria**, y el conjunto real son **diez** —faltaban `jsonl`, `sh`, `yaml`, `mod`, `gitignore`—.
+   > **`.jsonl` es el caso didáctico**: `json` **no casa** con `queue.jsonl:12`, porque tras `json` viene
+   > una `l` y no los dos puntos. Una extensión que sea **prefijo de otra** crea un agujero silencioso,
+   > y sólo se ve derivando la lista. *(Por eso `jsonl` va antes que `json` en la alternancia: el orden
+   > no importa en POSIX ERE, pero sí para quien lea el patrón o lo lleve a otra herramienta.)*
+   >
+   > ##### ⛔ UN GREP QUE DA CERO CON CITAS VIVAS DENTRO ES PEOR QUE NO TENER GREP: **CERTIFICA**
+   > No es que falle: es que **firma que está limpio**. Y nadie vuelve a mirar lo que ya está firmado.
+   >
+   > **Es la TERCERA vez en esta feature, y las tres el instrumento parecía proteger:**
+   >
+   > | Instrumento | Daba verde… | …y la fuga pasaba por |
+   > |---|---|---|
+   > | `TestParseEnrollmentString_Rejects` | `ok` con el endpoint sembrado | comparar **el argumento entero**, no sus campos |
+   > | Un golden decodificado a `peticionAdhesion` | pasaría con un campo de más | ver **lo que la struct admite**, no lo que el cuerpo lleva |
+   > | Este grep, con la lista a ojo | **cero** | una extensión **que no estaba en la lista** |
+   >
+   > **El patrón común**: los tres miran **el molde que ya tenían** en vez de **lo que hay**. La defensa
+   > es la misma en los tres: **derivar el criterio del artefacto real** —los campos decodificados, las
+   > claves del cuerpo recibido, las extensiones del repositorio— y **no de lo que se recuerda de él**.
+   >
+   > **Por qué está ajustado así, lo demás:**
+   > - **Cubre `.md` y no sólo `.go`.** El defecto no es citar código por línea, es **citar por línea
+   >   desde un comentario**, que no tiene fecha. Y midiendo resultó que **la mayoría de las citas
+   >   apuntaban a artefactos**, no a código.
+   > - **`--include` acota a CÓDIGO —`.go` y `.sh`—, y el ámbito es el ÁRBOL ENTERO.** Los artefactos
+   >   fechados —`spec.md`, `plan.md`, `tasks.md`— **sí pueden citar por línea**: son fotos con fecha, y
+   >   **medido, ahí viven las 205 citas del repositorio**, todas legítimas. Lo que se acota es **qué
+   >   ficheros se registran**, no **qué directorios**: limitarlo a `internal/` y `cmd/` era otra lista
+   >   a ojo.
+   > - **No caza URLs con puerto** (`https://ejemplo.test:8443/guia.md` no casa: `.test` no es una
+   >   extensión del repositorio), **y sí caza los rangos** (`x.go:41-43`), que es como estaban escritas
+   >   tres de las que había.
+   > - **Única excepción conocida**: una salida de herramienta **transcrita literalmente** (p. ej.
+   >   `endpoint.go:49:2: u declared and not used`) es un registro, no una remisión. Hoy no hay ninguna
+   >   en código; si se añade, se anota aquí y no se cambia el grep por un caso.
+   >
+   > ##### 📏 MEDIDO al rehacer el patrón — el agujero era real, la fuga no
+   > Con el patrón derivado y el árbol entero: **cero citas nuevas**. Barrido completo del repositorio:
+   > **205 citas por línea, TODAS dentro de `.md`** —artefactos fechados, legítimas—, **cero en `.go`,
+   > cero en `.sh`**, y **cero a `.jsonl` o `.tsv` en ningún sitio**: esos fixtures se citan **por
+   > nombre** (`testdata/claude_code_sample.jsonl`, `baseline-sc004.tsv`), nunca por línea.
+   > **El agujero del patrón era real —`.jsonl:12` no habría casado— pero detrás no había ninguna cita
+   > viva.** Se deja anotado tal cual: **la ausencia de hallazgo no valida el instrumento que la
+   > encontró**, y por eso lo que se arregla es **la derivación**, no el resultado.
+   >
+   > #### ⚠️ EL BARRIDO CRECIÓ AL HACERLO, Y ESO ES EL ARGUMENTO
+   > Primer barrido, sólo `\.go:` → **seis**. Se arreglaron las dos de 005, incluida **la peor**:
+   > `transport.go:143` **dentro de un mensaje de fallo**, o sea, texto que un humano lee justo cuando
+   > algo se ha roto, apuntando a una línea equivocada.
+   >
+   > **Al ampliar el grep a `.md` aparecieron CINCO MÁS que la primera versión no veía**, y **tres ya
+   > estaban muertas** —medido, no supuesto—:
+   >
+   > | Cita | Qué hay hoy ahí |
+   > |---|---|
+   > | `tasks.md:132` (×2, desde `resolve_test.go` y `main_test.go`) | **línea vacía** en 004; en 005, la nota de ejecución de git. **Y no dice de qué `tasks.md` habla** |
+   > | `tasks.md:150-156` | en 004, el *Goal* de US3 — no la receta de sandbox que promete |
+   > | `spec.md:249` | **acertada, por suerte**: sigue cayendo en P-004 FR-010 |
+   > | `contracts/transport.md:58` | **acertada**, pero el fichero vive en **001**, y la cita no lleva ruta |
+   >
+   > **Las nueve pasan a nombre** —fichero + símbolo, o fichero + § con título—, y los anclajes se
+   > verificaron uno a uno antes de escribirlos: `T018 §«Por qué aquí SÍ se permite el t.Skip que T010
+   > prohíbe»`, `§«Receta común de T023/T024»`, `§Notas de prueba`.
+   >
+   > **Por qué se arreglaron también las cuatro anteriores a 005**, que estaban fuera de alcance: **la
+   > disciplina 8 es un artefacto de esta feature, y una regla que se publica con violaciones conocidas
+   > no es una regla, es una recomendación.** Son ediciones de comentario —riesgo cero— y `resolve.go`
+   > lo vigila T029 igualmente.
+   >
+   > **Lo que SÍ se queda fuera: `README.md:74`.** No es una cita por línea desde código: es que **el
+   > README documenta un campo retirado** (el `project_ref_mode` que P-004 quitó). **Es deuda de
+   > contenido anterior, y ninguna regla de 005 la toca** — está al backlog por su propia vía.
+9. **⚠️ MEDIDA EN 005 · Los identificadores de requisito se citan CON PREFIJO DE SPEC.** `P-004
+   FR-017`, `P-005 FR-017` — **nunca `FR-017` a secas**. Es la convención que ya usa la spec, y aquí se
+   volvió obligatoria al medirla: **`P-004 FR-017` es el ALCANCE de la frontera** y **`P-005 FR-017` es
+   el TRANSPORTE SEGURO** de la adhesión. **Números iguales, garantías distintas, y los dos se citaban
+   en la misma cabecera** (`internal/ingest/boundary_test.go`). Barrido y cerrado en los cuatro ficheros
+   que lo mencionaban; verificable con `grep -rn 'FR-017' --include='*.go' . | grep -v 'P-00[0-9] '` →
+   **cero**.
 
 **Nota de ejecución**: Claude Code **no ejecuta git de escritura**. El marcado de casillas de este
 fichero viaja en **el mismo commit** que el código que documenta, y ese commit lo hace Basilio.
@@ -533,6 +647,32 @@ es barata de encontrar**: antes de que nada más cambie.
   >
   > Las tres revertidas por edición inversa; `enrollment.go` verificado idéntico.
   >
+  > #### ✅ AMPLIADO DESPUÉS — LAS NUEVE RAMAS, no cuatro
+  > La familia se cerró **por campo**; faltaba el otro eje, **por rama**. Medido con `-coverprofile`:
+  > `ParseEnrollmentString` tiene **NUEVE desenlaces de error** y la tabla visitaba **cuatro**. Ahora
+  > son **diez filas para nueve ramas** (la 5 lleva dos: no analizable y en claro), **nueve de nueve
+  > cubiertas**, verificado otra vez por cobertura y no leyendo.
+  >
+  > **Los dos huecos que había, y no eran iguales:**
+  > - **Rama 4 «json ilegible»** — el hueco de verdad. Con `unknown field`, `DisallowUnknownFields`
+  >   falla **pero la struct ya quedó COMPLETA**: el token está vivo en `p`. **Hoy no filtra, y lo único
+  >   que separa «no filtra» de «filtra» es que alguien añada contexto al mensaje mientras depura.**
+  > - **Rama 7 «dev_id ausente»** — endpoint y token poblados, sin testigo.
+  > - **Ramas 1, 2 y 3** disparan antes de decodificar: la aserción es **trivialmente cierta** hoy. **Se
+  >   incluyen igual**, y está escrito en el fichero: «seis de nueve» no se verifica de un vistazo y
+  >   «nueve de nueve» sí, y **si alguien mueve la decodificación más arriba dejan de ser triviales sin
+  >   que nadie lo note**.
+  >
+  > **Mutación** —una sola, en la rama 4, que es la que tiene la struct poblada—: sembrar el token como
+  > «contexto para depurar», que es exactamente como pasa en la vida real. `go build` **PASA** y la
+  > **tumba**:
+  > ```
+  > enrollment_higiene_test.go:169: rama 4: el error reproduce un fragmento del campo token (≥8 caracteres): "dev_tok_"
+  >       mensaje: "enrollment string inválido: json ilegible (token=dev_tok_9HpQ3mZv7KxR2wLb)"
+  > ```
+  > **Mató sólo ese hecho**: **9 de las 10 filas quedaron en pie**. Revertida por edición inversa;
+  > `enrollment.go` verificado idéntico.
+  >
   > **PASO 1 — las cuatro sustituciones.** `enrollment.go` **funde** los dos hechos y **descarta la
   > causa** (su argumento lleva el token); `config.go` y `Send` conservan **sus dos mensajes**; `Send`
   > conserva además **causa (`%w`) y centinela**; `Adherir` pasa a **`ErrScheme` + causa conservada** y
@@ -583,7 +723,7 @@ es barata de encontrar**: antes de que nada más cambie.
   > ```
   > **Ya no pasa por accidente.** Y el **caso 3 también la caza** (`errors.As` → false): la regresión de
   > refundir los dos hechos tiene ahora **dos redes independientes**. Revertida por edición inversa.
-- [ ] **T006** Remisión cruzada en los dos sitios (D-005-P2 §encontrabilidad): en
+- [x] **T006** Remisión cruzada en los dos sitios (D-005-P2 §encontrabilidad): en
   `internal/transport/transport.go` —donde estaba la condición— un comentario que dice **dónde vive
   ahora el juicio y por qué se movió**; en `internal/config/` —donde vive— **quiénes son sus
   llamantes**. Sin las dos, unificar mejora el código y **empeora el hallazgo de la frontera**
@@ -593,6 +733,32 @@ es barata de encontrar**: antes de que nada más cambie.
   cuatro, sin ningún «pendiente».
   *(Esta nota decía «hoy son tres, el cuarto llega en T012». **Dejó de ser cierto al ejecutarse T002**:
   el llamante existe desde Phase 1, y quien lo busque lo encuentra.)*
+  > ### ✅ MEDIDO — T006 escrita en los dos sitios, y en un tercero que salió al medir
+  > **(a) Donde estaba la condición** — `internal/transport/transport.go`, en **`Send`**: nota larga con
+  > **dónde vive ahora** (`internal/config.JuzgarEndpoint`), **por qué se movió** (cuatro copias de la
+  > frontera = cuatro sitios donde se arreglan tres y se olvida una, y el fallo es **emitir en claro**),
+  > y **qué NO se movió**: el desenlace. Esta puerta conserva causa y centinela; `enrollment.go` los
+  > descarta. **Se unificó el juicio, no la presentación.**
+  >
+  > **(a-bis) Y en `Adherir` también**, remisión breve que apunta a la nota de `Send`. No estaba pedido
+  > y hacía falta: **`Adherir` es el llamante que no existía cuando se escribió el plan**, y quien
+  > entre por la segunda puerta buscando la frontera entra por ahí, no por `Send`.
+  >
+  > **(b) Donde vive** — `internal/config/endpoint.go`, junto a `JuzgarEndpoint`: **los CUATRO
+  > llamantes, ninguno pendiente**, cada uno con su desenlace anotado (quién funde, quién separa, quién
+  > conserva la causa y quién la descarta).
+  >
+  > **(b-bis) La prueba estructural, escrita ahí**: la mutación de T005 demuestra que **los cuatro
+  > dependen** del cuerpo único; **el import de `net/url` que desapareció** de `enrollment.go` y
+  > `config.go` demuestra que **ninguno guarda copia** —se fue porque **el compilador dejó de
+  > aceptarlo**, no por limpieza; una réplica disfrazada lo habría conservado—. **Ninguna de las dos
+  > sola basta**, y la segunda **se verifica con `go build`, no leyendo el código**.
+  >
+  > ### ⚠️ DOS CITAS ENVEJECIDAS, corregidas al escribir esto
+  > El encabezado de `endpoint.go` seguía diciendo **«las réplicas las sustituye T005, no esta tarea»**
+  > —falso desde que T005 corrió— y citaba **`transport.go:143`**, línea que ya no es esa. La segunda se
+  > sustituyó por el **nombre de los llamantes, sin número**: *las citas de línea envejecen, y ésta ya
+  > envejeció una vez*. Es el mismo defecto que T006 existe para prevenir, en el propio texto de T006.
 
 **Checkpoint**: **9 ok** · los cuatro tests de la red **sin una línea tocada** · **y T011 EN VERDE**.
 
@@ -608,11 +774,41 @@ es barata de encontrar**: antes de que nada más cambie.
 > **Disciplina de primer commit.** Esta feature **abre la segunda puerta de la frontera de datos**, y
 > el golden existente cubre la emisión de eventos, no la adhesión.
 
-- [ ] **T007** Crear el **golden test de frontera de la adhesión** en
+- [x] **T007** Crear el **golden test de frontera de la adhesión** en
   `internal/transport/boundary_adhesion_test.go` (nuevo): el cuerpo de la petición contiene
   **exactamente `{code, project_ref}` y nada más** — allowlist de dos elementos—, y **ningún otro dato
   de la instalación** viaja en él. **Nace verde** (T002 ya construye el cuerpo) → **se valida por
   mutación**: añadir un tercer campo al cuerpo debe **tumbarlo**, y el mensaje debe leerse.
+  > ### ✅ MEDIDO — el golden nació verde y la mutación lo tumbó
+  > `internal/transport/boundary_adhesion_test.go` ·
+  > `TestFronteraAdhesion_ElCuerpoLlevaExactamenteDosClaves`. Captura **el cuerpo REAL recibido por el
+  > servidor** (`httptest.NewTLSServer` + `srv.Client()`), no lo que el test cree que envió, y lo
+  > decodifica a **`map[string]any` y NO a `peticionAdhesion`**: decodificar a la struct del propio
+  > código haría que el test viera **lo que la struct admite** en vez de **lo que el cuerpo lleva**, y
+  > un campo de más sería invisible.
+  >
+  > **Mutación** — tercer campo (`hostname`, un dato de la instalación). `go build ./...` **PASA**
+  > (mutación válida) y **la tumba**:
+  > ```
+  > boundary_adhesion_test.go:99: el cuerpo de adhesión NO lleva exactamente la allowlist de dos elementos:
+  >       claves emitidas: [code hostname project_ref]
+  >       allowlist:       [code project_ref]
+  >       Principio I: ningún dato de la instalación viaja por esta puerta salvo estos dos
+  > ```
+  > **Mató sólo ese hecho**: ningún otro test del paquete se movió. Revertida por edición inversa;
+  > `transport.go` verificado idéntico.
+  >
+  > ### ✅ MEDIDO — LA NOTA RECÍPROCA (D-005-P14), en los dos ficheros
+  > La cabecera de `internal/ingest/boundary_test.go` afirmaba que FR-017 **«la nombra entera»**
+  > nombrando **tres caminos**. **Desde P-005 es falso**: la adhesión emite por un camino propio que no
+  > es ninguno de los tres. Nota puesta **en los dos ficheros, cada uno nombrando al otro**.
+  >
+  > **Y al escribirla salió una colisión, que después se cerró en todo el código** (disciplina 9): el
+  > **`P-004 FR-017`** (alcance de la frontera) **no es** el **`P-005 FR-017`** (transporte seguro de la
+  > adhesión) — **mismo número, garantías distintas, y los dos citados en la misma cabecera**. Barrido
+  > completo: **nueve apariciones sueltas en tres ficheros**, todas prefijadas, más la convención escrita
+  > en **los dos ficheros de frontera**. Verificable: `grep -rn 'FR-017' --include='*.go' . | grep -v
+  > 'P-00[0-9] '` → **cero**.
   ⚠️ **En ESTA MISMA TAREA**, la nota en `internal/ingest/boundary_test.go` (D-005-P14): su cabecera
   `:106-107` afirma que FR-017 *«la nombra entera»* nombrando tres caminos, y **esa frase deja de ser
   cierta** en cuanto exista una segunda puerta. Nota en los dos ficheros, **y no suelta**: separarla

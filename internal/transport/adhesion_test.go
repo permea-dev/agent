@@ -9,9 +9,9 @@ import (
 	"github.com/permea-dev/agent/internal/testutil"
 )
 
-// ═══ P-005 T011 · FR-017 · LA GUARDA MUERDE EN LA SEGUNDA PUERTA ═══════════════════════════
+// ═══ P-005 T011 · P-005 FR-017 · LA GUARDA MUERDE EN LA SEGUNDA PUERTA ═══════════════════════════
 //
-// La adhesión es **la segunda puerta de la frontera de datos**, y FR-017 exige que su transporte
+// La adhesión es **la segunda puerta de la frontera de datos**, y P-005 FR-017 exige que su transporte
 // seguro se juzgue **con la misma exigencia que la emisión de eventos, sin exención ni variante**.
 // «La misma exigencia» incluye **el mismo centinela**: quien compruebe `errors.Is(err, ErrScheme)`
 // debe obtener la misma respuesta por las dos puertas.
@@ -34,7 +34,7 @@ import (
 // juicio esté unificado: eso es estructura, y ningún test la ve — devolver `ErrScheme` se satisface
 // también cambiando una palabra en la réplica inline.
 
-// TestAdherir_RechazaCanalEnClaro es la garantía de FR-017 sobre la puerta de la adhesión.
+// TestAdherir_RechazaCanalEnClaro es la garantía de P-005 FR-017 sobre la puerta de la adhesión.
 func TestAdherir_RechazaCanalEnClaro(t *testing.T) {
 	// Disciplina 6 — aislamiento. Este test no toca config ni cola, pero el sandbox cuesta cero y
 	// elimina la pregunta: ninguna prueba de esta suite escribe en la instalación real.
@@ -56,14 +56,14 @@ func TestAdherir_RechazaCanalEnClaro(t *testing.T) {
 
 			// (1) NO se completa: ningún desenlace de éxito, ninguna denominación.
 			if err == nil {
-				t.Fatalf("Adherir(%q) devolvió err = nil: el canal en claro DEBE rechazarse (FR-017)", c.endpoint)
+				t.Fatalf("Adherir(%q) devolvió err = nil: el canal en claro DEBE rechazarse (P-005 FR-017)", c.endpoint)
 			}
 			if denominacion != "" {
 				t.Errorf("Adherir(%q) devolvió denominación %q: no puede haber desenlace de éxito", c.endpoint, denominacion)
 			}
 
 			// (2) Y lo hace con EL CENTINELA de la ingesta. Es lo que hace que las dos puertas
-			//     respondan igual a `errors.Is`, que es lo que FR-017 exige de verdad.
+			//     respondan igual a `errors.Is`, que es lo que P-005 FR-017 exige de verdad.
 			if !errors.Is(err, ErrScheme) {
 				t.Errorf("Adherir(%q): errors.Is(err, ErrScheme) = false, err = %v\n"+
 					"  la guarda de la segunda puerta no devuelve el centinela de la ingesta", c.endpoint, err)
@@ -97,7 +97,7 @@ func TestAdherir_RechazaCanalEnClaro(t *testing.T) {
 //
 // **No exige que el error de «no analizable» conserve la causa de `url.Parse`.** Hoy `Adherir` es una
 // **cuarta variante** de la guarda: ofrece centinela y **tira la causa**, al revés que `Send`
-// (`transport.go:143`), que conserva la causa y no ofrece centinela. Esa rama **no la mira nadie**, y
+// (`Client.Send`), que conserva la causa y no ofrece centinela. Esa rama **no la mira nadie**, y
 // unificarla es decisión de T005 — este test le deja las dos opciones abiertas y sólo le prohíbe
 // **la que borra la diferencia**.
 
@@ -155,7 +155,7 @@ func TestAdherir_LosDosHechosSonDistinguibles(t *testing.T) {
 // ═══ P-005 T011 · TERCER CASO · LA CAUSA SE CONSERVA, IGUAL QUE EN `Send` ══════════════════
 //
 // **Garantía: D-005-P2.** Con un endpoint no analizable, el error de `Adherir` **conserva la causa
-// de `url.Parse`**, con **la misma forma que `Send`** (`transport.go:143`), que la envuelve con `%w`.
+// de `url.Parse`**, con **la misma forma que `Client.Send`**, que la envuelve con `%w`.
 //
 // ═══ POR QUÉ ES LA PREMISA DE D-005-P2, Y NO UNA PREFERENCIA ══════════════════════════════
 //
@@ -201,7 +201,7 @@ func TestAdherir_ConservaLaCausaDelParseo(t *testing.T) {
 	var causaDeSend *url.Error
 	if !errors.As(errSend, &causaDeSend) {
 		t.Fatalf("LA REFERENCIA CAMBIÓ: Send(%q) ya no conserva la causa de url.Parse; err = %v (%T)\n"+
-			"  este test se ancla en la forma de Send (transport.go:143): revísese la referencia antes que Adherir",
+			"  este test se ancla en la forma de Client.Send: revísese la referencia antes que Adherir",
 			endpointNoAnalizableAdhesion, errSend, errSend)
 	}
 

@@ -21,7 +21,7 @@ import (
 //
 // ═══ POR QUÉ VIVE EN `internal/ingest` Y NO EN `internal/project` ══════════════════════════
 //
-// Las TRES columnas del baseline las produce `claudecode.go:86-88` —`ProjectRef` por
+// Las TRES columnas del baseline las produce `claudecode.go` —`ProjectRef` por
 // `project.Derivar`, `SessionRef` y `MachineRef` por `event.Ref`—. Desde `internal/project` solo
 // podría compararse UNA de las tres, y el baseline existe precisamente para comparar las tres:
 // `project_ref` detecta que la derivación se movió, y las otras dos que P-005 no tocó lo que 004

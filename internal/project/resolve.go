@@ -63,7 +63,8 @@ func Derivar(cwdDeclarado, salt string) string {
 //
 // El dato ya existía —`ascender` devuelve `(string, bool)`— y `derivarConTecho` lo usaba y lo
 // tiraba. La tentación era que `Derivar` devolviera error al no encontrar raíz, y **eso rompería
-// P-004 FR-010 en el camino de la ingesta** (`specs/004-identidad-de-proyecto/spec.md:249`): un lote
+// P-004 FR-010 en el camino de la ingesta** (`specs/004-identidad-de-proyecto/spec.md`, P-004
+// FR-010): un lote
 // entero se detendría porque un directorio dejó de existir. Por eso P-005 FR-015 exige exponerlo por
 // **vía adicional**, y esto es esa vía.
 //
@@ -155,7 +156,7 @@ func derivarConTecho(ubicacion, salt, techo string) string {
 // y no aparece nada»— es indistinguible de una avería de servidor.
 func derivarConTechoYRaiz(ubicacion, salt, techo string) (identidad string, huboRaiz bool) {
 	// Entrada vacía → identidad ausente (FR-008/G1). No hay guarda propia: `event.Ref` ya
-	// devuelve "" para valor vacío (`internal/event/event.go:41-43`), y duplicar aquí la
+	// devuelve "" para valor vacío (`internal/event/event.go`, `Ref`), y duplicar aquí la
 	// definición de «ausente» crearía dos que podrían divergir.
 	if raiz, encontrada := ascender(ubicacion, techo); encontrada {
 		return event.Ref(salt, raiz), true

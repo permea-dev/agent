@@ -459,7 +459,8 @@ func TestDerivar_MejorEsfuerzoNuncaFalla(t *testing.T) {
 
 	t.Run("caso 13: permisos denegados", func(t *testing.T) {
 		// El t.Skip documentado se permite AQUÍ y se prohíbe en T010, y la asimetría es
-		// deliberada (tasks.md:132): aquí el caso de permisos es 1 de los 3 que cubren G8
+		// deliberada (`specs/004-identidad-de-proyecto/tasks.md`, T018 §«Por qué aquí SÍ se
+		// permite el t.Skip que T010 prohíbe»): aquí el caso de permisos es 1 de los 3 que cubren G8
 		// —los otros dos siguen ejerciéndola— y es físicamente inejecutable como root, que
 		// puede leerlo todo. En T010 el skip mataría la ÚNICA cobertura de una promesa.
 		if os.Geteuid() == 0 {

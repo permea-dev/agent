@@ -103,7 +103,8 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// entornoDePrueba prepara el sandbox de la receta común de tasks.md:150-156 y devuelve el
+// entornoDePrueba prepara el sandbox de la receta común de
+// `specs/004-identidad-de-proyecto/tasks.md` §«Receta común de T023/T024», y devuelve el
 // dataDir. La `config.json` la escribe el llamante con la clave que esté probando.
 //
 // Los tres ingredientes existen para que CADA CÓDIGO DE SALIDA CAIGA POR SU PROPIA RAZÓN:
@@ -385,7 +386,8 @@ func TestRetirada_EnrollNoParaYLimpiaLaClave(t *testing.T) {
 // volvería frágil ante cualquier reescritura del texto.
 func TestRetirada_ElErrorQueGanaEsElDeLaClave(t *testing.T) {
 	// El t.Skip documentado se permite aquí por la misma asimetría razonada de T018
-	// (tasks.md:132): como root, un directorio de solo lectura no deniega nada, así que el
+	// (`specs/004-identidad-de-proyecto/tasks.md`, T018 §«Por qué aquí SÍ se permite el t.Skip
+	// que T010 prohíbe»): como root, un directorio de solo lectura no deniega nada, así que el
 	// montaje es físicamente inejecutable. La diferencia con T010 —donde el skip está
 	// prohibido— es que allí mataría la ÚNICA cobertura de una promesa; aquí el resto de la
 	// tabla de la parada sigue cubierto por T023.

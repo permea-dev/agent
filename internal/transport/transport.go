@@ -114,8 +114,24 @@ func (c *Client) Verify() error {
 // estado según el contrato (2xx=aceptado, 401/403=auth, 5xx=reintentar, otros 4xx=error).
 // La deduplicación extremo a extremo se apoya en event_id.
 func (c *Client) Send(events []event.Event) error {
-	// P-005 T005: juicio unificado en `config.JuzgarEndpoint`; los dos desenlaces son de esta puerta.
-	// CONSERVA la causa con %w y CONSERVA el centinela: de las dos dependen tests por `errors.Is`.
+	// ═══ AQUÍ ESTABA LA GUARDA DE ESQUEMA, Y YA NO ESTÁ (P-005 T006 §encontrabilidad) ═══════
+	//
+	// **El juicio vive ahora en `internal/config.JuzgarEndpoint`** (`internal/config/endpoint.go`), y
+	// allí está escrita la lista de sus CUATRO llamantes: `ParseEnrollmentString`, `Config.Validate`,
+	// este `Send` y `Adherir`.
+	//
+	// **Por qué se movió**: la condición estaba escrita **cuatro veces**. Cuatro copias de la frontera
+	// son cuatro sitios donde alguien arregla tres y olvida una, y el fallo no es cosmético — es
+	// **emitir por canal en claro**, Principio I. Es el defecto de clase que la plataforma ya pagó.
+	//
+	// **Y esta nota existe porque unificar tiene un coste**: mejora el código y **empeora el hallazgo**
+	// —quien buscara la frontera la encontraba justo aquí—. Sin este puntero, D-005-P2 habría cambiado
+	// una deuda por otra.
+	//
+	// **Lo que NO se movió es el desenlace, y es deliberado**: esta puerta CONSERVA la causa con `%w` y
+	// CONSERVA el centinela `ErrScheme` —de los dos dependen tests por `errors.Is`—, mientras que
+	// `ParseEnrollmentString` los descarta a propósito porque su argumento lleva el token dentro.
+	// **Se unificó el juicio, no la presentación.**
 	errAnalisis, admisible := config.JuzgarEndpoint(c.Endpoint)
 	if errAnalisis != nil {
 		return fmt.Errorf("transport: endpoint inválido %q: %w", c.Endpoint, errAnalisis)
@@ -217,9 +233,12 @@ type peticionAdhesion struct {
 // los reintentos del camino caliente— y esta operación **no puede** reutilizarlo: `Send` serializa
 // `[]event.Event`, y aquí el cuerpo es otro.
 func (c *Client) Adherir(codigo, projectRef string) (denominacion string, err error) {
-	// P-005 T005: el andamiaje se retiró. La segunda puerta de la frontera usa EL MISMO juicio que la
-	// ingesta y da EL MISMO desenlace: centinela `ErrScheme` para el esquema, causa conservada con %w
-	// para el parseo (D-005-P2). Unificar la condición y divergir en el desenlace sería unificar el
+	// El juicio de esquema vive en `internal/config.JuzgarEndpoint` — ver la nota larga en `Send`, y la
+	// lista de llamantes en `internal/config/endpoint.go`. Aquí estuvo la réplica inline de andamiaje
+	// de P-005 T002, que T005 retiró.
+	//
+	// La segunda puerta de la frontera usa EL MISMO juicio que la ingesta y da EL MISMO desenlace:
+	// centinela `ErrScheme` para el esquema, causa conservada con %w para el parseo (D-005-P2). Unificar la condición y divergir en el desenlace sería unificar el
 	// código y mantener la diferencia justo en lo que la persona lee cuando su config está rota.
 	errAnalisis, admisible := config.JuzgarEndpoint(c.Endpoint)
 	if errAnalisis != nil {
