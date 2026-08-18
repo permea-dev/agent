@@ -381,6 +381,14 @@ func TestDerivarEndpointDeAdhesion_FormaInesperadaRehusa(t *testing.T) {
 		{"solo la raíz", "https://api.permea.example/"},
 		{"no analizable", "https://api.permea\x7f.example/api/v1/ingest"},
 		{"material sensible en la ruta", "https://api.permea.example/api/" + secretoEnLaRuta + "/eventos"},
+
+		// ── Lo que NO se reconoce, se rehúsa: la ruta es correcta, pero la URL trae partes que el
+		//    contrato no contempla. Conservarlas en silencio es lo contrario de la validación ruidosa,
+		//    y en el caso de USERINFO es además una fuga de credenciales al destino nuevo.
+		{"USERINFO — credenciales incrustadas", "https://usuario:" + secretoEnLaRuta + "@api.permea.example/api/v1/ingest"},
+		{"USERINFO sin contraseña", "https://usuario@api.permea.example/api/v1/ingest"},
+		{"QUERY", "https://api.permea.example/api/v1/ingest?token=" + secretoEnLaRuta},
+		{"FRAGMENTO", "https://api.permea.example/api/v1/ingest#" + secretoEnLaRuta},
 	}
 
 	for _, c := range casos {

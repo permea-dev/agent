@@ -54,6 +54,32 @@ func DerivarEndpointDeAdhesion(endpointIngesta string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: no es analizable como URL", ErrFormaDeEndpointInesperada)
 	}
+	// ⛔ LO QUE NO SE RECONOCE, SE REHÚSA — y esto es la validación ruidosa, no una preferencia.
+	//
+	// El contrato describe el endpoint de ingesta como **esquema, host, puerto y ruta**, y no contempla
+	// nada más. Conservar en silencio lo que trae de más es **exactamente lo contrario** de rehusar en
+	// vez de conjeturar (P-005 FR-009): significa **llevar a un destino nuevo algo que nadie dijo que
+	// debiera viajar**.
+	//
+	// **El caso que lo decide es USERINFO**: un `https://usuario:clave@…` copiaría **las credenciales**
+	// al destino de la adhesión — y si esa URL acabara en un `*url.Error`, **`url.Error` NO REDACTA**,
+	// así que la fuga saldría impresa. Query y fragmento van con él por el mismo criterio: no se
+	// reconocen, no se conjetura qué significan.
+	//
+	// Se nombra **qué parte sobra**, nunca su contenido (P-005 FR-020).
+	if u.User != nil {
+		return "", fmt.Errorf("%w: la URL lleva credenciales incrustadas (userinfo), que no se contemplan",
+			ErrFormaDeEndpointInesperada)
+	}
+	if u.RawQuery != "" {
+		return "", fmt.Errorf("%w: la URL lleva cadena de consulta, que no se contempla",
+			ErrFormaDeEndpointInesperada)
+	}
+	if u.Fragment != "" {
+		return "", fmt.Errorf("%w: la URL lleva fragmento, que no se contempla",
+			ErrFormaDeEndpointInesperada)
+	}
+
 	if u.Path == "" || u.Path == "/" {
 		return "", fmt.Errorf("%w: la ruta está vacía y se esperaba que terminara en el segmento %q",
 			ErrFormaDeEndpointInesperada, segmentoIngesta)
@@ -68,7 +94,9 @@ func DerivarEndpointDeAdhesion(endpointIngesta string) (string, error) {
 
 	// Se sustituye EL ÚLTIMO segmento, no el primero que coincida: un prefijo puede contener el mismo
 	// nombre (`/ingest/v1/ingest`) y cortar por el primero mandaría la petición a otro sitio.
-	derivado := *u // copia: conserva esquema, host, puerto, y lo demás que traiga
+	// Copia segura: llegados aquí se ha comprobado que NO hay userinfo, query ni fragmento, así que lo
+	// que se conserva es exactamente lo que el contrato nombra —esquema, host, puerto y prefijo—.
+	derivado := *u
 	derivado.Path = strings.Join(append(segmentos[:len(segmentos)-1:len(segmentos)-1], segmentosAdhesion...), "/")
 	return derivado.String(), nil
 }

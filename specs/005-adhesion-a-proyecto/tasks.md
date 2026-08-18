@@ -1059,11 +1059,23 @@ es barata de encontrar**: antes de que nada más cambie.
   > **Tercera puerta, tercera decisión, mismo juicio**: es exactamente para esto que `JuzgarEndpoint` no
   > formatea mensajes.
   >
-  > ### ⚠️ Decisión no cubierta por ningún test, y se dice
-  > La derivación **copia la URL entera y sustituye la ruta**, así que **arrastra lo que traiga**
-  > (usuario, query, fragmento). Ninguna prueba lo fija porque **el contrato no lo menciona** y un
-  > endpoint de ingesta no los lleva. Se elige **conservar** por ser lo menos sorprendente; si algún día
-  > importa, es una decisión que hay que tomar a la vista, no descubrir.
+  > ### ✅ CERRADO — lo que no se reconoce, se REHÚSA (userinfo · query · fragmento)
+  > La primera versión **conservaba** lo que la URL trajera de más, «por ser lo menos sorprendente».
+  > **No es criterio de frontera, y T015 es justamente la tarea de la validación ruidosa**: conservar en
+  > silencio algo inesperado es lo contrario de rehusar en vez de conjeturar.
+  >
+  > **Lo decide USERINFO, y el rojo lo enseñó literalmente**:
+  > ```
+  > config_test.go:399: DerivarEndpointDeAdhesion("https://usuario:9HpQ3mZv7KxR2wLb@api.permea.example/api/v1/ingest") NO rehusó,
+  >   devolvió "https://usuario:9HpQ3mZv7KxR2wLb@api.permea.example/api/v1/projects/adhesion"
+  > config_test.go:399: … QUERY      → devolvió ".../projects/adhesion?token=9HpQ3mZv7KxR2wLb"
+  > config_test.go:399: … FRAGMENTO  → devolvió ".../projects/adhesion#9HpQ3mZv7KxR2wLb"
+  > ```
+  > **Las credenciales copiadas a un destino nuevo**, que es lo que ningún criterio justifica. Query y
+  > fragmento van con ellas por el mismo motivo: no se reconocen, no se conjetura qué significan.
+  > **Cuatro casos nuevos en la tabla de T014** (userinfo con y sin contraseña, query, fragmento),
+  > observados en rojo **antes** de tocar T015. El rehúse **nombra qué parte sobra, nunca su
+  > contenido** (P-005 FR-020).
 
 ---
 
@@ -1071,22 +1083,22 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ### Tests (rojo antes de verde)
 
-- [ ] **T016** [P] Test de **las dos vías de entrada** en `cmd/permea/project_test.go` (nuevo) —
+- [x] **T016** [P] Test de **las dos vías de entrada** en `cmd/permea/project_test.go` (nuevo) —
   **Garantía**: FR-023 + SC-011 (A). Mismo código por argumento y por entrada estándar → desenlaces
   **idénticos**, con las **tres piezas**: no vacío y del tipo que toca · idénticos entre sí · **y la
   comparación sabe fallar**. Nace en **rojo**.
-- [ ] **T017** [P] Test de **entrada ausente** en el mismo fichero — **Garantía**: `cli.md` §Entrada.
+- [x] **T017** [P] Test de **entrada ausente** en el mismo fichero — **Garantía**: `cli.md` §Entrada.
   Sin argumento y sin pipe → **error de uso** con **`ExitCode() == 1`**, y **NUNCA un prompt que se
   cuelgue**. Nace en **rojo**: T003 sale con **70**.
   ⚠️ **Se compara el código EXACTO, no «≠ 0»**, y es lo que hace que el 70 de T003 sirva de algo: con
   «≠ 0» esta tarea **nacería VERDE contra el andamiaje** —70 también es ≠ 0— y su rojo no existiría.
   El valor es **1** porque el binario tiene **dos** códigos, `0` y `1` (`cli.md` §Los códigos de
   salida), y el error de uso no es éxito.
-- [ ] **T018** [P] Test del **ORDEN de los tres rehúses** en el mismo fichero — **Garantía**:
+- [x] **T018** [P] Test del **ORDEN de los tres rehúses** en el mismo fichero — **Garantía**:
   D-005-P13, `cli.md` §Comportamiento. Con las tres condiciones a la vez —sin árbol, sin enrolamiento
   y con configuración rota— el mensaje es **el del árbol**. Nace en **rojo**.
   *Sin este test el orden lo fija el primer camino que alguien escriba.*
-- [ ] **T019** [P] Test de **cero peticiones fuera de árbol** en el mismo fichero — **Garantía**:
+- [x] **T019** [P] Test de **cero peticiones fuera de árbol** en el mismo fichero — **Garantía**:
   SC-004, FR-006. **Con su observador declarado**: un destino instrumentado que **cuenta**. **Y con su
   caso positivo**: el **mismo** destino, con el comando lanzado **dentro** de un árbol, **registra
   exactamente una**. Nace en **rojo**.
@@ -1096,11 +1108,57 @@ es barata de encontrar**: antes de que nada más cambie.
   una ausencia: **su caso positivo está DENTRO del mismo test** —el observador debe registrar
   exactamente una petición **dentro** de un árbol— y **eso sí falla** con el andamiaje de T003, que no
   emite nunca. **Nace rojo de verdad, por la mitad positiva.** No es un olvido.
-- [ ] **T020** [P] Test de **verbo desconocido y `project` sin verbo** en el mismo fichero —
+- [x] **T020** [P] Test de **verbo desconocido y `project` sin verbo** en el mismo fichero —
   **Garantía**: `cli.md` §La gramática. Error de uso por stderr, **`ExitCode() == 1`**, nombrando lo no
   reconocido. Nace en **rojo**: T003 sale con **70**.
   ⚠️ **El código EXACTO, por la misma razón que T017**: con «≠ 0» el andamiaje la satisface y el rojo
   desaparece.
+  > ### 🔴 MEDIDO — los CINCO nacieron rojos, y los cinco por su propia razón
+  > `cmd/permea/project_test.go` (nuevo). Tests **de proceso**: se compara `ExitCode()`, nunca texto
+  > (disciplina 4). **8 ok · 1 FAIL**, y el FAIL es `cmd/permea` con estos cinco **y nada más**.
+  > ```
+  > T016 project_test.go:182: vía argumento: ExitCode() = 70, se esperaba 0 (unión conseguida)
+  >      project_test.go:185: vía argumento: stdout VACÍO; el éxito comunica la denominación por stdout
+  > T017 project_test.go:229: ExitCode() = 70, se esperaba EXACTAMENTE 1 (error de uso)
+  > T018 project_test.go:373: el rehúse obtenido es indistinguible de el del enrolamiento: los dos dan
+  >      "error: `permea project join` todavía no está implementado\n"
+  > T019 project_test.go:415: ExitCode() = 70 dentro de un árbol con enrolamiento y destino vivo; se esperaba 0
+  >      project_test.go:418: el destino recibió 0 peticiones, se esperaba EXACTAMENTE 1
+  > T020 project_test.go:448: ExitCode() = 70, se esperaba EXACTAMENTE 1 (error de uso)
+  > ```
+  > **El `70` aparece en cuatro de los cinco, y es la prueba de que el andamiaje de T003 hace su
+  > trabajo**: con `1` —el valor del contrato— **T017 y T020 habrían nacido VERDES** acertando contra un
+  > comando sin implementar.
+  >
+  > ### ✅ T016 — las TRES piezas, y por qué la tercera no es ceremonia
+  > (1) **no vacío y del tipo que toca** —código `0` y stdout con contenido—, porque «iguales» no dice
+  > nada si los dos son el mismo error; (2) **idénticos entre sí**, canal a canal; (3) **la comparación
+  > sabe fallar**: se le pasan tres desenlaces que difieren en **un solo canal cada uno** y debe
+  > declararlos distintos. Sin (3), un comparador que devolviera siempre `true` dejaría (2) en verde
+  > para siempre.
+  >
+  > ### ✅ T018 — las TRES PAREJAS, y el orden comprobado SIN CASAR TEXTO
+  > «Las tres condiciones a la vez → gana el árbol» **lo pasa igual un orden equivocado entre
+  > enrolamiento y configuración**, porque el árbol gana de todas formas. Por eso van **las tres
+  > parejas** además del caso triple.
+  >
+  > **Y el orden se observa comparando SALIDAS ENTRE SÍ**, no contra literales: el `stderr` de una
+  > combinación debe ser **el mismo** que el del rehúse que gana **y distinto** del de los que pierden.
+  > No depende de ninguna redacción ni del idioma del sistema —que es lo que la disciplina 4 protege—.
+  > **El rojo llegó por la desigualdad**: hoy los tres rehúses dan **el mismo** mensaje de andamiaje.
+  >
+  > ### ✅ T019 — observador real, y el caso positivo con EL MISMO destino
+  > El banco es un `httptest.NewTLSServer` que **cuenta las peticiones que le llegan de verdad**, y el
+  > binario hijo confía en su certificado por **`SSL_CERT_FILE`** —que en Go es **aditivo**, medido en
+  > este proyecto—. **El caso positivo es la mitad que importa**: «cero peticiones» lo cumple igual un
+  > comando que no emite nunca, y hoy **es exactamente lo que pasa** — por eso el rojo está en el
+  > positivo (`0`, se esperaba `1`) y no en el negativo.
+  > *(Límite: en Windows Go usa el almacén del sistema y `SSL_CERT_FILE` se ignora.)*
+  >
+  > ### ✅ Disciplina 3 §inmunidad, aplicada
+  > **Todas las aserciones independientes usan `t.Errorf`**, y se nota en el rojo: T016 y T019
+  > dispararon **dos aserciones en el mismo subtest**. Con `t.Fatalf` la segunda de cada uno habría
+  > quedado inalcanzable para cualquier mutación futura.
 
 ### Implementación
 
@@ -1510,6 +1568,24 @@ primer punto **seguro** es el final de Phase 2, porque hasta ahí **nada ha camb
   (**Phase 1 del plan**). La regla 4 de **`plan.md` §Phase 2 del plan** los mencionaba y **quedó
   ajustada el 2026-08-18**.
 - **No arregla la deuda vieja del README** (`README.md:74`): al backlog.
+- **No arregla la fuga de USERINFO en los mensajes de endpoint**: al backlog, **medido y no impresión**.
+  > **`url.Error` NO REDACTA** —medido: `url.Parse("https://usuario:CLAVE@…/ingest\x7f")` devuelve
+  > `parse "https://usuario:CLAVE@…"`, con la contraseña dentro—. Pero el problema **es más ancho que
+  > la causa envuelta**: **siete sitios imprimen el endpoint verbatim**, y seis de ellos lo hacen con
+  > `%q` de `c.Endpoint` **directamente**, así que filtrarían igual aunque nadie envolviera nada:
+  > `config.go:102` · `config.go:105` · `transport.go:150` · `transport.go:153` · `transport.go:258` ·
+  > `transport.go:261`.
+  >
+  > **El séptimo es el peor y no es un error**: `cmd/permea/status.go:53` imprime `cfg.Endpoint` **por
+  > stdout en la salida normal de `status`** —y a propósito: `status_test.go` comprueba que aparezca—.
+  > No es una fuga en un caso raro: es la salida de todos los días.
+  >
+  > **Cobertura actual: CERO.** Ningún test de `internal/` ni de `cmd/` usa un endpoint con userinfo.
+  > **Remedio conocido de la stdlib**: `(*url.URL).Redacted()`, que sustituye la contraseña por
+  > `xxxxx` —medido—. **Tensión con el caso 3 de T011**, que **exige** que `Adherir` conserve la causa
+  > de `url.Parse`: conservarla y redactarla a la vez requiere decidir qué se conserva exactamente, y
+  > eso es una conversación, no un parche. *(Citas por línea: esto es `tasks.md`, artefacto fechado —
+  > disciplina 8.)*
 - **No toca la plataforma.** La segunda mitad de D-005-P11 —que la plataforma cite el contrato en vez
   de definirlo— es **de otro día y de otra rama**.
 - **No automatiza la ceremonia.** Está prohibido por la spec.
