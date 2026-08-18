@@ -397,7 +397,7 @@ es barata de encontrar**: antes de que nada más cambie.
   > rojo es **inequívocamente de `Adherir`**. El mensaje **enseña las dos puertas juntas**, que es lo
   > que hace legible la divergencia sin comparar texto en ninguna aserción.
 
-- [ ] **T005** Sustituir **las CUATRO réplicas** por llamadas a T004:
+- [x] **T005** Sustituir **las CUATRO réplicas** por llamadas a T004:
   1. `internal/config/enrollment.go:78-80` — **funde los dos hechos** en su error genérico, **sin
      reproducir el argumento** (lleva el token dentro).
   2. `internal/config/config.go:100-106` — **dos ramas**, con sus mensajes.
@@ -480,6 +480,109 @@ es barata de encontrar**: antes de que nada más cambie.
   > **Revertir POR EDICIÓN INVERSA**, y transcribir el mensaje. **Si NO la tumba, la aserción no está
   > mirando: SE PARA Y SE REPORTA** — la unificación habrá dejado el caso 2 verde y vacío, que es peor
   > que no tenerlo, porque parece una red.
+  > ### ✅ MEDIDO — T005 ejecutada: cuatro réplicas sustituidas, los cuatro llamantes se movieron
+  > **PASO 0 — la quinta red.** Barrido de `internal/config` y `cmd/permea`: **la hay**,
+  > `internal/config/enrollment_test.go:116` (`TestParseEnrollmentString_Rejects`, casos «endpoint http»
+  > y «endpoint vacío»). **Pero al medirla NO cubre el peligro de T005**: compara
+  > `strings.Contains(msg, tc.in)` —**el argumento entero**— y el token entero, mientras que un `%w` del
+  > `*url.Error` filtra **el endpoint**, que no es subcadena de ninguno de los dos. **Medido con la
+  > mutación**: con el endpoint reproducido en el mensaje, ese test **pasa en verde** (`ok`).
+  > #### ⛔ POR QUÉ `enrollment_higiene_test.go` NO ES UN DUPLICADO — léase antes de borrarlo
+  > **A primera vista solapa con `enrollment_test.go:116`, y no solapa.** Aquel compara
+  > `strings.Contains(msg, tc.in)`: **el argumento ENTERO**. Y **ninguno de los tres campos
+  > decodificados es subcadena de `pmea2.<base64>`** — endpoint, token y `dev_id` viajan **codificados
+  > dentro**, así que un mensaje que reprodujera cualquiera de los tres **pasa su comprobación sin
+  > despeinarse**.
+  >
+  > **No es deducción, está medido**: con el endpoint sembrado en el mensaje de error,
+  > `TestParseEnrollmentString_Rejects` **da `ok`**. La fuga a la vista y la red en verde.
+  >
+  > **Y el agujero es de FAMILIA, no del endpoint**: el endpoint fue sólo el campo que T005 puso en
+  > peligro. Si mañana un mensaje reprodujera el `dev_tok_…` o el identificador de máquina, **tampoco
+  > lo cazaría nadie**. Por eso el fichero nuevo recorre **los tres campos** con el umbral del contrato
+  > (SC-005: **subcadenas de ocho**), en **un bucle sobre una tabla** y no en tres tests copiados.
+  >
+  > **Los dos ficheros se quedan, y cubren cosas distintas**: uno el argumento entero, el otro sus
+  > partes. Borrar el nuevo por «duplicado» devuelve el agujero entero.
+  >
+  > Va en **fichero aparte** para no tocar el existente (condición de parada). Nació **verde**; mutación
+  > válida (`go build` pasa) y la **tumba**:
+  > ```
+  > enrollment_higiene_test.go:94: el error reproduce un fragmento del ENDPOINT incrustado (≥8 caracteres): "http://i"
+  >       mensaje: "enrollment string inválido: el endpoint \"http://inseguro.example/ingest\" debe ser https"
+  > ```
+  > #### ✅ MEDIDO — TRES CAMPOS, TRES MUTACIONES INDEPENDIENTES
+  > Las tres se siembran en **el mismo mensaje** (la rama de charset de `dev_id`) para que sólo cambie
+  > **el campo** y las tres sean comparables. Las tres **compilan** (`go build ./...` pasa) y **cada una
+  > tumba UNA SOLA aserción, la de su campo**, con las otras dos en pie:
+  > ```
+  > A endpoint  enrollment_higiene_test.go:114: … fragmento del campo endpoint (≥8 caracteres): "https://"
+  > B token     enrollment_higiene_test.go:114: … fragmento del campo token    (≥8 caracteres): "dev_tok_"
+  > C dev_id    enrollment_higiene_test.go:114: … fragmento del campo dev_id   (≥8 caracteres): "maq!Z7Q3"
+  > ```
+  > **Ninguna tumbó las tres**, que era la condición: si una sola las hubiera tumbado, el bucle estaría
+  > comprobando el argumento entero otra vez y no los campos.
+  >
+  > ### ⚠️ TRAMPA MEDIDA — un test de ausencia por subcadenas es sensible AL VALOR ELEGIDO
+  > El primer `dev_id` de la tabla fue `"maquina no permitida!01"` y **dio un ROJO FALSO al nacer**: el
+  > mensaje genérico dice «dev_id con caracteres **no permitidos**», y las dos cadenas comparten
+  > `" no perm"`. **No había fuga: había vocabulario común.** Los valores de prueba tienen que parecerse
+  > a lo que son —identificadores y secretos, alta entropía— y **no a la prosa de los mensajes**, o el
+  > test grita sin motivo y acaba desactivado por ruidoso. **Aplica a T024**, que usa esta misma técnica
+  > sobre los ocho desenlaces del comando.
+  >
+  > Las tres revertidas por edición inversa; `enrollment.go` verificado idéntico.
+  >
+  > **PASO 1 — las cuatro sustituciones.** `enrollment.go` **funde** los dos hechos y **descarta la
+  > causa** (su argumento lleva el token); `config.go` y `Send` conservan **sus dos mensajes**; `Send`
+  > conserva además **causa (`%w`) y centinela**; `Adherir` pasa a **`ErrScheme` + causa conservada** y
+  > **`errEsquemaAndamiaje` desaparece del fichero**. **Efecto colateral medido**: `enrollment.go` y
+  > `config.go` dejan de usar `net/url` y pierden el import. `transport.go` gana el import de `config`;
+  > **sin ciclo**, y no es nuevo: `transport/queue.go:11` ya lo importaba.
+  > #### ✅ LA PRUEBA ESTRUCTURAL QUE SALIÓ SOLA — el grafo de imports
+  > El import de `net/url` **no se retiró por limpieza: se retiró porque el compilador ya no lo
+  > aceptaba.** `enrollment.go` y `config.go` dejaron de usarlo.
+  >
+  > **Y eso es exactamente lo que ningún test puede ver.** T011 y los demás observan **comportamiento**;
+  > dónde vive el juicio es **estructura**. Una réplica disfrazada —una copia local que devolviera lo
+  > mismo— **habría conservado el import**, porque seguiría llamando a `url.Parse`. **El import que
+  > desaparece es la firma de que la réplica se fue de verdad.**
+  >
+  > **Es el COMPLEMENTO de la mutación del PASO 2, no un adorno**: la mutación demuestra que los cuatro
+  > llamantes **dependen** del cuerpo único; el grafo de imports demuestra que **ya no conservan el
+  > suyo**. Juntas cierran las dos mitades —«todos usan el original» y «nadie guarda una copia»—, y
+  > **ninguna de las dos sola lo hace**.
+  >
+  > ⚠️ **Escrito aquí para T006**, que documenta precisamente la unificación y su encontrabilidad: éste
+  > es el argumento verificable de que ocurrió, y **se comprueba con `go build`, no leyendo el código**.
+  >
+  > **Y la retirada del andamiaje se verificó igual, por barrido**: `grep -rn errEsquemaAndamiaje
+  > internal/ cmd/` → **cero**. Las tres apariciones que quedaban eran **comentarios de
+  > `adhesion_test.go` en presente** —«hoy la guarda devuelve…»— que tras T005 **decían algo falso**; se
+  > pasaron a **registro histórico** y se les quitó el identificador muerto, porque un nombre que ya no
+  > existe citado en presente se lee como código vivo.
+  >
+  > **PASO 2 — la prueba positiva.** `go build ./...` **PASA** con la mutación puesta (a). Los **cuatro
+  > llamantes cayeron, con cuatro mensajes DISTINTOS** (b):
+  > ```
+  > 1 enrollment.go  enrollment_test.go:109: esperaba error, got ("http://inseguro.example/ingest", "dev_tok_…", "acme-dev-01")
+  > 2 config.go      config_test.go:63: endpoint http:// debe rechazarse (FR-009)
+  > 3 Send           transport_test.go:157: esperaba rechazo de http://, got transport: error de red: Post "http://insecure.example/ingest": dial tcp: lookup …
+  > 4 Adherir        adhesion_test.go:67: errors.Is(err, ErrScheme) = false, err = transport: adhesión no implementada
+  > ```
+  > **Los cuatro hablan con su propia voz** —uno acepta la terna, otro nombra FR-009, otro **llega a
+  > intentar la emisión por la red**, el cuarto atraviesa la guarda hasta el `return` de andamiaje—, así
+  > que **no es «se rompió algo común»**. El **caso 3 de T011 NO cayó**, y es correcto: la mutación
+  > altera **sólo el hecho del esquema**, y ese test mira **la causa del parseo** (disciplina 3, «mata
+  > sólo el hecho que altera»). Revertida por edición inversa; `endpoint.go` idéntico.
+  >
+  > **PASO 3 — falsabilidad del caso 2.** Con la rama «no analizable» de `Adherir` devolviendo
+  > `ErrScheme`, la aserción de sentido **CAE**, y en su línea exacta:
+  > ```
+  > adhesion_test.go:148: errors.Is(err, ErrScheme) = true para "https://ejemplo\x7f.test/…": el esquema NO se pudo leer, así que no se puede juzgar no admisible
+  > ```
+  > **Ya no pasa por accidente.** Y el **caso 3 también la caza** (`errors.As` → false): la regresión de
+  > refundir los dos hechos tiene ahora **dos redes independientes**. Revertida por edición inversa.
 - [ ] **T006** Remisión cruzada en los dos sitios (D-005-P2 §encontrabilidad): en
   `internal/transport/transport.go` —donde estaba la condición— un comentario que dice **dónde vive
   ahora el juicio y por qué se movió**; en `internal/config/` —donde vive— **quiénes son sus

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
 )
@@ -75,8 +74,12 @@ func ParseEnrollmentString(s string) (endpoint, token, devID string, err error) 
 	if err := dec.Decode(&p); err != nil {
 		return "", "", "", fmt.Errorf("%w: json ilegible", ErrEnrollmentString)
 	}
-	u, err := url.Parse(p.Endpoint)
-	if err != nil || u.Scheme != "https" {
+	// P-005 T005: el juicio de esquema es UNO SOLO (`JuzgarEndpoint`), pero el desenlace es de esta
+	// puerta. Aquí los dos hechos se FUNDEN a propósito, y la causa se DESCARTA: el argumento de esta
+	// función LLEVA EL TOKEN DENTRO, así que el error tiene que ser genérico (FR-007/FR-013, SC-005).
+	// Es la única de las cuatro puertas donde descartar la causa es la conducta correcta — en `Adherir`
+	// se exige justo lo contrario. Por eso `JuzgarEndpoint` no formatea: cada llamante decide.
+	if errAnalisis, admisible := JuzgarEndpoint(p.Endpoint); errAnalisis != nil || !admisible {
 		return "", "", "", fmt.Errorf("%w: el endpoint debe ser https", ErrEnrollmentString)
 	}
 	if p.Token == "" {

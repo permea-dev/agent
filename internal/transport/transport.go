@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 
+	"github.com/permea-dev/agent/internal/config"
 	"github.com/permea-dev/agent/internal/event"
 )
 
@@ -41,30 +41,6 @@ var ErrScheme = errors.New("transport: el endpoint debe usar https://")
 // **nacería VERDE acertando contra el andamiaje**, no contra el comportamiento, y su rojo no
 // existiría.
 var ErrAdhesionNoImplementada = errors.New("transport: adhesión no implementada")
-
-// errEsquemaAndamiaje es el centinela que la guarda INLINE de `Adherir` devuelve mientras dura el
-// andamiaje de P-005 (T002 → T005).
-//
-// ═══ POR QUÉ NO DEVUELVE `ErrScheme`, QUE ES LO NATURAL ════════════════════════════════════
-//
-// Porque **P-005 T011 exige ver `ErrScheme`**, y T011 es precisamente la prueba de que la guarda
-// unificada de T004/T005 **llegó al método nuevo**. Si esta réplica inline devolviera `ErrScheme`,
-// T011 **nacería VERDE acertando contra el andamiaje** —contra una condición copiada aquí a mano—
-// en vez de contra la unificación, y su rojo no existiría.
-//
-// Es el mismo criterio que `ErrAdhesionNoImplementada` y que el código de salida 70 del comando:
-// **el andamiaje devuelve algo que ningún test espera.**
-//
-// ═══ Y POR QUÉ LA GUARDA NO SE QUITA, QUE SERÍA MÁS SIMPLE ═════════════════════════════════
-//
-// Quitarla dejaría **la segunda puerta de la frontera sin guarda durante toda la Phase 2**, y eso es
-// Principio I: un `Adherir` sin comprobación de esquema puede emitir por canal en claro. La réplica
-// es deuda deliberada y de vida corta, no un descuido.
-//
-// **Quién la retira: P-005 T005**, que sustituye las CUATRO réplicas por la función unificada. Con
-// ella desaparece este centinela y `Adherir` pasa a devolver `ErrScheme`, que es lo que pone T011 en
-// verde.
-var errEsquemaAndamiaje = errors.New("transport: andamiaje P-005 — el endpoint debe usar https:// (guarda inline, se retira en T005)")
 
 // sendError clasifica el fallo de un envío para decidir la acción del agente según
 // contracts/transport.md: reintentar (5xx/red), detener el sync (401/403 auth), o
@@ -138,11 +114,13 @@ func (c *Client) Verify() error {
 // estado según el contrato (2xx=aceptado, 401/403=auth, 5xx=reintentar, otros 4xx=error).
 // La deduplicación extremo a extremo se apoya en event_id.
 func (c *Client) Send(events []event.Event) error {
-	u, err := url.Parse(c.Endpoint)
-	if err != nil {
-		return fmt.Errorf("transport: endpoint inválido %q: %w", c.Endpoint, err)
+	// P-005 T005: juicio unificado en `config.JuzgarEndpoint`; los dos desenlaces son de esta puerta.
+	// CONSERVA la causa con %w y CONSERVA el centinela: de las dos dependen tests por `errors.Is`.
+	errAnalisis, admisible := config.JuzgarEndpoint(c.Endpoint)
+	if errAnalisis != nil {
+		return fmt.Errorf("transport: endpoint inválido %q: %w", c.Endpoint, errAnalisis)
 	}
-	if u.Scheme != "https" {
+	if !admisible {
 		return fmt.Errorf("%w: %q", ErrScheme, c.Endpoint)
 	}
 
@@ -239,14 +217,16 @@ type peticionAdhesion struct {
 // los reintentos del camino caliente— y esta operación **no puede** reutilizarlo: `Send` serializa
 // `[]event.Event`, y aquí el cuerpo es otro.
 func (c *Client) Adherir(codigo, projectRef string) (denominacion string, err error) {
-	// GUARDA INLINE DE ANDAMIAJE — réplica deliberada y de vida corta; la retira T005 (ver
-	// `errEsquemaAndamiaje`). Devuelve un centinela PROPIO, no `ErrScheme`, para que T011 nazca rojo.
-	u, err := url.Parse(c.Endpoint)
-	if err != nil {
-		return "", fmt.Errorf("%w: endpoint inválido %q", errEsquemaAndamiaje, c.Endpoint)
+	// P-005 T005: el andamiaje se retiró. La segunda puerta de la frontera usa EL MISMO juicio que la
+	// ingesta y da EL MISMO desenlace: centinela `ErrScheme` para el esquema, causa conservada con %w
+	// para el parseo (D-005-P2). Unificar la condición y divergir en el desenlace sería unificar el
+	// código y mantener la diferencia justo en lo que la persona lee cuando su config está rota.
+	errAnalisis, admisible := config.JuzgarEndpoint(c.Endpoint)
+	if errAnalisis != nil {
+		return "", fmt.Errorf("transport: endpoint inválido %q: %w", c.Endpoint, errAnalisis)
 	}
-	if u.Scheme != "https" {
-		return "", fmt.Errorf("%w: %q", errEsquemaAndamiaje, c.Endpoint)
+	if !admisible {
+		return "", fmt.Errorf("%w: %q", ErrScheme, c.Endpoint)
 	}
 
 	body, err := json.Marshal(peticionAdhesion{Code: codigo, ProjectRef: projectRef})

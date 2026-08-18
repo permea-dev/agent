@@ -16,14 +16,15 @@ import (
 // «La misma exigencia» incluye **el mismo centinela**: quien compruebe `errors.Is(err, ErrScheme)`
 // debe obtener la misma respuesta por las dos puertas.
 //
-// ═══ ⚠️ ESTE TEST NACE ROJO, Y LA RAZÓN ES EL CENTINELA ════════════════════════════════════
+// ═══ ⚠️ NACIÓ ROJO, Y LA RAZÓN FUE EL CENTINELA (registro histórico) ══════════════════════
 //
-// **No es que `Adherir` no tenga guarda**: la tiene desde P-005 T002 —una réplica inline— y rechaza
-// el canal en claro. Lo que hace es devolver **`errEsquemaAndamiaje`**, un centinela de andamiaje
-// **distinto** de `ErrScheme`, precisamente para que este test no pueda nacer verde acertando contra
-// una condición copiada a mano.
+// **No era que `Adherir` no tuviera guarda**: la tenía desde P-005 T002 —una réplica inline— y
+// rechazaba el canal en claro. Lo que hacía era devolver un centinela de andamiaje **distinto** de
+// `ErrScheme`, precisamente para que este test no pudiera nacer verde acertando contra una condición
+// copiada a mano. **Ese centinela ya no existe: lo retiró T005**, y por eso no se nombra aquí — un
+// identificador muerto en un comentario se lee como código vivo.
 //
-// **Lo pone en verde P-005 T005**, al sustituir esa réplica por la función unificada de T004. Y es
+// **Lo puso en verde P-005 T005**, al sustituir esa réplica por la función unificada de T004. Y es
 // **la mitad de comportamiento** del criterio positivo de T005 —la otra mitad, la estructural, es la
 // mutación de la función unificada que exige que los cuatro llamantes se muevan a la vez—.
 //
@@ -86,10 +87,11 @@ func TestAdherir_RechazaCanalEnClaro(t *testing.T) {
 // es de cada llamante (T004 no formatea ninguna). Compara **las dos respuestas entre sí**: lo que
 // `errors.Is(·, ErrScheme)` contesta a un hecho **no puede ser lo mismo** que contesta al otro.
 //
-// ═══ ⚠️ NACE ROJO, Y POR INDISTINGUIBILIDAD ═══════════════════════════════════════════════
+// ═══ ⚠️ NACIÓ ROJO, Y POR INDISTINGUIBILIDAD (registro histórico) ═════════════════════════
 //
-// Hoy la guarda inline de T002 devuelve **el mismo `errEsquemaAndamiaje` para los dos hechos**, así
-// que las dos respuestas coinciden y **son indistinguibles**. Lo pone en verde **T005**.
+// La guarda inline de T002 devolvía **el mismo centinela de andamiaje para los dos hechos**, así que
+// las dos respuestas coincidían y **eran indistinguibles**. Lo puso en verde **T005**, que además
+// tuvo que demostrar que esta aserción **es falsable** — hasta entonces pasaba por accidente.
 //
 // ═══ LO QUE ESTE TEST DELIBERADAMENTE **NO** FIJA ═════════════════════════════════════════
 //
@@ -164,11 +166,10 @@ func TestAdherir_LosDosHechosSonDistinguibles(t *testing.T) {
 // desenlace**, no sólo la condición — si no, el trabajo se queda a medias exactamente en la mitad que
 // el usuario ve.
 //
-// ═══ ⚠️ NACE ROJO — `Adherir` hace HOY LO CONTRARIO ═══════════════════════════════════════
+// ═══ ⚠️ NACIÓ ROJO — `Adherir` hacía LO CONTRARIO (registro histórico) ════════════════════
 //
-// La réplica de andamiaje de T002 es **la cuarta variante** de la guarda: `fmt.Errorf("%w: endpoint
-// inválido %q", errEsquemaAndamiaje, c.Endpoint)` — **envuelve el CENTINELA y DESCARTA la causa**, al
-// revés que `Send`. Lo pone en verde **T005**.
+// La réplica de andamiaje de T002 era **la cuarta variante** de la guarda: envolvía **el centinela de
+// andamiaje y DESCARTABA la causa**, al revés que `Send`. Lo puso en verde **T005**.
 //
 // ═══ POR QUÉ `errors.As` Y NO `errors.Is` ═════════════════════════════════════════════════
 //

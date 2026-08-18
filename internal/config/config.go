@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -97,11 +96,12 @@ func (c Config) Validate() error {
 	if c.Endpoint == "" {
 		return nil
 	}
-	u, err := url.Parse(c.Endpoint)
-	if err != nil {
-		return fmt.Errorf("endpoint inválido %q: %w", c.Endpoint, err)
+	// P-005 T005: juicio unificado en `JuzgarEndpoint`; los DOS mensajes son de esta puerta.
+	errAnalisis, admisible := JuzgarEndpoint(c.Endpoint)
+	if errAnalisis != nil {
+		return fmt.Errorf("endpoint inválido %q: %w", c.Endpoint, errAnalisis)
 	}
-	if u.Scheme != "https" {
+	if !admisible {
 		return fmt.Errorf("endpoint debe ser https://, got %q", c.Endpoint)
 	}
 	return nil
