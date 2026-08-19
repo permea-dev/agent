@@ -239,10 +239,16 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 // camino**. Introducir una diferencia observable exigiría **inventar antes una distinción que no
 // existe**, y eso es más difícil que acordarse de no hacerlo.
 //
-// ⛔ **`%q` NO ES DECORACIÓN.** La denominación viene **del servidor**, y `%q` escapa los caracteres
-// de control: sin él, un nombre de Proyecto con un salto de línea o una secuencia de escape ANSI
-// podría **fabricar líneas de salida** que la persona leería como del comando. Es entrada ajena
-// impresa en una terminal.
+// ⛔ **`%q` NO ES DECORACIÓN, Y NO ES UNA DECISIÓN: ESTÁ SUJETO POR UN TEST.** La denominación viene
+// **del servidor** y se imprime en la consola de quien ejecuta el comando —inyección de terminal a
+// través de la frontera—. `%q` escapa los caracteres de control: sin él, un nombre con un `\n`
+// **fabrica líneas** que la persona lee como del comando, un `\r` **borra** lo que el comando dijo, y
+// un escape ANSI repinta la terminal.
+//
+// Lo vigila `TestProjectJoin_UnaDenominacionHostilNoInyectaEnLaTerminal`, con aserciones
+// **estructurales** —número de líneas y bytes de control—, no contra un texto esperado: así la
+// protección sobrevive a cualquier reescritura de esta redacción. **Cambiar esto a `%v` pone el test
+// en rojo por sus dos aserciones a la vez** — medido.
 func mensajeDeUnion(denominacion string) string {
 	return fmt.Sprintf("unido al Proyecto %q", denominacion)
 }

@@ -2,11 +2,16 @@ package transport
 
 import (
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
+	"strings"
+	"sync"
 	"testing"
 
+	"github.com/permea-dev/agent/internal/config"
 	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/testutil"
 )
@@ -521,5 +526,189 @@ func TestAdherir_EstadoNoContempladoEsNoVerificable(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// P-005 T030 · SC-008 — SIN TRANSPORTE SEGURO NO SE COMPLETA, EN LAS CUATRO CLASES
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+// bancoEnClaro es un destino **HTTP en claro, vivo y dispuesto a aceptar**: responde el `200` de una
+// unión conseguida y **cuenta las peticiones que le llegan de verdad**.
+//
+// ⛔ **Que esté VIVO es la mitad del criterio.** Contra un host inexistente, «no se completó» lo
+// explicaría igual un fallo de red, y el test no distinguiría «la guarda mordió» de «no había nadie
+// al otro lado». Con un destino que aceptaría, **cero peticiones recibidas** sólo tiene una lectura.
+type bancoEnClaro struct {
+	mu         sync.Mutex
+	peticiones int
+	srv        *httptest.Server
+}
+
+func (b *bancoEnClaro) recibidas() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.peticiones
+}
+
+func nuevoBancoEnClaro(t *testing.T) *bancoEnClaro {
+	t.Helper()
+	b := &bancoEnClaro{}
+	b.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		b.mu.Lock()
+		b.peticiones++
+		b.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"project":{"name":"RecetApp"}}`))
+	}))
+	t.Cleanup(b.srv.Close)
+	return b
+}
+
+// ajustesDeLaInstalacion **deriva** del propio `config.Config` la lista de ajustes que la instalación
+// admite, leyendo las etiquetas `json`.
+//
+// ⛔ **No se escribe a mano, y el porqué está medido tres veces en esta feature**: una lista a ojo
+// mira **el molde que ya se tenía** en vez de **lo que hay**, y se queda corta con el siguiente campo
+// **sin que nadie se entere** — el grep de la disciplina 8 lo pagó con `.jsonl`. Derivándola, un
+// ajuste nuevo entra en la matriz de SC-008 **solo**.
+func ajustesDeLaInstalacion(t *testing.T) []string {
+	t.Helper()
+	tipo := reflect.TypeOf(config.Config{})
+	var nombres []string
+	for i := 0; i < tipo.NumField(); i++ {
+		nombre, _, _ := strings.Cut(tipo.Field(i).Tag.Get("json"), ",")
+		if nombre == "" || nombre == "-" {
+			continue
+		}
+		nombres = append(nombres, nombre)
+	}
+	if len(nombres) == 0 {
+		t.Fatalf("no se derivó ningún ajuste de `config.Config`: la matriz de SC-008 quedaría vacía y " +
+			"pasaría en verde sin haber comprobado nada")
+	}
+	return nombres
+}
+
+// configConAjuste construye la configuración de la instalación con `endpointInseguro` y **el ajuste
+// `ajuste` movido a un valor distinto del de partida**.
+func configConAjuste(t *testing.T, ajuste, endpointInseguro string) config.Config {
+	t.Helper()
+	cfg := config.Default()
+	cfg.Endpoint = endpointInseguro
+	cfg.DeviceToken = "tok-de-prueba"
+
+	valor := reflect.ValueOf(&cfg).Elem()
+	tipo := valor.Type()
+	for i := 0; i < tipo.NumField(); i++ {
+		nombre, _, _ := strings.Cut(tipo.Field(i).Tag.Get("json"), ",")
+		if nombre != ajuste {
+			continue
+		}
+		campo := valor.Field(i)
+		switch {
+		case ajuste == "endpoint":
+			// El endpoint **es el eje de las clases (a) y (b)**: variarlo es variar la clase, no el
+			// ajuste. Se deja el inseguro que toca, que es justo lo que este caso tiene que medir.
+		case campo.Kind() == reflect.String:
+			campo.SetString("valor-movido-por-el-test-de-SC008")
+		case campo.Kind() == reflect.Slice && campo.Type().Elem().Kind() == reflect.String:
+			campo.Set(reflect.ValueOf([]string{"claude_code", "otra_herramienta"}))
+		default:
+			// ⛔ PARADA DELIBERADA. Un ajuste de un tipo que este test no sabe mover quedaría en la
+			// matriz **sin variarse**, y su casilla daría verde sin haber probado nada.
+			t.Fatalf("el ajuste %q es de tipo %s y este test no sabe moverlo: la casilla de SC-008 daría "+
+				"verde sin variarlo. Enséñale a moverlo antes de añadir el campo", ajuste, campo.Type())
+		}
+		return cfg
+	}
+	t.Fatalf("el ajuste %q ya no existe en `config.Config`: la lista se deriva del struct, así que esto "+
+		"sólo puede pasar por una condición de carrera del propio test", ajuste)
+	return cfg
+}
+
+// TestSC008_SinTransporteSeguroNoSeCompleta cubre P-005 SC-008 y P-005 FR-017 sobre la puerta de la
+// adhesión: **la misma exigencia que la emisión de eventos, sin exención, modo de desarrollo ni
+// variante**.
+//
+// **Cuatro clases ENUMERADAS, no «el 100 % de los intentos»**: (a) destino en claro; (b) destino en
+// claro **sobre la máquina local** —la exención que todo el mundo talla—; (c) destino inseguro **con
+// un código utilizable**, para que el rechazo **no pueda atribuirse al código**; (d) los tres
+// anteriores con **cada ajuste de configuración que la instalación admita**.
+//
+// ⛔ **Todas las aserciones independientes con `t.Errorf`** (disciplina 3 §inmunidad).
+func TestSC008_SinTransporteSeguroNoSeCompleta(t *testing.T) {
+	const codigo = "pmeaj1.9HpQ3mZv7KxR2wLbN4tYsE6uJ1cA8dF0gK5rP2xW3zQ"
+	const projectRef = "3a32e2741c8d230114bec322150d26bb4d4bb98ed30d35bed95cbad431711175"
+
+	// ── (c) · EL CONTROL POSITIVO, Y VA PRIMERO ────────────────────────────────────────────
+	//
+	// Sin él, «no se completó» lo explicaría igual un código inservible, y la clase (c) —«que el
+	// rechazo no pueda atribuirse al código»— no significaría nada. Se demuestra que **este mismo
+	// código, contra transporte seguro, SÍ completa**.
+	t.Run("(c·control) el MISMO código completa sobre transporte seguro", func(t *testing.T) {
+		c := backendAdhesion(t, http.StatusOK, `{"project":{"name":"RecetApp"}}`)
+		denominacion, err := c.Adherir(codigo, projectRef)
+		if err != nil {
+			t.Errorf("el código de prueba NO es utilizable sobre https: %v.\n"+
+				"Sin este control, la clase (c) no distingue «lo rechazó la guarda» de «el código no valía»", err)
+		}
+		if denominacion != "RecetApp" {
+			t.Errorf("denominación = %q, se esperaba %q", denominacion, "RecetApp")
+		}
+	})
+
+	claro := nuevoBancoEnClaro(t)
+	hostLocal := strings.TrimPrefix(claro.srv.URL, "http://") // 127.0.0.1:puerto
+	_, puerto, err := net.SplitHostPort(hostLocal)
+	if err != nil {
+		t.Fatalf("no se pudo derivar el puerto del banco en claro %q: %v", claro.srv.URL, err)
+	}
+
+	clases := []struct{ nombre, endpoint string }{
+		{"(a) destino en claro", "http://api.permea.example/api/v1/ingest"},
+		{"(b) en claro sobre la MÁQUINA LOCAL · localhost", "http://localhost:" + puerto + "/api/v1/ingest"},
+		{"(b) en claro sobre la MÁQUINA LOCAL · 127.0.0.1", "http://127.0.0.1:" + puerto + "/api/v1/ingest"},
+		{"(c) en claro, VIVO y dispuesto a aceptar el código", claro.srv.URL + "/api/v1/ingest"},
+	}
+
+	// ── (d) · CADA AJUSTE QUE LA INSTALACIÓN ADMITE, DERIVADO DEL STRUCT ──────────────────
+	ajustes := ajustesDeLaInstalacion(t)
+	t.Logf("SC-008 (d): %d ajustes derivados de `config.Config`: %v", len(ajustes), ajustes)
+
+	for _, ajuste := range ajustes {
+		for _, clase := range clases {
+			t.Run(ajuste+" · "+clase.nombre, func(t *testing.T) {
+				cfg := configConAjuste(t, ajuste, clase.endpoint)
+
+				// El cliente se construye **como lo construye el comando**: del endpoint y del token de
+				// la configuración, y de nada más. Si algún día otro ajuste llegara hasta aquí, tendría
+				// que pasar por esta línea.
+				destino, err := config.DerivarEndpointDeAdhesion(cfg.Endpoint)
+				if err != nil {
+					t.Fatalf("derivar el destino de %q: %v", cfg.Endpoint, err)
+				}
+				denominacion, err := New(destino, cfg.DeviceToken).Adherir(codigo, projectRef)
+
+				if !errors.Is(err, ErrScheme) {
+					t.Errorf("un destino sin transporte seguro debe rechazarse con el centinela ErrScheme, "+
+						"y se obtuvo %v. P-005 FR-017 no admite exención, modo de desarrollo ni variante", err)
+				}
+				if denominacion != "" {
+					t.Errorf("la operación devolvió denominación %q sobre un canal en claro: se completó, "+
+						"y SC-008 exige que no", denominacion)
+				}
+			})
+		}
+	}
+
+	// ── LA MITAD QUE CIERRA (c): NADA SALIÓ POR EL CABLE ──────────────────────────────────
+	//
+	// El banco en claro estaba **vivo y aceptaba**. Si la guarda hubiese fallado en cualquiera de las
+	// casillas, aquí habría una petición contada. Es la diferencia entre «no se completó» y «no se
+	// intentó siquiera», y sólo la segunda es lo que P-005 FR-017 promete.
+	if n := claro.recibidas(); n != 0 {
+		t.Errorf("el destino en claro recibió %d petición(es): la guarda no rechazó ANTES de transmitir, "+
+			"así que algo cruzó por canal abierto (Principio I, P-005 FR-017)", n)
 	}
 }

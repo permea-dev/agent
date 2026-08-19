@@ -1337,6 +1337,27 @@ es barata de encontrar**: antes de que nada más cambie.
   FR-021, SC-011 (B). Éxito → **stdout no vacío y stderr sin el desenlace**; rehúse o error → **stderr
   no vacío y stdout VACÍO**. **Capturados por separado** (disciplina 7). ~~Nace en **rojo**~~ →
   **NACIÓ VERDE**, ver abajo.
+  - [x] **T022b · una denominación HOSTIL no inyecta en la terminal** — **Garantía**: P-005 FR-021 +
+    Principio I. La denominación es **dato controlado por el SERVIDOR impreso en la consola del
+    usuario**: inyección de terminal **a través de la frontera**. Con `\n`, `\r` y un escape ANSI
+    dentro del nombre, la salida de éxito **no gana líneas** y **no emite bytes de control**.
+    > **Existe porque el `%q` de T027 estaba sujeto por una DECISIÓN, no por una garantía.** Quien
+    > mañana lo reponga a `%v` «porque las comillas quedan feas» la deshace **y nada se entera**.
+    > **La aserción es ESTRUCTURAL** —número de líneas y presencia de bytes de control—, no contra un
+    > texto esperado: así sobrevive a cualquier reescritura de la redacción, que es de T027.
+    >
+    > ### ⚠️ NACIÓ VERDE — VALIDADO POR MUTACIÓN, y **las dos aserciones dispararon**
+    > `%q` → `%v`. Compila, y **mata sólo ese hecho**: el único `FAIL` en todo el repositorio fue este
+    > test.
+    > ```
+    > la salida de éxito tiene 2 saltos de línea y debe tener EXACTAMENTE 1: una denominación con
+    > `\n` dentro está FABRICANDO LÍNEAS que la persona leerá como del comando.
+    > la salida de éxito emite 4 byte(s) de control (posiciones [26 56 64 74]): un `\r` borra lo que
+    > el comando dijo y un escape ANSI repinta la terminal. La denominación viene DEL SERVIDOR.
+    > stdout: "unido al Proyecto RecetApp\n  error: no se pudo completar\rborrado\x1b[31m rojo\x1b[0m\n"
+    > ```
+    > **Las DOS dispararon en la misma pasada** —van con `t.Errorf`—, así que ninguna quedó
+    > aparentando validada detrás de la otra. Revertida por edición inversa.
   > ### 🟢 LA PREDICCIÓN DE §Las puertas de rojo CAYÓ AL MEDIRLA — T022 NACE VERDE
   > **La fila decía**: *«T021 implementa entrada y rehúses; la presentación llega en T027, así que no
   > hay reparto de canales que comprobar»*. **La premisa era que T021 no emitiría salida de desenlace**,
@@ -1561,14 +1582,24 @@ es barata de encontrar**: antes de que nada más cambie.
   >
   > **Ninguno de los tres se quedó callado**: SC-005, SC-007 y SC-010 cuentan como pasados.
   >
-  > ### ⛔ PUNTO CIEGO MEDIDO EN T025 — LA FILA DE D3 NO ACREDITA NADA AHÍ
-  > La siembra tumbó **D4, D2, D1 y NV**, y **D3 PASÓ**. No es casualidad: el montaje de D3 **ejecuta
-  > el comando una vez antes de capturar** —eso es lo que lo convierte en «segunda presentación»—, así
-  > que un fichero escrito con **contenido constante** ya está en la captura previa y la comparación no
-  > ve nada.
-  > **Se declara en vez de taparse**: las **otras cuatro filas** sí lo cazan, así que T025 como test
-  > cumple; y cambiar el montaje para cerrar el hueco dejaría de medir D3 en T022, T023 y T024, donde
-  > el montaje sí es el correcto. Está escrito en la cabecera del test, no sólo aquí.
+  > ### 📐 D3 Y D4 SON COMPLEMENTARIAS — el hueco de cada una lo cierra la otra
+  > La siembra de contenido **constante** tumbó **D4, D2, D1 y NV**, y **D3 pasó**. La explicación es
+  > el momento de la captura, y **acota el hueco con precisión**:
+  >
+  > | Fila | Captura | Ve | No ve |
+  > |---|---|---|---|
+  > | **D4** | **antes de toda unión** | cualquier escritura de la **primera** unión | una que sólo empiece **en la segunda** |
+  > | **D3** | tras una unión (eso la hace «segunda presentación») | lo que **cambie** en la segunda | una escritura **idéntica en cada unión** |
+  >
+  > **El hueco de D3 es ése y no más: una escritura que se repita IDÉNTICA.** Todo lo demás lo caza
+  > D4, **incluido el marcador de «ya me uní»** —que es lo que P-005 FR-019 prohíbe **por su nombre**—,
+  > porque su captura es anterior a cualquier unión. **Segunda mitad, también medida**: una escritura
+  > **acumulativa** —contenido distinto en cada pasada— tumbó **las cinco filas, D3 incluida**.
+  >
+  > **Conclusión, y es lo contrario de «D3 no acredita nada»**: las dos filas cubren mitades distintas
+  > y **T025 no tiene hueco**. Lo tendría si se quitara una de las dos. *(Y el caso que escaparía a
+  > las dos —escribir sólo a partir de la segunda unión— exigiría que el comando **distinguiera D3 de
+  > D4**, que es justo lo que T023 prohíbe y comprueba.)*
   >
   > ### ⚠️ SOLAPES ENTRE MUTACIONES, y por qué NO invalidan ninguna
   > La siembra de T024 tumbó **también T022** —escribir en stderr en un desenlace de éxito rompe «stderr
@@ -1591,38 +1622,115 @@ es barata de encontrar**: antes de que nada más cambie.
 > columnas de SC-001, SC-008 y SC-009 están **enteras en «—»**. **Un troceo por historias los habría
 > dejado fuera**, y son los tres que protegen lo que ya funciona.
 
-- [ ] **T028** **SC-001** — en **`internal/project/resolve_test.go`**: la identidad presentada **es** la
+- [x] **T028** **SC-001** — en **`internal/project/resolve_test.go`**: la identidad presentada **es** la
   estampada, demostrado por **origen compartido**: (a) punto único del que salen las dos, y alterarlo **cambia las dos a la vez**; (b)
   comparación sobre **cuatro clases de árbol** —raíz, subdirectorio profundo, árbol paralelo,
   directorio sin raíz—; (c) **una alteración deliberada en el punto único pone (b) en rojo**.
   **Sin (c) el criterio no es falsable.**
-  > ⛔ **Y (c) sólo alcanza lo que (b) deje alcanzar** (disciplina 3 §inmunidad): si (b) encadena
-  > aserciones detrás de un `t.Fatalf`, **la alteración de (c) tumba la primera y para ahí**, dejando
-  > las demás sin tocar y **aparentando validadas**. Antes de mutar, que las aserciones independientes
-  > de (b) usen `t.Errorf`; si no, **tantas mutaciones como aserciones**.
-  ⚠️ **En las TRES primeras clases se compara carácter a carácter que las dos identidades son la
-  misma. En la cuarta —directorio sin raíz— NO hay identidades que comparar**, y hay que escribirlo
-  porque invita a un test que compara dos valores vacíos y da verde por nada:
-  - **el comando NO presenta identidad ninguna**: rehúsa antes de emitir (FR-006), así que no hay
-    valor presentado;
-  - **lo que se compara ahí es el JUICIO, no el valor**: que la vía nueva reporte «no hubo raíz» y que
-    el comando **rehúse por esa razón** — las dos coinciden en el mismo veredicto;
-  - *(la derivación **sí produce un valor** en esa clase —cae al fallback del directorio, P-004
-    FR-005— pero ese valor **nunca se presenta**, y compararlo contra nada sería inventar un sujeto.)*
-  ⚠️ **NO usar `--scan` para obtener las identidades**: usa un salt literal (`cmd/permea/main.go:342`)
-  y sus refs **no comparan con nada** (`research.md` §R5).
-- [ ] **T029-R** **SC-009 · RE-EJECUCIÓN, puerta de SC-009** — volver a pasar
+  > ### 🔴 UNA PREMISA QUE CAYÓ AL MEDIRLA — **`DerivarConRaiz` NO TENÍA NI UN TEST**
+  > Se añadió en Phase 1 (D-005-P5) y **`grep` la encontró sin cobertura ninguna**: los quince tests
+  > de `resolve_test.go` son todos de `Derivar` y del `Resolutor`. T028 es lo primero que la mira.
+  >
+  > ### ⚠️ Y OTRA, QUE CAMBIA LA FORMA DE (a) — `Derivar` DELEGA EN `DerivarConRaiz`
+  > El plan habla de «un punto único del que salen las dos» como si fueran hermanas. **No lo son**:
+  > `Derivar` **llama a `DerivarConRaiz`**, que llama a `derivarConTechoYRaiz`. La vía del comando está
+  > **aguas arriba** de la de la ingesta. La consecuencia es la que decide el diseño de (c):
+  > **alterar el cuerpo compartido NO pone en rojo la igualdad** —mueve las dos a la vez y siguen
+  > iguales—, que es exactamente lo que (a) promete y lo que haría **infalsable** un test que sólo
+  > comparase las dos entre sí.
+  >
+  > ### ✅ (b) · LAS CUATRO CLASES, Y LA CUARTA NO COMPARA IDENTIDADES
+  > Clases 1–3 —raíz, subdirectorio profundo, árbol paralelo— comparan **carácter a carácter** la
+  > presentada (`DerivarConRaiz`) contra **las dos formas** de la estampada: `Derivar` y
+  > **`Resolutor.Derivar`**, que es la que estampa de verdad en la pasada. Con **la vacuidad
+  > comprobada primero**: dos cadenas vacías son iguales carácter a carácter, y sin esa aserción las
+  > demás pasarían en verde justo con la derivación rota del todo.
+  > **Clase 4 —directorio sin raíz— compara EL JUICIO**: que `huboRaiz` sea `false`. No hay identidad
+  > presentada que comparar (el comando rehúsa antes de emitir, FR-006), y el valor que la derivación
+  > sí produce —el fallback, P-004 FR-005— **nunca se presenta**. Se comprueba además que **no es
+  > vacío**, porque quien tomase «vacío» por «no hubo raíz» dejaría de rehusar en silencio el día que
+  > el fallback devolviera valor.
+  > *(Los marcadores se fabrican a mano —directorio y FICHERO—: que git produzca esas dos formas ya lo
+  > acredita `TestDerivar_ArbolesDeTrabajoParalelos`, y aquí el sujeto es la comparación, no git.)*
+  >
+  > ### ✅ (c) · **DOS MUTACIONES, PORQUE SON DOS HECHOS** (disciplina 3 §inmunidad)
+  > Todas las aserciones de (b) usan `t.Errorf`, así que **todas se evalúan en la misma pasada** — y se
+  > vio: cada mutación tumbó su grupo y dejó el otro en pie, que es la prueba de que ninguna quedaba
+  > aparentando validada detrás de otra.
+  >
+  > **C1 · romper el REPARTO** (`Derivar` deja de delegar) → caen **las dos igualdades**, en las tres
+  > clases. El anclaje **sobrevive**.
+  > ```
+  > la identidad PRESENTADA no es la ESTAMPADA (P-005 FR-004, SC-001)
+  >   presentada (DerivarConRaiz): 7a3c118aeb93d94d…    estampada (Derivar):            e14653bf7348ff48…
+  > la identidad PRESENTADA no es la que estampa la INGESTA por su camino real
+  >   presentada (DerivarConRaiz): 7a3c118aeb93d94d…    estampada (Resolutor.Derivar):  e14653bf7348ff48…
+  > ```
+  > **C2 · alterar el CUERPO COMPARTIDO** → las igualdades **siguen verdes** (las dos se movieron a la
+  > vez, que es (a)) y cae **el anclaje**… **y a la vez, en otro paquete, la regresión cero de la
+  > ingesta**. **Las dos mitades moviéndose juntas, observadas en una sola pasada**:
+  > ```
+  > internal/project  la identidad presentada no es `event.Ref(salt, raíz)` sobre la raíz esperada:
+  >                     presentada: 7f2e16974189ea59…   anclaje: e2ab77a43046374 0…
+  > internal/ingest   TestSC009_RegresionCeroDelCaminoDeIngesta: identidad 0 difiere del baseline:
+  >                     got:  3a32e2741c8d2301…        want: ae35623a2d739685…
+  > ```
+  > **El anclaje es lo que hace observable (a)**: ancla que el cuerpo compartido compone
+  > `event.Ref(salt, raízDelAscenso)` —recalculado con las mismas piezas públicas, no un hash escrito a
+  > mano—, así que una alteración ahí sí lo tumba. Sin él, C2 no habría puesto nada en rojo del lado
+  > presentado y (a) se habría quedado en afirmación.
+  > **Las dos revertidas por edición inversa**: `git diff --exit-code internal/project/resolve.go` →
+  > sin diferencias.
+  >
+  > ⛔ **NO se usó `--scan`**: su salt es literal de dry-run (`cmd/permea/main.go`, `dryRun`) y sus refs
+  > **no comparan con nada** (`research.md` §R5). Las dos vías se piden **a las funciones**, con el
+  > mismo salt.
+- [x] **T029-R** **SC-009 · RE-EJECUCIÓN, puerta de SC-009** — volver a pasar
   **`internal/ingest/baseline_regresion_test.go`** (el de T029) con **todo el código de la feature ya
   escrito**. Es lo que **acredita** que la feature entera **no cambió el camino de ingesta**.
-  ⚠️ **Aquí NO se escribe nada: se vuelve a pasar.** El test se escribió y se ejecutó en **T029, Phase
-  1**, donde su única dependencia —T001— ya estaba satisfecha. **Detectar en Phase 1, acreditar aquí.**
-  ⚠️ **Con otras semillas los refs no comparan y un «fallo» no significaría nada.** Mismo procedimiento
-  que 004 usó en su T007.
-- [ ] **T030** **SC-008** — en **`internal/transport/adhesion_test.go`**: sin transporte seguro no se
+  > ### ✅ ACREDITADO — `TestSC009_RegresionCeroDelCaminoDeIngesta` **PASS**
+  > Con Phase 2 a Phase 8 en su sitio, incluido el `salt` naciendo en el enrolamiento. **Nada escrito
+  > aquí**: se vuelve a pasar, que es lo que la tarea pide.
+  >
+  > **Y esta vez su falsabilidad no es teórica**: las **dos mutaciones de T028** lo tumbaron —C1 y C2
+  > cambian la identidad que la ingesta estampa, y el baseline lo vio con las semillas deterministas—.
+  > Un baseline que no cae con nada es un baseline que no compara; éste cae.
+- [x] **T030** **SC-008** — en **`internal/transport/adhesion_test.go`**: sin transporte seguro no se
   completa, en **las cuatro clases enumeradas**:
   (a) destino en claro · (b) destino en claro sobre la máquina local · (c) destino inseguro **con un
   código utilizable**, para que el rechazo **no pueda atribuirse al código** · (d) los tres anteriores
   con **cada** ajuste de configuración que la instalación admita.
+  > ### 📏 (d) · LOS AJUSTES QUE LA INSTALACIÓN ADMITE — **SIETE**, derivados del struct
+  > `endpoint` · `device_token` · `org_id` · `dev_id` · `tools` · `sync_interval` · `logs_root`.
+  > **No es una lista escrita a mano**: el test la **deriva por reflexión de las etiquetas `json` de
+  > `config.Config`**, así que un ajuste nuevo entra solo en la matriz. Y si es de un tipo que el test
+  > no sabe mover, **para con `t.Fatalf`** en vez de dejar su casilla en verde sin variarlo.
+  >
+  > ### ✅ NINGUNO EXIME LA GUARDA — barrido, no impresión
+  > | Vía de exención | Medida |
+  > |---|---|
+  > | `InsecureSkipVerify` | **0** en todo el repositorio |
+  > | `tls.Config` en el cliente | **0** fuera de tests |
+  > | `os.Getenv` / `os.LookupEnv` | **0** fuera de tests → **ninguna variable de entorno puede eximir** |
+  > | parámetro de modo en `JuzgarEndpoint` | **ninguno**: `JuzgarEndpoint(endpoint string)` y nada más |
+  > | literales `http://` admitidos en código | **0** fuera de tests |
+  >
+  > *(Y `config.Load` **no** usa `DisallowUnknownFields`: una clave inventada como `allow_insecure` se
+  > descarta **en silencio**, que es el lado seguro — no hay dónde encender nada.)*
+  >
+  > ### ✅ LA MATRIZ: **7 ajustes × 4 clases = 28 casillas**, más el control positivo
+  > Las cuatro clases: en claro contra un host cualquiera · en claro sobre **`localhost`** · en claro
+  > sobre **`127.0.0.1`** · en claro contra un banco **VIVO y dispuesto a aceptar el código**. Las 28
+  > devuelven el centinela **`ErrScheme`** y **denominación vacía**.
+  >
+  > ⛔ **EL CONTROL POSITIVO VA PRIMERO Y NO ES CEREMONIA**: el **mismo** código, contra transporte
+  > seguro, **sí completa** y devuelve la denominación. Sin él, «no se completó» lo explicaría igual un
+  > código inservible y la clase (c) no significaría nada.
+  >
+  > ⛔ **Y LA MITAD QUE CIERRA (c): el banco en claro está VIVO y recibió CERO peticiones.** Contra un
+  > host inexistente, «no se completó» lo explicaría un fallo de red. Con un destino que **aceptaría**,
+  > cero peticiones sólo tiene una lectura: **la guarda rechazó ANTES de transmitir**. Es la diferencia
+  > entre «no se completó» y «no se intentó siquiera», y sólo la segunda es lo que FR-017 promete.
 
 ---
 

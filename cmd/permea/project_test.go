@@ -745,6 +745,73 @@ func TestProjectJoin_ElRepartoDeCanales(t *testing.T) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
+// T022b · UNA DENOMINACIÓN HOSTIL NO INYECTA EN LA TERMINAL — P-005 FR-021 + Principio I
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+// bytesDeControl devuelve las posiciones de `texto` ocupadas por un byte de control, **excluyendo el
+// salto de línea final** que todo mensaje de una línea lleva.
+//
+// Se mira **byte a byte y no por expresión regular**: lo que se quiere saber es si algo que no es
+// texto imprimible llegó a la terminal, y eso es una propiedad de los bytes.
+func bytesDeControl(texto string) []int {
+	texto = strings.TrimSuffix(texto, "\n")
+	var posiciones []int
+	for i := 0; i < len(texto); i++ {
+		if b := texto[i]; b < 0x20 || b == 0x7f {
+			posiciones = append(posiciones, i)
+		}
+	}
+	return posiciones
+}
+
+// TestProjectJoin_UnaDenominacionHostilNoInyectaEnLaTerminal cierra la **inyección de terminal a
+// través de la frontera**: la denominación del Proyecto es **dato controlado por el SERVIDOR** y se
+// imprime en la consola de quien ejecuta el comando.
+//
+// ⛔ **EXISTE PORQUE EL `%q` DE T027 ERA UNA DECISIÓN, NO UNA GARANTÍA.** Quien mañana lo cambie a
+// `%v` «porque las comillas quedan feas» deshace la protección **y nada se entera**. Con este test,
+// se entera.
+//
+// ⛔ **LA ASERCIÓN ES ESTRUCTURAL, NO UN TEXTO ESPERADO**: número de líneas y presencia de bytes de
+// control. Comparar contra una cadena concreta ataría el test a la redacción —que es de T027 y puede
+// cambiar— en vez de a la propiedad, que es que **la salida no gane líneas ni emita control**.
+//
+// ⛔ **Las dos aserciones son independientes y van con `t.Errorf`**: encadenadas, la mutación que
+// tumba la primera dejaría la segunda **aparentando validada** sin haberse evaluado (disciplina 3
+// §inmunidad).
+func TestProjectJoin_UnaDenominacionHostilNoInyectaEnLaTerminal(t *testing.T) {
+	// Las tres formas que importan, juntas: un salto de línea —fabrica una línea entera—, un retorno
+	// de carro —reescribe la que hay, y así BORRA lo que el comando dijo— y un escape ANSI.
+	const hostil = "RecetApp\n  error: no se pudo completar\rborrado\x1b[31m rojo\x1b[0m"
+
+	cuerpo, err := json.Marshal(map[string]any{"project": map[string]string{"name": hostil}})
+	if err != nil {
+		t.Fatalf("fabricar el cuerpo hostil: %v", err)
+	}
+	_, arbol, _ := entornoDeDesenlace(t, http.StatusOK, string(cuerpo))
+
+	r := ejecutarEn(t, arbol, nil, 20*time.Second, "project", "join", codigoDeAdhesion)
+
+	// PRECONDICIÓN, y aquí `t.Fatalf` es lo correcto: sin desenlace de éxito no hay salida de éxito
+	// que inspeccionar, y lo que siga no significaría nada.
+	if r.codigo != 0 {
+		t.Fatalf("ExitCode() = %d con un `200` y denominación legible; se esperaba 0. stderr: %q",
+			r.codigo, r.stderr)
+	}
+
+	if lineas := strings.Count(r.stdout, "\n"); lineas != 1 {
+		t.Errorf("la salida de éxito tiene %d saltos de línea y debe tener EXACTAMENTE 1: una "+
+			"denominación con `\\n` dentro está FABRICANDO LÍNEAS que la persona leerá como del "+
+			"comando.\nstdout: %q", lineas, r.stdout)
+	}
+	if posiciones := bytesDeControl(r.stdout); len(posiciones) > 0 {
+		t.Errorf("la salida de éxito emite %d byte(s) de control (posiciones %v): un `\\r` borra lo "+
+			"que el comando dijo y un escape ANSI repinta la terminal. La denominación viene DEL "+
+			"SERVIDOR.\nstdout: %q", len(posiciones), posiciones, r.stdout)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
 // T023 · LOS OCHO CÓDIGOS DE SALIDA — `contracts/cli.md` §Los códigos de salida
 // ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -956,13 +1023,21 @@ func diferencias(antes, despues map[string]string) []string {
 // ejecuta abajo**, y P-005 T027 añadió la otra mitad: sembrar una escritura en el propio comando y
 // leer el rojo (transcrito en `tasks.md` T027).
 //
-// ⛔ **PUNTO CIEGO CONOCIDO, MEDIDO Y DECLARADO: la fila de D3.** Su montaje **ejecuta el comando una
-// vez antes de capturar** —eso es lo que la convierte en «segunda presentación»—, así que un fichero
-// que el comando escriba **con contenido constante** ya está dentro de la captura previa y la
-// comparación no ve nada. **Medido**: la siembra de T027 tumbó D4, D2, D1 y NV, y **D3 pasó**.
-// Se declara en vez de disimularse: la cobertura la dan las **otras cuatro filas**, que sí lo cazan,
-// y la fila de D3 sirve a T022/T023/T024 —donde el montaje sí es el correcto— pero **no acredita
-// nada aquí**. Cambiar el montaje para taparlo dejaría de medir D3 en las otras tres.
+// ⛔ **D3 Y D4 SON COMPLEMENTARIAS, Y NINGUNA SOBRA.** Sus montajes capturan en momentos distintos, y
+// eso les da **puntos ciegos opuestos que se cierran el uno al otro**:
+//
+//	D4  captura ANTES de toda unión  → ve cualquier escritura de la PRIMERA unión…
+//	                                   …y no puede ver una que sólo empiece en la segunda
+//	D3  captura TRAS una unión       → ve lo que cambie en la SEGUNDA…
+//	                                   …y no ve una escritura que se repita IDÉNTICA
+//
+// **El hueco de D3 es exactamente ése y no más: una escritura idéntica en cada unión.** Y lo cierra
+// D4, cuya captura es anterior a cualquier unión — **incluido el marcador de «ya me uní», que es lo
+// que P-005 FR-019 prohíbe por su nombre**. Las dos mitades están **medidas** (`tasks.md` T027):
+// una escritura de **contenido constante** tumbó D4, D2, D1 y NV y D3 pasó; una **acumulativa** tumbó
+// las cinco, D3 incluida.
+//
+// **T025 no tiene hueco**: lo tendría si se quitara una de las dos filas.
 func TestProjectJoin_NoEscribeNadaEnLocal(t *testing.T) {
 	for _, d := range losOchoDesenlaces() {
 		t.Run(d.nombre, func(t *testing.T) {
