@@ -76,7 +76,7 @@ func entornoDeAdhesion(t *testing.T, denominacion string) (dataDir, arbol string
 	}
 	t.Setenv("SSL_CERT_FILE", rutaCert)
 
-	escribirConfig(t, dataDir, banco.srv.URL+"/api/v1/ingest")
+	escribirConfig(t, dataDir, banco.srv.URL+rutaDeIngesta)
 
 	// Árbol de trabajo con raíz reconocible: un `.git`, que es el marcador que usa el resolutor.
 	arbol = filepath.Join(t.TempDir(), "proyecto")
@@ -86,8 +86,47 @@ func entornoDeAdhesion(t *testing.T, denominacion string) (dataDir, arbol string
 	return dataDir, arbol, banco
 }
 
-// escribirConfig deja una `config.json` bien formada apuntando a `endpoint`.
+// rutaDeIngesta es la ruta del endpoint que el enrolamiento persiste. La forma la fija
+// `contracts/adhesion.md` §Cómo se obtiene `<base>`: el destino de la adhesión se DERIVA de ella
+// sustituyendo el último segmento, así que **esta ruta es la forma BUENA** y su contraria
+// —`endpointDeFormaInesperada`— es la del tercer rehúse.
+const rutaDeIngesta = "/api/v1/ingest"
+
+// endpointDeFormaInesperada es un endpoint **bien formado como URL y https**, cuya ruta **no termina
+// en el segmento de ingesta**: no permite derivar el destino de la adhesión, que es la condición del
+// tercer rehúse (R3, P-005 FR-009).
+//
+// ⛔ **No es un endpoint inválido ni en claro**, y la distinción es el test: un endpoint no-https lo
+// rehúsa la guarda de esquema del transporte —otro camino, otro mensaje—, así que montarlo así
+// mediría un orden que no es el de este test.
+const endpointDeFormaInesperada = "https://api.permea.example/api/v1/eventos"
+
+// escribirConfig deja una `config.json` bien formada apuntando a `endpoint`, **con device_token**:
+// una instalación enrolada.
 func escribirConfig(t *testing.T, dataDir, endpoint string) {
+	t.Helper()
+	escribirConfigCon(t, dataDir, endpoint, tokenDePrueba)
+}
+
+// escribirConfigSinToken deja una `config.json` que **EXISTE y no tiene `device_token`**.
+//
+// Es la representación de «sin enrolamiento» que **coexiste** con las otras dos condiciones del
+// orden — el motivo largo está en `TestProjectJoin_ElOrdenDeLosTresRehuses`, y no es un detalle de
+// montaje: es lo que hace que la pareja enrolamiento↔configuración pueda existir.
+func escribirConfigSinToken(t *testing.T, dataDir, endpoint string) {
+	t.Helper()
+	escribirConfigCon(t, dataDir, endpoint, "")
+}
+
+// tokenDePrueba es el device_token de una instalación enrolada. Valor inventado, nunca un secreto
+// real: lo único que se le pide es no estar vacío.
+const tokenDePrueba = "0123456789abcdef0123456789abcdef"
+
+// escribirConfigCon es el cuerpo compartido de las dos anteriores: **una sola forma de config**, y
+// el token como único eje que las separa. Dos escrituras independientes serían dos formas que
+// pueden divergir, y entonces «lo único que cambia es el enrolamiento» dejaría de ser cierto sin
+// que nadie lo notara.
+func escribirConfigCon(t *testing.T, dataDir, endpoint, token string) {
 	t.Helper()
 	logsVacios := filepath.Join(dataDir, "logs-vacios")
 	if err := os.MkdirAll(logsVacios, 0o755); err != nil {
@@ -95,7 +134,7 @@ func escribirConfig(t *testing.T, dataDir, endpoint string) {
 	}
 	cfg := map[string]any{
 		"endpoint":      endpoint,
-		"device_token":  "0123456789abcdef0123456789abcdef",
+		"device_token":  token,
 		"org_id":        "org-prueba",
 		"dev_id":        "dev-prueba",
 		"tools":         []string{"claude_code"},
@@ -109,6 +148,18 @@ func escribirConfig(t *testing.T, dataDir, endpoint string) {
 	if err := os.WriteFile(filepath.Join(dataDir, "config.json"), b, 0o600); err != nil {
 		t.Fatalf("escribir config: %v", err)
 	}
+}
+
+// directorioSuelto crea un directorio **sin raíz reconocible por encima**: la condición del primer
+// rehúse (R1, P-005 FR-006). Cuelga de un temporal del test, así que el ascenso llega a la raíz del
+// sistema sin encontrar marcador.
+func directorioSuelto(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "suelto")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("crear directorio suelto: %v", err)
+	}
+	return dir
 }
 
 // desenlace es lo observable de una ejecución: los tres canales por separado (disciplina 7).
@@ -245,78 +296,79 @@ func TestProjectJoin_SinArgumentoYSinEntrada(t *testing.T) {
 // ⛔ **Sin este test el orden lo fija el primer camino que alguien escriba**, y el orden es contrato:
 // más específico primero, y cada rehúse nombra el error que la persona puede corregir ahora.
 //
-// ⛔ **Se comprueban LAS TRES PAREJAS, no sólo las tres condiciones juntas**: «las tres a la vez → el
-// del árbol» **lo pasa igual un orden equivocado entre enrolamiento y configuración**, porque el árbol
-// gana de todas formas. La pareja es la que ve ese cambio.
+// ⛔ **Se comprueban LAS CUATRO COMBINACIONES —las tres parejas Y el caso triple—, y no bastan las
+// tres condiciones juntas**: «las tres a la vez → el del árbol» **lo pasa igual un orden equivocado
+// entre enrolamiento y configuración**, porque el árbol gana de todas formas. La pareja
+// **enrolamiento↔configuración** es **la única** que ve ese cambio, y por eso su montaje es el que
+// más cuidado necesita (ver la nota de dentro de la función).
 //
 // ⛔ **No se casa texto** (disciplina 4): se comparan **las salidas entre sí**. El mensaje de una
 // combinación tiene que ser **el mismo** que el del rehúse que debe ganar, y **distinto** del de los
 // otros. Eso no depende de ninguna redacción.
 func TestProjectJoin_ElOrdenDeLosTresRehuses(t *testing.T) {
-	// Cada montaje rompe EXACTAMENTE lo que dice su nombre.
+	// ═══ CÓMO SE REPRESENTA «SIN ENROLAMIENTO» — Y POR QUÉ NO ES «NO HAY config.json» ══════
+	//
+	// **Es el defecto que este test tuvo al nacer, y se midió**: representar «sin enrolamiento» como
+	// **el fichero de configuración NO EXISTE** lo vuelve **mutuamente excluyente** con «configuración
+	// de forma inesperada», que exige justo lo contrario —que el fichero **exista**, con un endpoint
+	// que no permite derivar el destino—. El montaje de la pareja escribía la configuración rota y
+	// **acto seguido borraba el fichero**, así que **la segunda condición se destruía al montar la
+	// primera**: `enrolamientoYConfig` era en realidad **sólo «sin enrolamiento»**, y `lasTres` eran
+	// **dos**.
+	//
+	// **Y la que se perdía era precisamente la que importa.** El árbol gana en todas las demás
+	// combinaciones, así que **enrolamiento↔configuración es LA ÚNICA que vería un orden invertido
+	// entre esos dos**. Sin ella, un test titulado «el ORDEN de los tres rehúses» certificaba **dos
+	// parejas de tres** — y en verde no se distingue de uno completo.
+	//
+	// **La representación que sí coexiste**: la configuración **EXISTE y no tiene `device_token`**.
+	// Es «no está enrolada» con la misma literalidad —`enroll` es quien escribe ese campo, y sin él
+	// no hay con qué autenticarse—, y **deja sitio** a que el endpoint tenga a la vez la forma
+	// inesperada. Con eso las tres condiciones pueden darse **de verdad** a la vez, que es el
+	// supuesto del que parte D-005-P13.
+	//
+	// ⚠️ **Las dos representaciones caen en el mismo rehúse, y por eso el cambio es seguro**: un
+	// fichero ausente carga la configuración por defecto —endpoint y token vacíos— y una config sin
+	// `device_token` deja el token vacío. Las dos son «no enrolada» para la misma comprobación, así
+	// que las combinaciones que ya montaba el fichero ausente siguen valiendo.
+
 	soloArbol := func(t *testing.T) string {
-		dataDir, _, banco := entornoDeAdhesion(t, "X")
-		_ = dataDir
-		_ = banco
-		sinArbol := filepath.Join(t.TempDir(), "suelto")
-		if err := os.MkdirAll(sinArbol, 0o755); err != nil {
-			t.Fatalf("crear directorio suelto: %v", err)
-		}
-		return sinArbol
+		entornoDeAdhesion(t, "X")
+		return directorioSuelto(t)
 	}
 	soloEnrolamiento := func(t *testing.T) string {
-		dataDir, arbol, _ := entornoDeAdhesion(t, "X")
-		if err := os.Remove(filepath.Join(dataDir, "config.json")); err != nil {
-			t.Fatalf("retirar el enrolamiento: %v", err)
-		}
+		dataDir, arbol, banco := entornoDeAdhesion(t, "X")
+		// Se conserva el endpoint del banco —forma BUENA— y se retira sólo el token: aquí no hay
+		// nada roto salvo el enrolamiento.
+		escribirConfigSinToken(t, dataDir, banco.srv.URL+rutaDeIngesta)
 		return arbol
 	}
 	soloConfig := func(t *testing.T) string {
 		dataDir, arbol, _ := entornoDeAdhesion(t, "X")
-		escribirConfig(t, dataDir, "https://api.permea.example/api/v1/eventos") // ruta de forma inesperada
+		escribirConfig(t, dataDir, endpointDeFormaInesperada)
 		return arbol
 	}
 	arbolYEnrolamiento := func(t *testing.T) string {
-		dataDir, _, _ := entornoDeAdhesion(t, "X")
-		if err := os.Remove(filepath.Join(dataDir, "config.json")); err != nil {
-			t.Fatalf("retirar el enrolamiento: %v", err)
-		}
-		sinArbol := filepath.Join(t.TempDir(), "suelto")
-		if err := os.MkdirAll(sinArbol, 0o755); err != nil {
-			t.Fatalf("crear directorio suelto: %v", err)
-		}
-		return sinArbol
+		dataDir, _, banco := entornoDeAdhesion(t, "X")
+		escribirConfigSinToken(t, dataDir, banco.srv.URL+rutaDeIngesta)
+		return directorioSuelto(t)
 	}
 	enrolamientoYConfig := func(t *testing.T) string {
 		dataDir, arbol, _ := entornoDeAdhesion(t, "X")
-		// Configuración de forma inesperada Y sin device token: si el orden se invirtiera, ganaría la
-		// configuración.
-		escribirConfig(t, dataDir, "https://api.permea.example/api/v1/eventos")
-		if err := os.Remove(filepath.Join(dataDir, "config.json")); err != nil {
-			t.Fatalf("retirar el enrolamiento: %v", err)
-		}
+		// LAS DOS A LA VEZ, y ahora de verdad: el fichero existe con el endpoint de forma inesperada
+		// **y** sin device_token. Si el orden se invirtiera, ganaría la configuración.
+		escribirConfigSinToken(t, dataDir, endpointDeFormaInesperada)
 		return arbol
 	}
 	arbolYConfig := func(t *testing.T) string {
 		dataDir, _, _ := entornoDeAdhesion(t, "X")
-		escribirConfig(t, dataDir, "https://api.permea.example/api/v1/eventos")
-		sinArbol := filepath.Join(t.TempDir(), "suelto")
-		if err := os.MkdirAll(sinArbol, 0o755); err != nil {
-			t.Fatalf("crear directorio suelto: %v", err)
-		}
-		return sinArbol
+		escribirConfig(t, dataDir, endpointDeFormaInesperada)
+		return directorioSuelto(t)
 	}
 	lasTres := func(t *testing.T) string {
 		dataDir, _, _ := entornoDeAdhesion(t, "X")
-		escribirConfig(t, dataDir, "https://api.permea.example/api/v1/eventos")
-		if err := os.Remove(filepath.Join(dataDir, "config.json")); err != nil {
-			t.Fatalf("retirar el enrolamiento: %v", err)
-		}
-		sinArbol := filepath.Join(t.TempDir(), "suelto")
-		if err := os.MkdirAll(sinArbol, 0o755); err != nil {
-			t.Fatalf("crear directorio suelto: %v", err)
-		}
-		return sinArbol
+		escribirConfigSinToken(t, dataDir, endpointDeFormaInesperada)
+		return directorioSuelto(t)
 	}
 
 	corre := func(t *testing.T, montar func(*testing.T) string) desenlace {

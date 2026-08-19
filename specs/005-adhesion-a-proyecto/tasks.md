@@ -1098,6 +1098,9 @@ es barata de encontrar**: antes de que nada más cambie.
   D-005-P13, `cli.md` §Comportamiento. Con las tres condiciones a la vez —sin árbol, sin enrolamiento
   y con configuración rota— el mensaje es **el del árbol**. Nace en **rojo**.
   *Sin este test el orden lo fija el primer camino que alguien escriba.*
+  - [x] **T018b · las CUATRO combinaciones, con las tres condiciones capaces de coexistir** —
+    árbol↔enrolamiento · árbol↔configuración · **enrolamiento↔configuración** · las tres a la vez.
+    **Corrección medida antes de T021**: ver §«🔴 MEDIDO — T018 CERTIFICABA DOS PAREJAS DE TRES».
 - [x] **T019** [P] Test de **cero peticiones fuera de árbol** en el mismo fichero — **Garantía**:
   SC-004, FR-006. **Con su observador declarado**: un destino instrumentado que **cuenta**. **Y con su
   caso positivo**: el **mismo** destino, con el comando lanzado **dentro** de un árbol, **registra
@@ -1147,6 +1150,51 @@ es barata de encontrar**: antes de que nada más cambie.
   > No depende de ninguna redacción ni del idioma del sistema —que es lo que la disciplina 4 protege—.
   > **El rojo llegó por la desigualdad**: hoy los tres rehúses dan **el mismo** mensaje de andamiaje.
   >
+  > ### 🔴 MEDIDO — T018 CERTIFICABA DOS PAREJAS DE TRES, y se arregló ANTES de T021
+  > **El bloque de arriba dice «las tres parejas» y el test tenía cuatro casos en su tabla. Los dos
+  > eran ciertos y la garantía era falsa igual**, porque el defecto no estaba en la tabla: estaba en
+  > **el montaje**.
+  >
+  > **La causa**: «sin enrolamiento» se representaba como **`config.json` NO EXISTE**, y eso es
+  > **mutuamente excluyente** con «configuración de forma inesperada», que exige lo contrario —que el
+  > fichero **exista** con un endpoint del que no se puede derivar el destino—. El montaje de la
+  > pareja escribía la configuración rota **y acto seguido borraba el fichero**: la segunda condición
+  > se destruía al montar la primera. Así, la combinación «enrolamiento + configuración» era en
+  > realidad **sólo «sin enrolamiento»**, y «las tres a la vez» eran **dos**.
+  >
+  > **Y la que se perdía era LA ÚNICA QUE IMPORTA**: el árbol gana en todas las demás combinaciones,
+  > así que **enrolamiento↔configuración es la única que vería un orden invertido entre esos dos**.
+  >
+  > **El remedio**: representar «sin enrolamiento» como **la configuración EXISTE SIN `device_token`**
+  > —es «no está enrolada» con la misma literalidad, porque ese campo lo escribe `enroll`— y entonces
+  > las tres condiciones **coexisten de verdad**. Las dos representaciones caen en el mismo rehúse
+  > (fichero ausente → configuración por defecto, con token vacío), y por eso el cambio **no rompe las
+  > combinaciones que ya montaba el fichero ausente**.
+  >
+  > **Por qué ANTES de T021 y no después**: T018 estaba en rojo y T021 la pone en verde. Arreglarla
+  > después deja un tramo en el que **un test VERDE certifica dos parejas de tres con nombre de
+  > comprobar el orden completo**. El rojo no engaña a nadie; el verde sí.
+  >
+  > **El rojo, transcrito** (`go test ./cmd/permea/ -run TestProjectJoin_ElOrdenDeLosTresRehuses`).
+  > Con el andamiaje de T003 los tres rehúses dan **el mismo** mensaje, así que el rojo llega **por la
+  > desigualdad** — las cuatro combinaciones, cinco aserciones (la triple dispara dos):
+  > ```
+  > --- FAIL: TestProjectJoin_ElOrdenDeLosTresRehuses/PAREJA_árbol_+_enrolamiento
+  >   el rehúse obtenido es indistinguible de el del enrolamiento: los dos dan
+  >   "error: `permea project join` todavía no está implementado\n"
+  > --- FAIL: .../PAREJA_enrolamiento_+_configuración
+  >   el rehúse obtenido es indistinguible de el de la configuración: los dos dan  «ídem»
+  > --- FAIL: .../PAREJA_árbol_+_configuración
+  >   el rehúse obtenido es indistinguible de el de la configuración: los dos dan  «ídem»
+  > --- FAIL: .../LAS_TRES_a_la_vez
+  >   el rehúse obtenido es indistinguible de el del enrolamiento: los dos dan     «ídem»
+  >   el rehúse obtenido es indistinguible de el de la configuración: los dos dan  «ídem»
+  > ```
+  > **La mitad de igualdad —«el obtenido es el que gana»— siguió pasando con el montaje nuevo**, que
+  > es la comprobación de que no se rompió nada de lo que ya funcionaba. La verificación completa
+  > llega con T021: las cuatro en verde exige que los tres rehúses sean **distinguibles entre sí**, y
+  > eso sólo lo puede cumplir un montaje en el que las tres condiciones existan de verdad.
+  >
   > ### ✅ T019 — observador real, y el caso positivo con EL MISMO destino
   > El banco es un `httptest.NewTLSServer` que **cuenta las peticiones que le llegan de verdad**, y el
   > binario hijo confía en su certificado por **`SSL_CERT_FILE`** —que en Go es **aditivo**, medido en
@@ -1162,12 +1210,73 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ### Implementación
 
-- [ ] **T021** Implementar el comando en `cmd/permea/project.go` con el **patrón de dos capas de
+- [x] **T021** Implementar el comando en `cmd/permea/project.go` con el **patrón de dos capas de
   `enroll`** (D-005-P7, `enroll.go:18` y `:38`): capa sucia que resuelve stdin/TTY/stdout, capa pura
   con **lector, escritor y ejecutor inyectados**. Los tres rehúses **en el orden de T018**, **antes de
   emitir nada**. Pone en verde **T016–T020**.
   ⚠️ **La inyección no es comodidad**: `main_test.go:321-325` documenta que un proceso hijo **no
   confiaría** en el certificado del arnés, así que es **la única vía** de probar el camino completo.
+  > ### ✅ MEDIDO — T016–T020 en verde, y la línea base VUELTA
+  > `go test ./...` → **9 `ok` · 0 `[no test files]` · 0 `FAIL`**. Las cuatro combinaciones de T018
+  > pasan, que es lo que acredita que **los tres rehúses son distinguibles entre sí** y que el montaje
+  > corregido monta las tres condiciones de verdad.
+  >
+  > **Las tres capas, como manda D-005-P7**: `runProjectOS` (sucia: stdin, su naturaleza pipe/TTY, los
+  > dos canales y el ejecutor real) → `runProject` (despacho del verbo) → `projectJoin` (pura: entrada,
+  > los tres rehúses y el camino hasta emitir). El ejecutor es un `func(destino, token, código,
+  > project_ref) (denominación, error)` y no un `*transport.Client`: el test inyecta una función, no
+  > fabrica un cliente.
+  >
+  > ### ⛔ EL ANDAMIAJE DE T003 SE RETIRA AQUÍ, NO EN T023
+  > T017 y T020 exigen `ExitCode() == 1` **exacto**, así que el `70` no podía sobrevivir a esta tarea.
+  > **T023 queda de respaldo, no de responsable.** Barrido: el identificador que lo declaraba → **cero
+  > en todo el repositorio**; `return 70` / `= 70` → **cero**. Disciplina 8 → **cero**.
+  >
+  > ### ⚠️ UNA PREMISA QUE CAYÓ AL MEDIRLA — `config.IsEnrolled` NO SIRVE PARA R2
+  > Era el candidato obvio: es la función que ya responde «¿está enrolada?», y `status` la usa. **Y
+  > usarla habría hecho INALCANZABLE la guarda de esquema del transporte.** `IsEnrolled` funde **tres**
+  > hechos —hay endpoint, hay token y el esquema es admisible—, y el tercero **no es este rehúse**: un
+  > endpoint en claro lo rechaza la frontera del transporte, «con la misma exigencia y sin exención»
+  > (FR-017). `cli.md` §Notas lo dice **de este flujo en concreto**: *«aquí el endpoint viene de la
+  > configuración persistida, así que la guarda del transporte SÍ se ejercita»*. Con `IsEnrolled`, un
+  > `http://…` habría salido como «no estás enrolado» y esa nota del contrato habría quedado **escrita
+  > y falsa**. R2 mira **lo que `enroll` escribe**: endpoint y token, y nada más.
+  >
+  > ### ⚠️ DOS DECISIONES QUE EL CONTRATO NO ORDENA, Y SE DECIDIERON AQUÍ
+  > - **La entrada va ANTES de los tres rehúses.** El error de uso **no es uno de los tres** —`cli.md`
+  >   lo deja fuera de la tabla a propósito—, así que D-005-P13 no lo ordena. Va primero porque
+  >   responde a **qué se ha pedido**, y los tres responden a **si puede hacerse**. Es también el orden
+  >   de `enroll`. **Ningún test observa el entrelazado**: T017 monta árbol y config buenos.
+  > - **Una configuración ILEGIBLE cae en R3, y no rompe el orden.** El orden decide qué rehúse se
+  >   reporta **cuando varios se cumplen**; aquí R2 ni siquiera es **evaluable** —sin poder leer el
+  >   fichero no se sabe si hay enrolamiento, y afirmar que no lo hay sería afirmar lo que no se ha
+  >   podido establecer—. Es la misma postura que FR-013 toma con el desenlace remoto.
+  >
+  > ### ⚠️ EL SALT SE RESUELVE DESPUÉS DE LOS TRES REHÚSES — y `huboRaiz` se pregunta sin él
+  > `config.LoadOrCreateSalt` **crea** el secreto si no existe, así que pedirlo antes de tiempo haría
+  > que **un camino de rehúse escribiera en local**. R1 no lo necesita: `huboRaiz` sale de `ascender`,
+  > que sólo mira el sistema de ficheros, y el salt sólo entra en el hash. Se pregunta con salt vacío
+  > y **el camino de rehúse no toca el secreto**.
+  >
+  > **Y en el camino de éxito sí se crea, y es lo correcto**: una instalación sin salt **todavía no
+  > tiene identidad**, y la que se cree ahora es exactamente la que estampará la primera emisión.
+  > Derivar con otro salt presentaría una identidad que la ingesta nunca usaría — el fallo que FR-005
+  > existe para impedir. ⚠️ **Para T025**: el montaje tiene que sembrar las semillas
+  > (`testutil.SandboxConSemillas`) o la comparación byte a byte verá nacer el `salt` y culpará al
+  > comando de lo que es el primer arranque.
+  >
+  > ### ⛔ LO QUE ESTA TAREA NO HACE, Y ES DE T027
+  > **La presentación de los desenlaces.** Todo error del ejecutor sale hoy por **stderr** con código
+  > **1**, sin distinguir cuál fue: **canal y código ya son los definitivos**, el mensaje es
+  > provisional. El mapeo de `cli.md` §Comportamiento —D3≡D4, D2 sin nombrar el Proyecto ajeno, D1 sin
+  > indicar la causa— lo pone T027, y está marcado en el código donde va.
+  >
+  > ### 📏 ESTADO DEL LINTER, tal cual
+  > `golangci-lint run` → **9 issues**, **6 de ellos anteriores a esta tarea** (`endpoint.go`,
+  > `adhesion_test.go`, `project_test.go`, y 3 `errcheck` del propio andamiaje de T003 en
+  > `project.go`). Los **2 nuevos** son `errcheck` sobre `fmt.Fprintln`/`Fprintf` a stderr, en los dos
+  > caminos de rehúse que esta tarea añade — mismo estilo que `main.go` ya usa para sus mensajes de
+  > error. **CI no ejecuta el linter** (`release.yml`); se anota, no se disimula.
 
 ---
 
