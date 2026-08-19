@@ -1611,7 +1611,7 @@ es barata de encontrar**: antes de que nada más cambie.
   >
   > | | Subtest positivo | Siembra en el comando → rojo leído |
   > |---|---|---|
-  > | **T024** | el detector encuentra el código en una salida fabricada | **8/8 desenlaces**: `stderr reproduce el código de adhesión: 43 subcadena(s) de 8 caracteres, la primera "pmeaj1.9"` |
+  > | **T024** | el detector encuentra el código en una salida fabricada | **8/8 desenlaces**: `stderr reproduce el código de adhesión: 43 subcadena(s) de 8 caracteres` —la primera es el prefijo de versión más su carácter siguiente; **no se transcribe aquí**, que es la regla que este mismo registro sostiene— |
   > | **T025** | `--run` escribe `state.json` y la comparación lo ve | **4/5**: `el comando modificó el estado local: APARECIÓ adhesion.json` |
   > | **T026** | `--run` con el destino caído hace crecer la cola | `la cola pasó de 0 a 1 eventos` |
   >
@@ -1851,7 +1851,12 @@ es barata de encontrar**: antes de que nada más cambie.
 Estas tareas **no las ejecuta Claude Code**. Referencian los **C-números** de `quickstart.md` §Parte B
 y **no reescriben sus pasos**.
 
-- [ ] **T033** ⛔ **PRERREQUISITO** — banco TLS local levantado (`quickstart.md` §El banco TLS), agente
+> ## ✅ EJECUTADA Y PASADA ENTERA — **2026-08-19**, contra plataforma real
+>
+> Las cuatro tareas, en verde. La ejecutó Basilio; aquí sólo se registra lo medido.
+> **En ningún punto de este registro aparece el código de adhesión, ni un fragmento suyo.**
+
+- [x] **T033** ⛔ **PRERREQUISITO** — banco TLS local levantado (`quickstart.md` §El banco TLS), agente
   enrolado contra `https://localhost:8443/…`, y **un código de adhesión acuñado desde el panel**.
   **FR-017 no tiene exención ni para la ceremonia.**
   ⚠️ **Y ANOTAR, ANTES DE EMPEZAR, el recuento de eventos de `~/dev/test/RecetApp` DEL DÍA.** Es el
@@ -1864,18 +1869,102 @@ y **no reescriben sus pasos**.
   paso de la Parte B toma ese estado previo.** «Byte a byte igual» necesita un «igual a qué» **tomado
   antes**, o T036 compara contra un recuerdo igual que lo haría T034 sin el recuento. Las dos capturas
   —recuento y directorio— se toman **aquí, antes de tocar nada**.
-- [ ] **T034** Ejecutar **C1** y **C2** de `quickstart.md` sobre **`~/dev/test/RecetApp`** —sin
+  > ### ✅ EJECUTADO · 2026-08-19
+  > **Canal.** Banco TLS en `:8443` con **CA propia**, verificado **sin `-k`** —la CA basta— con una
+  > respuesta HTTP/2 `405`. **P-005 FR-017 sin exención tampoco aquí**, y comprobado antes de meter al
+  > agente, no después.
+  >
+  > **Agente.** Enrolado contra `https://localhost:8443`. **El `salt` era preexistente, del 6-ago**,
+  > así que **el residuo de las instalaciones enroladas con el binario anterior NO aplicó** en esta
+  > ejecución. *(Ese residuo sigue en el backlog: se agota solo, pero no se agotó aquí — no llegó a
+  > darse.)*
+  >
+  > **Las DOS capturas previas, tomadas antes de tocar nada:**
+  >
+  > | Captura | Qué se tomó |
+  > |---|---|
+  > | **Directorio de datos** | copia íntegra en `~/ceremonia-005/datadir-antes` **+ manifiesto `sha256` de sus cinco ficheros** |
+  > | **Línea base de plataforma** | `metric_events` **16.962** · `project_identity_mappings` **12** · `projects` **3** · `project_operation_logs` **53** |
+  >
+  > **Copia Y manifiesto, y no es redundancia**: son las dos mitades que T036 compara por separado —lo
+  > que **aparece o desaparece** frente a lo que **cambia de contenido**—.
+  >
+  > **Sujeto confirmado contra el panel**, no supuesto: identidad `35f0529f9f16…`, **1.895 eventos**,
+  > del **2026-08-12 al 2026-08-13**, **sin asignar**.
+  >
+  > ### 🎯 EL PROYECTO DESTINO SE CREÓ VACÍO, Y ESO ES MÉTODO
+  > **RecetApp**, creado para la ceremonia con **$0,00 y 0 tokens**. Es lo que hace **visible el efecto
+  > retroactivo sin tener que restar nada**: sobre un Proyecto con consumo previo habría que aislar el
+  > incremento, y una resta es justo donde un error de medida se esconde. Partiendo de cero, **lo que
+  > aparezca es lo que trajo la unión**.
+- [x] **T034** Ejecutar **C1** y **C2** de `quickstart.md` sobre **`~/dev/test/RecetApp`** —sin
   mapear—: la unión nombra el Proyecto, **el consumo previo aparece bajo él**, y **el número de eventos
   NO cambia respecto al recuento ANOTADO EN T033**. *(SC-006, US1 escenario 2.)*
   ⚠️ **El recuento es la comprobación que distingue «se agrupó en lectura» de «se reprocesó algo»**: si
   se moviera, algo escribió, y FR-003 lo prohíbe.
-- [ ] **T035** Ejecutar **C3** — repetir es indistinguible, **en salida y en código de salida**, y en el
+  > ### ✅ C1 · LA UNIÓN
+  > `rc=0` · **stdout**: `unido al Proyecto "RecetApp"` · **stderr VACÍO**. El reparto de canales de
+  > P-005 FR-021, observado contra plataforma real y no contra un banco de pruebas.
+  >
+  > ### ✅ C2 · EL EFECTO RETROACTIVO — **seis testigos: cuatro que NO se mueven y dos que SÍ**
+  >
+  > | Testigo | Antes | Después | |
+  > |---|---|---|:--:|
+  > | `metric_events` | 16.962 | **16.962** | no se mueve (P-005 FR-003) |
+  > | total de la organización | $3.259,18 | **$3.259,18** | no se mueve |
+  > | tokens de la organización | 5290.05M | **5290.05M** | no se mueve |
+  > | `project_identity_mappings` | 12 | **13** | **se mueve, exactamente uno** |
+  > | identidades sin asignar | 6 | **5** | **se mueve, exactamente una** |
+  > | RecetApp | $0,00 · 0 tokens | **$509,90 · 847.72M · 15,6 %** | **se mueve** |
+  >
+  > Y la identidad pasa a **colgar de RecetApp con sus 1.895 eventos del 12 y 13-ago**: el consumo
+  > **anterior** a la unión cuenta bajo el Proyecto **sin que se haya emitido, reenviado ni reprocesado
+  > un solo evento**. Es la razón de ser de la feature, verificada donde tenía que verificarse.
+  >
+  > ### ⚠️ POR QUÉ HACÍAN FALTA LOS DOS QUE SÍ SE MUEVEN — y no estaba en el quickstart
+  > **«El recuento no cambió» es compatible con «no pasó nada en absoluto».** Un comando que no hiciera
+  > nada dejaría `metric_events` clavado, el total clavado y los tokens clavados, y las **cuatro**
+  > comprobaciones de no-movimiento pasarían en verde **sobre un fracaso silencioso**.
+  >
+  > **Sin algo que DEBA moverse, C2 no distingue el éxito del fracaso.** Es exactamente **la disciplina
+  > del caso positivo** —la misma que obligó a T019 a exigir «exactamente una petición» y a T024–T026 a
+  > ejecutar su positivo— **aplicada a la ceremonia**, que es donde no estaba escrita. Los dos testigos
+  > que se mueven, y el tercero —RecetApp de $0,00 a $509,90— son esa mitad.
+  >
+  > ### 🔎 Y LA DISCRIMINACIÓN QUE P-013 CONSTRUYÓ, VERIFICADA EN VIVO
+  > El registro de operaciones anota **`via = code`**, no `management`: la unión **consta venida DEL
+  > CÓDIGO** y no de la vía de gestión del panel. Es la distinción que la plataforma construyó en
+  > P-013, y hasta hoy sólo estaba probada contra sí misma. **Ahora tiene un caso real de este lado del
+  > cable.**
+- [x] **T035** Ejecutar **C3** — repetir es indistinguible, **en salida y en código de salida**, y en el
   panel la instalación sigue unida **una sola vez**. *(US2 escenario 3, FR-010.)*
-- [ ] **T036** Ejecutar **C4** — el directorio de datos del agente, **byte a byte igual a la captura
+  > ### ✅ C3 · IDÉNTICA, Y COMPARADA CON `diff`, NO A OJO
+  > `rc=0`, y las salidas de las dos ejecuciones **comparadas con `diff` contra los ficheros de C1**:
+  > **idénticas byte a byte en los dos canales**. Comparar a ojo dos textos que se parecen es como no
+  > compararlos; el `diff` es lo que convierte «indistinguible» en un hecho.
+  > `project_identity_mappings` **sigue en 13 y no en 14**: la instalación sigue unida **una sola vez**.
+  >
+  > ### 🎁 UN HALLAZGO MEJOR QUE LO PEDIDO — la idempotencia es TAMBIÉN de estado
+  > **`project_operation_logs` NO GANÓ FILA.** La tarea pedía que la repetición fuera indistinguible
+  > **en la presentación**; lo que se midió es que **por dentro tampoco pasó nada**. No es lo mismo:
+  > una plataforma podría devolver la misma respuesta y registrar dos operaciones, y entonces
+  > «indistinguible» sería sólo una promesa de fachada. **Aquí no hay fachada: no hubo segunda
+  > operación.**
+- [x] **T036** Ejecutar **C4** — el directorio de datos del agente, **byte a byte igual a la captura
   tomada en T033**. *(FR-019.)*
   ⚠️ **La captura previa la toma T033, no C4**: `quickstart.md` §C4 dice «con su estado previo» pero
   **no toma ninguno** —comprobado—, así que el «estado previo» es el de T033. Sin él, esta tarea no
   tiene contra qué comparar.
+  > ### ✅ C4 · DOS COMPARACIONES, PORQUE CAZAN COSAS DISTINTAS
+  >
+  > | Comparación | Qué caza | Resultado |
+  > |---|---|---|
+  > | `diff -r` contra `datadir-antes` | ficheros que **aparezcan o desaparezcan** | **idéntico** |
+  > | `diff` de los manifiestos `sha256` | **contenido que cambie** sin cambiar la lista | **idéntico** |
+  >
+  > **Ninguna de las dos sola bastaría**, y es el mismo par de mitades que T025 monta en la suite: un
+  > `diff -r` ve el fichero nuevo pero puede pasar por alto una reescritura que conserve el nombre; el
+  > manifiesto ve el contenido pero no dice nada de lo que ya no está. **Las dos, y las dos limpias.**
   > ### ✅ EL `salt` YA NO ES UN RESIDUO DE ESTA CEREMONIA
   > Hubo un tramo en el que **`project join` creaba el `salt`** si no existía —en los cuatro caminos
   > que emiten—, y esta tarea habría salido bien **por la historia del sujeto**: `~/dev/test/RecetApp`
@@ -1886,9 +1975,28 @@ y **no reescriben sus pasos**.
   > desenlace. Medido con binario real y enrolamiento real sobre los cuatro caminos que emiten más un
   > rehúse local — **cero diferencias en los cinco** (la tabla está en T025).
   >
-  > **Lo que sigue siendo deber de esta tarea**: que la captura previa la tome **T033**, porque
-  > `quickstart.md` §C4 dice «con su estado previo» y **no toma ninguno**. Sin él, esto compara contra
-  > un recuerdo.
+  > **Confirmado en vivo**: el `salt` del sujeto era **del 6-ago**, preexistente, así que la ceremonia
+  > **no llegó a ejercitar** el residuo del binario anterior. Sale limpia **por el diseño**, y esta vez
+  > también se sabe por qué.
+
+### 🎁 UN DESENLACE EXTRA, NO PLANIFICADO — **D1 contra plataforma real**
+
+**No estaba en el guion y se validó solo.** Un primer intento envió **una cadena que no era un
+código** —el portapapeles llevaba otra cosa—, y la plataforma respondió **`422`**. El comando:
+
+| | Observado |
+|---|---|
+| código de salida | **`rc=1`** |
+| stderr | *«el código de adhesión no es utilizable»*, **sin indicar la causa** (P-005 FR-012) |
+| stdout | **VACÍO** (P-005 FR-021) |
+
+**Es D1 con su reparto de canales observado contra plataforma real**, que es más de lo que la
+ceremonia pedía: la Parte B sólo cubría el camino feliz y la repetición. **Un accidente que acredita
+un desenlace no es un accidente: es cobertura que no había que pagar.**
+
+*(Y de él salieron dos entradas de backlog —el hueco de auditoría y la fragilidad del portapapeles—,
+que están abajo con su medida.)*
+
 ---
 
 ## Dependencies & Execution Order
@@ -2070,6 +2178,22 @@ identificador sufijado (T010-E).**
 **Y cuatro tests nacen verdes, no tres**: **T024, T025, T026** (ausencias, validadas por su caso
 positivo) **y T029** (regresión cero, validada por mutación del cuerpo compartido de T001).
 
+> ### ➕ Y TRES SUBCASILLAS QUE NO ESTABAN EN EL PLAN — **41 en total al cerrar**
+> Nacieron **al ejecutar**, cada una porque una medición destapó un hecho que ninguna casilla existente
+> podía sostener. Van **anidadas bajo su tarea** y no como tareas nuevas, porque no son trabajo
+> distinto: son **el mismo sujeto, medido mejor**.
+>
+> | Subcasilla | Bajo | Por qué existe |
+> |---|---|---|
+> | **T017b** | T017 | el **entrelazado entrada ↔ rehúses** —sin argumento **y** fuera de árbol— no lo observaba ningún caso |
+> | **T018b** | T018 | las **cuatro combinaciones** con las tres condiciones **capaces de coexistir**: el montaje viejo las hacía mutuamente excluyentes |
+> | **T022b** | T022 | una **denominación hostil** no inyecta en la terminal: el `%q` estaba sujeto por una decisión, no por una garantía |
+>
+> **Recuento al cerrar: 38 casillas de plan + 3 nacidas al ejecutar = 41, y las 41 marcadas.**
+> Se anota aquí y no en el recuento oficial de arriba **porque ese recuento es una foto del plan**, y
+> lo que estas tres dicen es otra cosa: **que ejecutar el plan encontró tres huecos que planificarlo no
+> vio**. Fundirlas en el total borraría justo ese dato.
+
 ### El barrido en el sentido que faltaba — de la TAREA al requisito
 
 La comprobación de arriba va **de requisito a tarea**: garantiza que ningún FR/SC se queda sin quien lo
@@ -2162,6 +2286,43 @@ primer punto **seguro** es el final de Phase 2, porque hasta ahí **nada ha camb
   > **Asimetría entre dos decodificadores del mismo binario**, y la decisión de cuál gana no es un
   > parche: estrictar `Load` **rompería el arranque** de cualquier configuración con una clave de más,
   > incluida la del propio `project_ref_mode` retirado. Es una conversación.
+- **No cierra el hueco de AUDITORÍA de la plataforma**: al backlog, **con DOS testigos de la
+  ceremonia**.
+  > **La plataforma no registra ni los intentos rechazados ni las repeticiones.** Medido el
+  > 2026-08-19, y por dos caminos independientes: **el `422` del intento fallido no dejó fila** en
+  > `project_operation_logs`, y **C3 —la repetición— tampoco**. Los dos huecos son el mismo hueco, y
+  > que aparezca por dos sitios distintos es lo que lo convierte en hallazgo y no en anécdota.
+  >
+  > **Lo que no se puede hacer hoy**: saber **cuántas veces se ha presentado un código**, ni ver
+  > **fuerza bruta contra un extremo que recibe credenciales**. Un `422` repetido mil veces es, desde
+  > el registro, indistinguible de que nadie lo haya intentado nunca.
+  >
+  > ⚠️ **Es de la plataforma, no del agente**, así que ni se toca desde aquí ni cabía en 005. Se anota
+  > **con su medida** para que la conversación empiece con un número y no con una impresión.
+- **No documenta —hasta ahora— que emitir un código REVOCA el anterior**: al backlog, **medido**.
+  > **Un código vivo por Proyecto.** Medido en el registro de operaciones de la ceremonia: los apuntes
+  > **54 y 55, ambos a las 11:58:46** — la emisión del nuevo y la revocación del anterior **en el mismo
+  > segundo**.
+  >
+  > **Es diseño, no defecto**, y de hecho es lo que neutralizó la fuga del apartado siguiente. **Pero
+  > conviene que esté escrito**: quien reparta dos códigos creyendo que los dos siguen vivos descubrirá
+  > que uno no vale, y sin esto documentado lo leerá como una avería. Va a la documentación del panel,
+  > que es de la plataforma.
+- **No arregla la fragilidad del puente de portapapeles en WSL**: al backlog, **y con la guarda ya
+  escrita**.
+  > **Copiar el comando machaca el código**: el portapapeles es uno solo, y el flujo natural —copiar el
+  > código del modal, luego copiar el comando de esta guía— pierde el primero. **Pasó**: la primera
+  > ejecución, sin guarda, **mandó basura a la plataforma** (es el `422` que acabó acreditando D1).
+  >
+  > **Resuelto en la ceremonia con un script con guarda propia**, que **PARA** si el portapapeles no
+  > lleva **50 caracteres con el prefijo `pmeaj1.`** — la forma que fija `contracts/adhesion.md` §El
+  > código. **La segunda vez, con guarda, no salió nada**: la guarda mordió antes de tocar la red.
+  >
+  > **Por qué va al backlog y no se da por cerrado**: el script vive fuera del repositorio y **la
+  > guarda es de quien se acuerde de usarlo**. Lo que falta es que **el propio comando** rechace una
+  > entrada que no tiene la forma del contrato **antes de emitir** — hoy la manda y deja que decida la
+  > plataforma, que es lo que produjo el `422`. Es una conversación sobre validar en cliente lo que
+  > sólo el servidor puede juzgar, no un parche.
 - **No barre las citas `FR-nnn` sin prefijo anteriores a 005**: al backlog, **enumeradas**.
   > La disciplina 9 exige prefijo de spec —`P-004 FR-017`—, pero **su grep sólo busca `FR-017`**.
   > Generalizado a `FR-0[0-9][0-9]` sobre `internal/` y `cmd/`, quedan **cinco vivas, todas anteriores

@@ -210,6 +210,22 @@ un proyecto recién creado **no habría histórico que apareciera**.
 Banco TLS levantado (arriba), agente enrolado contra `https://localhost:8443/...`, y un código de
 adhesión acuñado desde el panel para el Proyecto destino.
 
+### ⛔ EL MODAL DE EMISIÓN NO SE CAPTURA — y esto salió de ejecutar la ceremonia
+
+**El código es una credencial y el modal que lo revela lo enseña UNA VEZ**, así que la reacción
+natural es hacerle una captura de pantalla para no perderlo. **No se hace.** Una captura vive en el
+carrete, en el portapapeles, en el historial de la herramienta con la que se tomó y a veces en una
+copia en la nube — sitios donde una credencial no se puede retirar.
+
+**Medido en la ceremonia del 2026-08-19**: pasó. El código acabó dentro de una captura de pantalla.
+**Quedó neutralizado por una propiedad del diseño** —emitir un código revoca el anterior, así que
+para cuando la captura existía el valor ya no servía—, pero **el procedimiento lo permitía y ahora no
+debe**: apoyarse en que la revocación llegue a tiempo no es una defensa, es una carambola.
+
+**Qué hacer en su lugar**: llevar el código del modal al comando **sin pasar por una imagen** —copiar
+al portapapeles y consumirlo por la entrada estándar— y **volver a emitir** si se pierde, que es
+barato y revoca el anterior. Si alguna captura ya existe, **se borra y se emite un código nuevo**.
+
 ### ⚠️ Y LAS DOS CAPTURAS PREVIAS — antes de tocar nada
 
 **C2 y C4 comparan contra un "antes", y ese "antes" hay que tomarlo aquí.** Sin estas dos capturas, las
