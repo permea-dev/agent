@@ -79,6 +79,32 @@ func enroll(args []string, stdin io.Reader, stdinIsPipe bool, stdout io.Writer, 
 		return err
 	}
 
+	// ═══ P-005 · EL SALT NACE AQUÍ, Y ESTO NO ES UNA OPTIMIZACIÓN ══════════════════════════
+	//
+	// `config.LoadOrCreateSalt` materializa el secreto local si no existe. Se llama **al terminar un
+	// enrolamiento CORRECTO**, y sólo ahí: un enrolamiento rechazado sigue sin escribir absolutamente
+	// nada —lo sujeta `assertNoPersist` en `cmd/permea/enroll_reject_test.go`, y eso no puede cambiar—.
+	//
+	// **Por qué el sitio es éste y no `project join`.** El salt es la semilla de `event.Ref`, así que
+	// hace falta para componer el `project_ref` que la adhesión presenta — o sea **antes de emitir**.
+	// Si no existiera al llegar ahí, lo crearía `project join`, y no sólo en el camino de éxito: en
+	// **los cuatro que emiten**, incluido un rechazo `422` y un servidor inalcanzable. Y P-005 SC-007
+	// exige que los artefactos locales queden **«sin modificar» tras cualquier ejecución del comando,
+	// con cualquier desenlace, incluidos los de rehúse y los de error**, enumerando el conjunto
+	// —configuración, estado de lectura, cola de envío, **secretos**— del que el salt forma parte.
+	//
+	// **Crearlo aquí es lo que hace ciertos P-005 FR-019 y P-005 SC-007 A LA VEZ**, sin escribir
+	// ninguna excepción en ninguno de los dos: `project join` deja de tener nada que crear, y la
+	// comparación byte a byte de SC-007 pasa por una propiedad del comando y no por la casualidad de
+	// que la instalación ya hubiera emitido antes.
+	//
+	// El error se propaga: llegados aquí el directorio de datos ya aceptó una escritura —`config.Save`
+	// acaba de hacerla—, así que un fallo es una avería real, y callarla devolvería el problema a
+	// `project join`, que es de donde se lo ha quitado.
+	if _, err := config.LoadOrCreateSalt(dir); err != nil {
+		return err
+	}
+
 	// Confirmación: la URL y el dev_id (identidad, no secreto) sí; el token NUNCA. Un fallo al
 	// escribir la confirmación no revierte el enrolamiento ya persistido, así que se ignora
 	// explícitamente (como printVersion).

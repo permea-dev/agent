@@ -247,6 +247,23 @@ sin cambios**, más una que esta feature añade.
    en la misma cabecera** (`internal/ingest/boundary_test.go`). Barrido y cerrado en los cuatro ficheros
    que lo mencionaban; verificable con `grep -rn 'FR-017' --include='*.go' . | grep -v 'P-00[0-9] '` →
    **cero**.
+   > #### ⚠️ MEDIDO EN PHASE 7 · EL GREP SÓLO MIRA `FR-017`, Y LA REGLA ES GENERAL
+   > La regla dice **«los identificadores de requisito»**, en plural y sin excepción; el instrumento
+   > que la acompaña **sólo busca uno**. Generalizado a `FR-0[0-9][0-9]` sobre `cmd/` aparecieron
+   > **tres citas sin prefijo**, dos escritas en 005. **Las tres corregidas.**
+   >
+   > **Y una de ellas enseña algo que el instrumento no ve: EL SALTO DE LÍNEA.** `(P-005\n// FR-023,
+   > …)` **está bien citada** y el grep la marca igual, porque el prefijo quedó en la línea anterior.
+   > Al revés también pasa: una cita mal escrita puede esconderse de un grep de una línea. **La
+   > defensa es de estilo, no de patrón**: se reflowea el comentario para que **prefijo y número
+   > vivan en la misma línea**, y así lo que el grep ve coincide con lo que hay escrito.
+   >
+   > **El patrón general —`grep -rn 'FR-0[0-9][0-9]' --include='*.go' . | grep -v 'P-00[0-9] '`— NO
+   > se adopta todavía**: sobre el árbol entero da **82 líneas**, casi todas de 001–004, donde la
+   > feature se sobreentiende por el paquete. Adoptarlo hoy sería publicar un instrumento que grita
+   > siempre, y **un grep ruidoso acaba desactivado** —es la lección que la disciplina 8 ya pagó—.
+   > **Queda al backlog como barrido propio**, y mientras tanto la regla se aplica a lo que 005
+   > escribe, que es lo que 005 puede sostener.
 
 **Nota de ejecución**: Claude Code **no ejecuta git de escritura**. El marcado de casillas de este
 fichero viaja en **el mismo commit** que el código que documenta, y ese commit lo hace Basilio.
@@ -1094,6 +1111,33 @@ es barata de encontrar**: antes de que nada más cambie.
   «≠ 0» esta tarea **nacería VERDE contra el andamiaje** —70 también es ≠ 0— y su rojo no existiría.
   El valor es **1** porque el binario tiene **dos** códigos, `0` y `1` (`cli.md` §Los códigos de
   salida), y el error de uso no es éxito.
+  - [x] **T017b · el ENTRELAZADO entrada ↔ rehúses** — `join` **sin argumento Y fuera de árbol** →
+    gana **el error de uso**. Es el único caso que lo observa: T017 monta árbol y config buenos, así
+    que allí no hay competencia.
+    **Razón, y va escrita**: rehusar por falta de árbol cuando la persona **no ha dado ningún código**
+    es contestar a una pregunta que no hizo — se le señala un sitio al que ir con algo que todavía no
+    tiene. El error de uso nombra lo que le falta **ahora**, que es el criterio de D-005-P13 aplicado a
+    lo que **no** es uno de los tres rehúses.
+    **Se observa comparando salidas entre sí** (disciplina 4), no casando texto: el `stderr` de la
+    combinación debe ser **el mismo** que el del error de uso puro y **distinto** que el del rehúse del
+    árbol puro.
+    > ### ⚠️ NACIÓ VERDE — T021 ya lo resolvió así. VALIDADO POR MUTACIÓN
+    > **La mutación**: mover la lectura de la entrada **detrás de los tres rehúses**, justo antes de
+    > resolver el salt. **Válida por las dos mitades** (disciplina 3): **compila** —`go build ./...`
+    > limpio, ni panic ni `build failed`— y **mata sólo ese hecho**: el único `FAIL` de `cmd/permea`
+    > fue este test; T016, T017, T018, T019 y T020 siguieron en verde, porque T017 monta el árbol y no
+    > hay competencia que invertir.
+    > ```
+    > --- FAIL: TestProjectJoin_LaEntradaGanaAlRehuseDelArbol
+    >   sin argumento y fuera de árbol NO gana el error de uso
+    >     obtenido:     "error: este directorio no pertenece a un árbol de trabajo con raíz
+    >                    reconocible.\n       Ejecuta el comando dentro del árbol de trabajo…"
+    >     error de uso: "error: uso: permea project join <código>  (recomendado: pásalo por stdin…)"
+    >   el rehúse obtenido es indistinguible del rehúse del árbol: los dos dan «el del árbol»
+    > ```
+    > **Revertida por edición inversa**, y la reversión se comprobó contra el árbol de git:
+    > `git diff --exit-code cmd/permea/project.go` → **sin diferencias**. No es «parece igual»: es el
+    > mismo fichero.
 - [x] **T018** [P] Test del **ORDEN de los tres rehúses** en el mismo fichero — **Garantía**:
   D-005-P13, `cli.md` §Comportamiento. Con las tres condiciones a la vez —sin árbol, sin enrolamiento
   y con configuración rota— el mensaje es **el del árbol**. Nace en **rojo**.
@@ -1256,14 +1300,19 @@ es barata de encontrar**: antes de que nada más cambie.
   > `config.LoadOrCreateSalt` **crea** el secreto si no existe, así que pedirlo antes de tiempo haría
   > que **un camino de rehúse escribiera en local**. R1 no lo necesita: `huboRaiz` sale de `ascender`,
   > que sólo mira el sistema de ficheros, y el salt sólo entra en el hash. Se pregunta con salt vacío
-  > y **el camino de rehúse no toca el secreto**.
+  > y **el camino de rehúse no toca el secreto**. Eso sigue siendo cierto y sigue siendo el diseño.
   >
-  > **Y en el camino de éxito sí se crea, y es lo correcto**: una instalación sin salt **todavía no
-  > tiene identidad**, y la que se cree ahora es exactamente la que estampará la primera emisión.
-  > Derivar con otro salt presentaría una identidad que la ingesta nunca usaría — el fallo que FR-005
-  > existe para impedir. ⚠️ **Para T025**: el montaje tiene que sembrar las semillas
-  > (`testutil.SandboxConSemillas`) o la comparación byte a byte verá nacer el `salt` y culpará al
-  > comando de lo que es el primer arranque.
+  > ### 🔴 LO QUE ESTA NOTA DECÍA MAL — «el camino de éxito» eran CUATRO, y hoy son CERO
+  > **Primera corrección**: decía que el salt se crea «en el camino de éxito». **Medido: eran los
+  > cuatro que EMITEN** —éxito, D1 (`422`), D2 (`409`) y no verificable—, porque el salt hace falta
+  > para componer `project_ref` **antes de emitir**, y por tanto antes de saber cómo va a responder la
+  > plataforma. Sólo los **tres rehúses locales** quedaban limpios.
+  >
+  > **Segunda corrección, y deja la primera sin efecto práctico**: **el salt pasa a nacer en el
+  > enrolamiento** (`cmd/permea/enroll.go`, al terminar un enrolamiento correcto). Sobre una
+  > instalación enrolada con el binario actual, **`project join` no crea nada en ninguno de los ocho
+  > desenlaces** — medido, tabla en T025. El aviso «para T025, siembra las semillas» ya no describe un
+  > apaño: describe **el estado que el enrolamiento deja**.
   >
   > ### ⛔ LO QUE ESTA TAREA NO HACE, Y ES DE T027
   > **La presentación de los desenlaces.** Todo error del ejecutor sale hoy por **stderr** con código
@@ -1284,11 +1333,67 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ### Tests (rojo antes de verde)
 
-- [ ] **T022** [P] Test del **reparto de canales** en `cmd/permea/project_test.go` — **Garantía**:
+- [x] **T022** [P] Test del **reparto de canales** en `cmd/permea/project_test.go` — **Garantía**:
   FR-021, SC-011 (B). Éxito → **stdout no vacío y stderr sin el desenlace**; rehúse o error → **stderr
-  no vacío y stdout VACÍO**. **Capturados por separado** (disciplina 7). Nace en **rojo**.
-- [ ] **T023** [P] Test de **los ocho códigos de salida** en el mismo fichero — **Garantía**: `cli.md`
+  no vacío y stdout VACÍO**. **Capturados por separado** (disciplina 7). ~~Nace en **rojo**~~ →
+  **NACIÓ VERDE**, ver abajo.
+  > ### 🟢 LA PREDICCIÓN DE §Las puertas de rojo CAYÓ AL MEDIRLA — T022 NACE VERDE
+  > **La fila decía**: *«T021 implementa entrada y rehúses; la presentación llega en T027, así que no
+  > hay reparto de canales que comprobar»*. **La premisa era que T021 no emitiría salida de desenlace**,
+  > y **T016 no se lo permitió**: exige `stdout` **no vacío** en el éxito, así que T021 tuvo que
+  > imprimir la denominación por stdout y los errores por stderr. **Los ocho desenlaces ya reparten
+  > bien los canales antes de T027.**
+  >
+  > **No se «arregla» retorciendo el test: se declara.** Lo que le queda a T027 no es el reparto —ya
+  > está— sino **la redacción** de cada desenlace.
+  >
+  > ### ✅ VALIDADO POR MUTACIÓN (disciplina 3, porque nació verde)
+  > **La mutación**: que el camino de error del ejecutor escriba **también por stdout**. **Válida por
+  > las dos mitades**: compila (`go build ./...` limpio) y **mata sólo ese hecho** — el único `FAIL` fue
+  > T022, en sus tres desenlaces remotos de error; T016, T017, T018, T019, T020, T023, T024, T025 y
+  > T026 siguieron en verde.
+  > ```
+  > --- FAIL: TestProjectJoin_ElRepartoDeCanales/{D2, D1, NV}
+  >   stdout = "MUTACION: un rehúse remoto escribiendo por stdout\n" en un desenlace de REHÚSE o
+  >   ERROR; se esperaba VACÍO: no hay respuesta que dar, y quien canalice stdout a un fichero no
+  >   debe encontrarse un error dentro
+  > ```
+  > **Revertida por edición inversa**, comprobado contra git: `git diff --exit-code
+  > cmd/permea/project.go` → sin diferencias.
+  >
+  > ### ⛔ «stderr SIN el desenlace» SE COMPRUEBA POR CANAL VACÍO
+  > Buscar que la denominación **no aparezca** en stderr es la forma que la **disciplina 5** prohíbe:
+  > pasa igual **cuando aparece otro texto distinto**. El canal vacío satisface «sin el desenlace» y
+  > además es observable. Los dos canales viven en campos distintos de `desenlace` y **no se concatenan
+  > en ningún punto** (disciplina 7).
+- [x] **T023** [P] Test de **los ocho códigos de salida** en el mismo fichero — **Garantía**: `cli.md`
   §Los códigos de salida. Compara **`ExitCode()`, nunca texto** (disciplina 4).
+  > ### 🟢 TAMBIÉN NACIÓ VERDE, Y POR LA MISMA CAUSA
+  > **La fila decía** *«ídem: los ocho códigos los fija T027»*. **T017 y T020 se adelantaron**: exigen
+  > `ExitCode() == 1` **exacto**, así que T021 tuvo que fijar los dos códigos del contrato **y retirar
+  > el andamiaje de T003 ahí mismo**. Los ocho valores ya son los del contrato.
+  >
+  > ⛔ **Consecuencia sobre la nota de esta tarea**: decía que **T023 es quien retira el `70`**. **Ya no
+  > lo es** —lo retiró T021—, y pasa a ser **lo que lo vigila**: el test sigue tumbando cualquier
+  > superviviente, pero la retirada no dependía de él.
+  >
+  > ### ✅ VALIDADO POR MUTACIÓN
+  > **La mutación**: que los desenlaces remotos de error salgan con `2` en vez de `1`. Compila, y
+  > **mata sólo T023** —los tres desenlaces remotos de error—; los otros nueve tests, en verde.
+  > ```
+  > --- FAIL: TestProjectJoin_LosOchoCodigosDeSalida/{D2, D1, NV}
+  >   ExitCode() = 2, se esperaba EXACTAMENTE 1. El binario tiene DOS códigos, `0` y `1`, y esta
+  >   feature no amplía el vocabulario
+  > ```
+  > **Revertida por edición inversa**, `git diff --exit-code` → sin diferencias.
+  >
+  > ### ⚠️ D3 ≡ D4 NO SE PUEDE MUTAR, Y ESO ES LA GARANTÍA — no un hueco
+  > El subtest que los compara **entre sí** está escrito y pasa, pero **ninguna mutación honesta puede
+  > separarlos hoy**: el comando **nunca llega a saber cuál de los dos fue** —la plataforma responde lo
+  > mismo (`adhesion.md` §Los cuatro desenlaces)—, así que darles códigos distintos exigiría **inventar
+  > una distinción que no existe**. La indistinguibilidad es **estructural**, y este subtest es la
+  > **guardia contra el futuro**: el día que alguien introduzca esa distinción, cae aquí. Se anota tal
+  > cual porque un «validado por mutación» que no se puede ejecutar es peor que decir por qué no.
   > ⚠️ **El caso que no puede faltar**: **D3 y D4 comparten código**. Si alguien le diera a «ya
   > estabas unido» un código propio, **rompería FR-010** sin darse cuenta — el resultado del proceso
   > es observable. Este test es lo único que lo impide.
@@ -1296,33 +1401,99 @@ es barata de encontrar**: antes de que nada más cambie.
   > ⚠️ **Y ES QUIEN RETIRA EL 70 DE T003.** Comparar los ocho códigos exactos **tumba cualquier
   > superviviente del andamiaje**, así que la retirada está **garantizada por el test** y no confiada
   > a que alguien se acuerde.
-- [ ] **T024** [P] Test de **no filtración del código** en el mismo fichero — **Garantía**: FR-020,
+- [x] **T024** [P] Test de **no filtración del código** en el mismo fichero — **Garantía**: FR-020,
   SC-005. Para **cada uno de los ocho desenlaces** (los del comando, `cli.md`): generar las subcadenas
   de **longitud ocho** del valor presentado y buscarlas **en los dos canales**. **Cero apariciones.**
   ⚠️ **NACE VERDE, y hay que decirlo**: un comando sin implementar **no imprime el código** —no imprime
   casi nada—, así que la ausencia se cumple sola. **Se valida por SU CASO POSITIVO**, que ya está
   escrito en la propia tarea: sembrar deliberadamente el código en una salida debe **tumbar el test**,
   y hay que **leer el mensaje**. Sin eso, no distingue «no se filtra» de «no hay salida».
-- [ ] **T025** [P] Test de **nada se escribe en local** en el mismo fichero — **Garantía**: FR-019,
+  > ### ✅ ESCRITO Y DECLARADO VERDE — el caso positivo queda SIN EJECUTAR, es deber de T027
+  > Los ocho desenlaces × los dos canales, con las **43 subcadenas de longitud ocho** del código. Cero
+  > apariciones. El caso positivo del **instrumento** —una salida fabricada que sí lleva el código debe
+  > producir apariciones— está **escrito y con `t.Skip`**, y T027 lo retira junto con la siembra en la
+  > salida REAL del comando, que es la mitad que demuestra que el detector está **conectado**.
+  >
+  > ### ⛔ EL CÓDIGO DEL ARNÉS ES DE ALTA ENTROPÍA, Y AHORA SE COMPRUEBA
+  > Un fixture legible reinventaría la piedra del `" no perm"` **sobre los ocho desenlaces a la vez**:
+  > una subcadena de ocho que choca por azar con la prosa de los mensajes. La regla deja de ser una
+  > recomendación: el test **exige la forma del contrato** —`pmeaj1.` + 43 base64url = **50**
+  > (`adhesion.md` §El código)— con un `t.Fatalf`, que aquí es lo correcto porque sin código conforme
+  > **lo que siga no significa nada**. Nadie puede aflojarlo sin que el test lo diga.
+- [x] **T025** [P] Test de **nada se escribe en local** en el mismo fichero — **Garantía**: FR-019,
   SC-007. Captura **íntegra** del conjunto enumerado de artefactos —configuración, estado, cola,
   secretos— **antes**, y comparación byte a byte **contra esa captura** tras cada desenlace.
   ⚠️ **NACE VERDE**: un comando sin implementar **no escribe nada**, así que la ausencia se cumple
   sola. **Se valida por SU CASO POSITIVO**, ya escrito: una operación de la instalación que **sí**
   modifica el estado local **hace fallar la misma comparación**. Si no falla ahí, el test no distingue
   «no cambió» de «no miré».
-- [ ] **T026** [P] Test de **la petición nunca se encola** en el mismo fichero — **Garantía**: FR-018,
+  > ### ✅ EL CONJUNTO ENUMERADO ESTÁ COMPLETO, Y NO EXCLUYE NADA
+  > **Configuración, estado, cola y secretos**, sin cláusula, sin excepción y sin nota al pie. **Ya no
+  > hace falta excluir nada, y ésa es la novedad**: la decisión de que **el salt nazca en el
+  > enrolamiento** —`cmd/permea/enroll.go`, al terminar un enrolamiento correcto— deja a `project
+  > join` **sin nada que crear**.
+  >
+  > ### 📏 POR QUÉ HIZO FALTA LA DECISIÓN, Y QUÉ SE MIDIÓ
+  > **El salt es la semilla de `event.Ref`**, así que hace falta para componer el `project_ref` que la
+  > adhesión presenta — o sea **antes de emitir**. Mientras lo creaba `project join`, lo creaba en
+  > **los cuatro caminos que emiten**: éxito, D1 (`422`), D2 (`409`) y no verificable. Y P-005 SC-007
+  > dice **«sin modificar» tras cualquier ejecución, con cualquier desenlace, incluidos los de rehúse
+  > y los de error**, enumerando «secretos» dentro del conjunto. **P-005 FR-019 se dejaba leer acotado
+  > a rastro de la adhesión; SC-007 no.** Los dos textos no podían ser ciertos a la vez.
+  >
+  > **La decisión los hace ciertos a los dos, literalmente y sin excepción escrita** — y lo hace
+  > moviendo el hecho, no reinterpretando el texto. La spec está congelada y **no ha hecho falta
+  > tocarla**.
+  >
+  > ### 🔬 MEDIDO CON EL BINARIO NUEVO — enrolamiento real, HOME temporal, banco TLS
+  > Se **enrola de verdad**, se captura el directorio de datos, y se ejecutan los **cuatro caminos que
+  > emiten** más un rehúse local. Comparación por hash, fichero a fichero:
+  >
+  > | Camino | Salida | `rc` | Directorio de datos |
+  > |---|---|:--:|---|
+  > | **Éxito (200)** | `unido al Proyecto "RecetApp"` | 0 | **cero diferencias** |
+  > | **D1 (`422`)** | el código no es utilizable | 1 | **cero diferencias** |
+  > | **D2 (`409`)** | esta identidad ya pertenece a otro proyecto | 1 | **cero diferencias** |
+  > | **NV (servidor caído)** | no se pudo verificar el desenlace | 1 | **cero diferencias** |
+  > | **R1 (fuera de árbol)** | ejecuta dentro del árbol de trabajo | 1 | **cero diferencias** |
+  >
+  > Tras el enrolamiento el directorio contiene exactamente **`config.json` y `salt`**, y **ninguno de
+  > los cinco caminos lo mueve**.
+  >
+  > ### 🔬 QUÉ MONTA EL TEST, Y POR QUÉ SIGUE SEMBRANDO
+  > El montaje escribe `config.json` **a mano** —no pasa por `enroll`—, así que **siembra los
+  > secretos** para representar lo que una instalación enrolada tiene. **Ya no es un rodeo: es un
+  > espejo.** Antes el sembrado tapaba un hueco; ahora **reproduce lo que el enrolamiento deja**, y
+  > eso se puede comprobar comparándolo con la medida de arriba.
+  > **Y la captura se DERIVA del directorio**, recorriéndolo entero, no de una lista escrita a mano:
+  > una lista a ojo es el defecto que la disciplina 8 ya registró tres veces, y un artefacto nuevo se
+  > le escaparía sin que nadie se enterara.
+
+- [x] **T026** [P] Test de **la petición nunca se encola** en el mismo fichero — **Garantía**: FR-018,
   SC-010. Con el servidor **inalcanzable**, la cola inspeccionada **antes y después** no crece.
   ⚠️ **NACE VERDE**: un comando sin implementar **no encola nada**, así que la ausencia se cumple sola.
   **Se valida por SU CASO POSITIVO**, ya escrito: una emisión ordinaria de eventos con el destino
   igualmente caído **sí la hace crecer**. Si la cola no crece en ninguno de los dos casos, **el
   observador no está mirando** y el criterio no cuenta como pasado.
+  > ### ✅ ESCRITO Y DECLARADO VERDE — el caso positivo queda SIN EJECUTAR
+  > La cola se inspecciona con `transport.Load` —la lectura exportada, no una copia— antes y después,
+  > con el banco **cerrado** para que el destino esté escrito y muerto. **Con precondición**: si el
+  > comando saliera con `0` contra un destino cerrado, la circunstancia de SC-010 no se habría dado y
+  > la cola no probaría nada; ahí `t.Fatalf` es correcto (disciplina 3).
+  > El caso positivo —`--run` con el fixture de logs del repositorio y el mismo destino caído— está
+  > **escrito y con `t.Skip`**; lo ejecuta T027.
 
 ### Implementación
 
 - [ ] **T027** Implementar la **presentación de los desenlaces** en `cmd/permea/project.go`: el mapeo
   de `cli.md` §Comportamiento —canal y código de salida por desenlace—, con **D3 y D4 produciendo
   salida idéntica**, **D2 sin nombrar el Proyecto ajeno** y **D1 sin indicar la causa**.
-  **Pone en verde T022 y T023.**
+  ~~**Pone en verde T022 y T023.**~~ ⛔ **YA NO: los dos nacieron VERDES** —medido, ver T022 y T023—,
+  porque T016/T017/T020 obligaron a T021 a fijar **canales y códigos**. **Lo que le queda a T027 es la
+  REDACCIÓN**: hoy los desenlaces remotos salen con el mensaje crudo del transporte. Y con ella, **los
+  CINCO tests de Phase 7 quedan bajo su responsabilidad de no romper**, no sólo los tres verdes.
+  ⚠️ **Y esto sube el listón, no lo baja**: T022 y T023 dejan de ser tests que T027 «pone en verde» y
+  pasan a ser **la red que vigila que T027 no estropee lo que ya funciona** al cambiar los mensajes.
   > ### ⚠️ Y AQUÍ SE EJECUTAN LOS TRES CASOS POSITIVOS — es deber de esta tarea
   > **T024, T025 y T026 nacieron VERDES** (una ausencia la satisface un comando sin implementar), así
   > que **su validación no es «ponerlos en verde»: es ejecutar su caso positivo ahora que hay
@@ -1440,7 +1611,19 @@ y **no reescriben sus pasos**.
   ⚠️ **La captura previa la toma T033, no C4**: `quickstart.md` §C4 dice «con su estado previo» pero
   **no toma ninguno** —comprobado—, así que el «estado previo» es el de T033. Sin él, esta tarea no
   tiene contra qué comparar.
-
+  > ### ✅ EL `salt` YA NO ES UN RESIDUO DE ESTA CEREMONIA
+  > Hubo un tramo en el que **`project join` creaba el `salt`** si no existía —en los cuatro caminos
+  > que emiten—, y esta tarea habría salido bien **por la historia del sujeto**: `~/dev/test/RecetApp`
+  > lleva miles de eventos y su `salt` existe desde hace tiempo. **Eso ya no es lo que la sostiene.**
+  >
+  > **El salt nace en el enrolamiento** (`cmd/permea/enroll.go`), así que la comparación byte a byte
+  > de C4 pasa **por una propiedad del comando**: `project join` no tiene nada que crear, con ningún
+  > desenlace. Medido con binario real y enrolamiento real sobre los cuatro caminos que emiten más un
+  > rehúse local — **cero diferencias en los cinco** (la tabla está en T025).
+  >
+  > **Lo que sigue siendo deber de esta tarea**: que la captura previa la tome **T033**, porque
+  > `quickstart.md` §C4 dice «con su estado previo» y **no toma ninguno**. Sin él, esto compara contra
+  > un recuerdo.
 ---
 
 ## Dependencies & Execution Order
@@ -1505,8 +1688,8 @@ justo cómo se cuela un verde vacío en un grupo de cinco.
 | **T018** | T001–T015 | **rojo** | T003 no evalúa los tres rehúses, así que no hay orden que observar |
 | **T019** | T001–T015 | **rojo** | T003 no emite peticiones **y tampoco las emite dentro de un árbol**: el **caso positivo** —que el observador registre exactamente una— es el que falla |
 | **T020** | T001–T015 | **rojo** | T003 sale con **70** ante un verbo desconocido, no con el del contrato |
-| **T022** | T001–T021 | **rojo** | T021 implementa entrada y rehúses; **la presentación llega en T027**, así que no hay reparto de canales que comprobar |
-| **T023** | T001–T021 | **rojo** | ídem: los ocho códigos los fija T027 |
+| **T022** | T001–T021 | ~~rojo~~ → ⚠️ **VERDE, medido** | **la predicción cayó**: T016 exige stdout no vacío en el éxito, así que T021 tuvo que repartir los canales. **Validado por mutación** (ver T022) |
+| **T023** | T001–T021 | ~~rojo~~ → ⚠️ **VERDE, medido** | **ídem**: T017 y T020 exigen `ExitCode() == 1` exacto, así que T021 fijó los dos códigos **y retiró el andamiaje**. **Validado por mutación** (ver T023) |
 | **T024** | T001–T021 | ⚠️ **VERDE** | **una ausencia la satisface un comando que no imprime.** Se valida por **su caso positivo** |
 | **T025** | T001–T021 | ⚠️ **VERDE** | **una ausencia la satisface un comando que no escribe.** Se valida por **su caso positivo** |
 | **T026** | T001–T021 | ⚠️ **VERDE** | **una ausencia la satisface un comando que no encola.** Se valida por **su caso positivo** |
@@ -1677,6 +1860,22 @@ primer punto **seguro** es el final de Phase 2, porque hasta ahí **nada ha camb
   (**Phase 1 del plan**). La regla 4 de **`plan.md` §Phase 2 del plan** los mencionaba y **quedó
   ajustada el 2026-08-18**.
 - **No arregla la deuda vieja del README** (`README.md:74`): al backlog.
+- **No migra las instalaciones enroladas con el binario ANTERIOR**: al backlog, **acotado y medido**.
+  > El `salt` pasa a nacer en el enrolamiento (`cmd/permea/enroll.go`), pero **quien se enroló antes de
+  > ese cambio no lo tiene**. Su **primer** `permea project join` seguirá creándolo —lo crea
+  > `config.LoadOrCreateSalt` al componer `project_ref`—, así que en esa instalación, y **sólo la
+  > primera vez**, P-005 SC-007 vería aparecer un fichero.
+  >
+  > **Por qué se anota en vez de arreglarse**: es **residuo conocido, acotado y que se agota solo** —a
+  > partir de la segunda ejecución no vuelve a pasar, y cualquier `--run` o `--daemon` lo agota
+  > también—. Y el remedio —una migración al arranque, o un `enroll` de reparación— es una decisión de
+  > producto, no un parche de esta feature. **Se escribe ahora para que nadie lo encuentre en
+  > producción sin explicación.**
+- **No pone el linter en CI**: al backlog, **medido**.
+  > `golangci-lint run` → **8 issues** (5 `errcheck` en `cmd/permea/project.go`, 2 `revive`, 1
+  > `staticcheck`), y **`.github/workflows/release.yml` NO lo ejecuta** — comprobado. `make lint`
+  > existe y hay `.golangci.yml`, así que la configuración está y lo que falta es **la puerta**. Un
+  > linter que nadie ejecuta es un linter cuyo recuento sólo sube.
 - **No arregla la fuga de USERINFO en los mensajes de endpoint**: al backlog, **medido y no impresión**.
   > **`url.Error` NO REDACTA** —medido: `url.Parse("https://usuario:CLAVE@…/ingest\x7f")` devuelve
   > `parse "https://usuario:CLAVE@…"`, con la contraseña dentro—. Pero el problema **es más ancho que

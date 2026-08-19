@@ -204,7 +204,7 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 	// tres rehúses lo necesita. `LoadOrCreateSalt` lo crea si no existe, y eso es lo correcto y no un
 	// efecto colateral: una instalación sin salt **todavía no tiene identidad**, y la que se cree
 	// ahora es exactamente la que estampará la primera emisión. Derivar con un salt distinto —o
-	// vacío— presentaría una identidad que la ingesta nunca va a usar, que es el fallo que FR-005
+	// vacío— presentaría una identidad que la ingesta nunca va a usar: el fallo que P-005 FR-005
 	// existe para impedir.
 	salt, err := config.LoadOrCreateSalt(dir)
 	if err != nil {
