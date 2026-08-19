@@ -98,9 +98,19 @@ func main() {
 	}
 }
 
-// printUsage escribe una ayuda breve: subcomandos (enroll/status) y flags. NUNCA vuelca la
-// configuración ni el device_token (FR-007): solo describe el uso. La vía stdin de `enroll`
-// se documenta como la recomendada, para no dejar el secreto en el historial del shell (cli.md).
+// printUsage escribe una ayuda breve: subcomandos (`enroll`, `status`, `project join`) y flags.
+// NUNCA vuelca la configuración ni el device_token (P-003 FR-007): solo describe el uso.
+//
+// ⛔ **ES UN LITERAL MANTENIDO A MANO, Y POR ESO ESTÁ ESCRITO QUE HAY QUE VENIR AQUÍ.** Ningún
+// mecanismo lo deriva de la gramática real: un subcomando nuevo **no aparece solo**. Y
+// `005/contracts/cli.md` §La gramática lo hace requisito —«la ayuda del binario DEBE listar
+// `project join` junto a `enroll` y `status`»— porque **un comando que no aparece en la ayuda no
+// existe para quien lo busca**.
+//
+// La vía stdin se documenta como **recomendada** en los dos que llevan un secreto en el argumento
+// —`enroll` y `project join`—, por la misma razón: por argumento, el valor **queda en el historial
+// del intérprete de órdenes y a la vista de quien pueda enumerar procesos**
+// (`005/contracts/cli.md` §Entrada).
 func printUsage(w io.Writer) {
 	_, _ = fmt.Fprint(w, `uso: permea <subcomando | flag>
 
@@ -109,6 +119,15 @@ Subcomandos:
                                 Recomendado: pásalo por stdin para no dejar el secreto en el
                                 historial del shell, p. ej.:  echo "$ENROLL" | permea enroll -
   status                        informa si el agente está enrolado y contra qué backend (nunca el token).
+  project join [<código>]       une esta instalación a un Proyecto, para que su consumo —el ya
+                                medido incluido— cuente bajo él. Se ejecuta DENTRO del árbol de
+                                trabajo que se quiere agrupar.
+                                El código lo acuña quien administra la organización, desde el panel.
+                                Recomendado: pásalo por stdin — por argumento queda en el historial
+                                del intérprete de órdenes, p. ej.:
+                                echo "$CODIGO" | permea project join -
+                                Repetirlo no tiene ninguna consecuencia: unirse dos veces es
+                                indistinguible de unirse una.
 
 Flags (ingesta, P-001/P-002):
   --scan <fichero>  dry-run: imprime eventos de un JSONL, sin tocar estado ni cola.

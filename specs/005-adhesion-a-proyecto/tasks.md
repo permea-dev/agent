@@ -127,6 +127,21 @@ sin cambios**, más una que esta feature añade.
    > de la frontera no envejezcan**. La cita no falló por descuido: falló **porque las citas de línea en
    > código fallan por construcción**, y el sitio donde más duele es justo donde más se cuidan.
    >
+   > #### ⛔ Y EL PERMISO DECAE CUANDO EL FICHERO CITADO ES EL QUE ESTÁS EDITANDO
+   > «Fotos con fecha» vale mientras el artefacto y lo citado **envejezcan a la vez**. Cuando la
+   > tarea que escribe la cita **es la que modifica el fichero citado**, no envejecen a la vez:
+   > **la línea caduca antes que la fecha**, y a veces antes de que la fecha llegue a escribirse.
+   >
+   > **Medido contra este mismo documento, y por eso está aquí:** la deuda del «modo de ref» del
+   > README se anotó como **`README.md:74`**… y **T031, de esta misma feature, la desplazó a la
+   > 127** al insertar §Comandos justo encima. **Cincuenta y tres líneas, dentro de la feature que
+   > escribió esta disciplina.** Nadie tocó la deuda: la movió la sección nueva.
+   >
+   > **La regla que sale de ahí**: si una tarea de la propia feature va a editar el fichero, se
+   > cita **por contenido** —«la línea del `modo de ref` en §Configuración y rutas por SO»— aunque
+   > el artefacto que la escribe sea fechado. **El permiso no es una recomendación de citar así**:
+   > es una excepción, y aquí no aplica.
+   >
    > **El nombre sobrevive al refactor y la línea no**, y hay una asimetría que decide: **una cita por
    > nombre que se rompe la caza el compilador o un `grep`; una cita por línea que se rompe no la caza
    > nadie** — sigue apuntando a una línea que existe y que ahora dice otra cosa. **Falla en silencio, y
@@ -237,7 +252,7 @@ sin cambios**, más una que esta feature añade.
    > no es una regla, es una recomendación.** Son ediciones de comentario —riesgo cero— y `resolve.go`
    > lo vigila T029 igualmente.
    >
-   > **Lo que SÍ se queda fuera: `README.md:74`.** No es una cita por línea desde código: es que **el
+   > **Lo que SÍ se queda fuera: la línea del «modo de ref» del README.** No es una cita por línea desde código: es que **el
    > README documenta un campo retirado** (el `project_ref_mode` que P-004 quitó). **Es deuda de
    > contenido anterior, y ninguna regla de 005 la toca** — está al backlog por su propia vía.
 9. **⚠️ MEDIDA EN 005 · Los identificadores de requisito se citan CON PREFIJO DE SPEC.** `P-004
@@ -264,6 +279,26 @@ sin cambios**, más una que esta feature añade.
    > siempre, y **un grep ruidoso acaba desactivado** —es la lección que la disciplina 8 ya pagó—.
    > **Queda al backlog como barrido propio**, y mientras tanto la regla se aplica a lo que 005
    > escribe, que es lo que 005 puede sostener.
+
+### ⚠️ APRENDIZAJE PARA LA PHASE 1 DE LA PRÓXIMA FEATURE — no es deuda de ésta
+
+**Un punto de extensión nuevo nace SIN TESTIGO salvo que la fase lo pida.** Medido **dos veces en
+005**, y las dos en Phase 1:
+
+| Qué se creó en Phase 1 | Qué faltaba | Dónde se pagó |
+|---|---|---|
+| los **centinelas de desenlace** de `internal/transport` | no existían todavía, y sin ellos los tests de desenlace **no compilaban** | hubo que **declararlos una fase antes de cablearlos**, en Phase 4 |
+| **`project.DerivarConRaiz`** (D-005-P5), de la que cuelga **todo el camino del comando** | **ni un solo test**, de Phase 1 a **T028** — los quince de `resolve_test.go` son de `Derivar` y del `Resolutor` | Phase 8, y salió al medir, no al leer |
+
+**El patrón es el mismo las dos veces**: la Phase 1 crea **la superficie** —una función exportada, un
+centinela, un despachador— y el troceo da por hecho que «ya la cubrirá quien la use». **A veces sí, y
+a veces la usa el código y no la mira ningún test.** `DerivarConRaiz` pasó siete fases exportada,
+llamada desde el comando, y **sin nadie mirándola**.
+
+**La regla que se lleva la próxima Phase 1**: toda tarea que **cree superficie nueva** —función
+exportada, centinela, punto de extensión— **declara en su propio texto quién la mira**, con el número
+de la tarea. Si la respuesta es «ninguna todavía», eso **se escribe** y se abre la tarea que lo haga.
+Una superficie sin testigo declarado es una superficie que nadie va a echar de menos.
 
 **Nota de ejecución**: Claude Code **no ejecuta git de escritura**. El marcado de casillas de este
 fichero viaja en **el mismo commit** que el código que documenta, y ese commit lo hace Basilio.
@@ -1738,15 +1773,70 @@ es barata de encontrar**: antes de que nada más cambie.
 
 > **Es tarea de la feature, no un extra.** Un comando que nadie puede descubrir no existe.
 
-- [ ] **T031** En `README.md`, **crear la sección de comandos que hoy NO existe** y documentar en ella
+- [x] **T031** En `README.md`, **crear la sección de comandos que hoy NO existe** y documentar en ella
   `project join` **junto a `enroll` y `status`** — medido: el README documenta los cuatro flags y **no
   menciona los dos subcomandos**. Con la vía de entrada estándar señalada como **recomendada**, igual
   que hace `cli.md` de 003.
-  ⚠️ **No se arregla `README.md:74`** —documenta el campo retirado «modo de ref», y quien lo siga **no
+  ⚠️ **No se arregla la línea del «modo de ref»** —documenta el campo retirado, y quien lo siga **no
   arranca**—: es **deuda anterior**, va al backlog y **no se cuela en esta feature** (D-005-P12).
-- [ ] **T032** Actualizar `printUsage` en `cmd/permea/main.go:98-113` —literal mantenido a mano— para
+  > ### ✅ SECCIÓN `## Comandos` CREADA — la premisa se confirmó al medirla
+  > El README **no mencionaba ni `enroll` ni `status`**: sólo los cuatro flags. Ahora los tres
+  > subcomandos van juntos, en el orden en que se usan, con `project join` documentado con **lo que un
+  > recién llegado necesita y no puede deducir**: de dónde sale el código (lo acuña quien administra
+  > la organización, desde el panel), que se ejecuta **dentro del árbol**, que **repetirlo no tiene
+  > consecuencia**, que **no persiste nada en local** y que es **de un solo intento**.
+  >
+  > **La vía por stdin va como recomendada CON SU RAZÓN**, que es lo que la hace convincente: por
+  > argumento el valor **queda en el historial del intérprete de órdenes** y a la vista de quien pueda
+  > enumerar procesos.
+  >
+  > ⛔ **Ningún ejemplo lleva un código con aspecto de real**: sólo `$CODIGO` y `<código>`.
+  > Verificado por barrido: `grep -n 'pmeaj1\|pmea2' README.md` → **cero**.
+  >
+  > ### ⚠️ EFECTO COLATERAL, y se declara: `README.md:74` ES AHORA `README.md:127`
+  > La deuda del «modo de ref» **no se ha tocado** —sigue palabra por palabra—, pero la sección nueva
+  > la ha **desplazado 53 líneas**. La cita por línea de esta tarea y la del backlog **ya no apuntan
+  > donde apuntaban**, y ha pasado **dentro de la misma feature que escribió la disciplina 8**. Se
+  > corrigen a **cita por contenido** —«la línea del `modo de ref` en §Configuración y rutas por SO»—,
+  > que es lo que la disciplina manda para lo que no lleva fecha… y lo que aquí habría evitado el
+  > tropiezo aunque el artefacto sí la lleve.
+  >
+  > ### 📏 UNA LÍNEA MÁS, Y SE QUEDA — decisión de Basilio
+  > `## Estructura` decía *«cmd/permea — punto de entrada (modos scan/run/daemon)»*. **Se actualizó**
+  > para nombrar los subcomandos, y **no se revierte**.
+  >
+  > **El criterio, tal cual**: *el alcance estricto existe para que no se cuele trabajo ajeno, no para
+  > publicar una sección y contradecirla dos secciones más abajo en la misma página.* No es deuda de
+  > otra feature: es **el mismo defecto que T031 existe para reparar** —una superficie que el documento
+  > no menciona— reapareciendo dentro del documento que T031 acaba de tocar.
+  >
+  > **Y marca dónde está la frontera**, que es lo que hace útil anotarlo: la línea del «modo de ref»
+  > —a dos secciones de distancia, en el mismo fichero, y también incorrecta— **NO se toca**. La
+  > diferencia no es la cercanía: es que aquélla es **un requisito retirado por otra feature** y ésta
+  > es **una consecuencia directa de lo que esta tarea acaba de escribir**.
+- [x] **T032** Actualizar `printUsage` en `cmd/permea/main.go` —literal mantenido a mano— para
   que liste `project join`. **Un comando que no aparece en la ayuda no existe para quien lo busca**
   (`cli.md` §La gramática).
+  > ### ✅ CONTRASTADA CONTRA EL CONTRATO, NO CONTRA EL RECUERDO — ejecutando el binario
+  > La ayuda **real** se pegó en el reporte y se comparó con `cli.md` §La gramática eje por eje:
+  >
+  > | Eje | Contrato | Ayuda real | |
+  > |---|---|---|:--:|
+  > | nombre del verbo | `join` | `join` | ✅ |
+  > | orden | sustantivo → verbo (`project join`) | `project join` | ✅ |
+  > | forma del argumento | `[<código>]` | `[<código>]` | ✅ |
+  > | listado | «junto a `enroll` y `status`» | en el mismo bloque *Subcomandos* | ✅ |
+  > | vía stdin | «la ayuda DEBE mencionarla como la recomendada» | mencionada, **con su razón** | ✅ |
+  >
+  > **Sin discrepancias: no hay hallazgo de parada.**
+  >
+  > ### ⚠️ Y UNA TRAMPA DEL LITERAL, que se cobró un `go build`
+  > El texto de la ayuda vive en un **literal en crudo delimitado por acentos graves**, así que un
+  > acento grave dentro —`` `enroll` ``, el idioma con el que se citan símbolos en todo este
+  > repositorio— **cierra la cadena y rompe la compilación**. Se anota porque la reacción natural al
+  > escribir ahí es citar como se cita en los comentarios, y ahí no se puede. La cabecera de
+  > `printUsage` lo dice ahora, junto al motivo de que **haya que venir aquí a mano**: nada deriva esta
+  > ayuda de la gramática real, y un subcomando nuevo **no aparece solo**.
 
 ---
 
@@ -2034,7 +2124,13 @@ primer punto **seguro** es el final de Phase 2, porque hasta ahí **nada ha camb
 - **No escribe el contrato**: `contracts/adhesion.md` y `contracts/cli.md` **ya existen**
   (**Phase 1 del plan**). La regla 4 de **`plan.md` §Phase 2 del plan** los mencionaba y **quedó
   ajustada el 2026-08-18**.
-- **No arregla la deuda vieja del README** (`README.md:74`): al backlog.
+- **No arregla la deuda vieja del README** —la línea del **«modo de ref»** en §Configuración y rutas
+  por SO—: al backlog.
+  > **Citada por CONTENIDO y ya no por línea, y no es celo:** era `README.md:74` y **T031 la desplazó
+  > a la 127** al insertar §Comandos. La cita envejeció **dentro de la misma feature que escribió la
+  > disciplina 8**, y en un artefacto fechado —donde la disciplina *sí* permite citar por línea—. Lo
+  > que enseña es que el permiso no es una recomendación de citar así: **cuando el fichero citado es
+  > el que se está editando, la línea caduca antes que la fecha.**
 - **No migra las instalaciones enroladas con el binario ANTERIOR**: al backlog, **acotado y medido**.
   > El `salt` pasa a nacer en el enrolamiento (`cmd/permea/enroll.go`), pero **quien se enroló antes de
   > ese cambio no lo tiene**. Su **primer** `permea project join` seguirá creándolo —lo crea
@@ -2051,6 +2147,29 @@ primer punto **seguro** es el final de Phase 2, porque hasta ahí **nada ha camb
   > `staticcheck`), y **`.github/workflows/release.yml` NO lo ejecuta** — comprobado. `make lint`
   > existe y hay `.golangci.yml`, así que la configuración está y lo que falta es **la puerta**. Un
   > linter que nadie ejecuta es un linter cuyo recuento sólo sube.
+- **No unifica los DOS decodificadores de JSON del binario**: al backlog, **medido**.
+  > `config.ParseEnrollmentString` decodifica **ESTRICTO** —`dec.DisallowUnknownFields()`, struct
+  > cerrada— y **`config.Load` NO**: usa `json.Unmarshal` a secas, así que **toda clave desconocida se
+  > descarta en silencio**.
+  >
+  > **Aquí el silencio es el lado seguro**, y por eso no se toca dentro de 005: un `allow_insecure`
+  > inventado **no enciende nada** —es una de las medidas de SC-008 (T030)—. **Pero la moneda tiene
+  > cara y cruz**: un ajuste **mal escrito** —`sync_intervall`, `logs_rot`— se descarta **con el mismo
+  > silencio**, y quien lo escribió sigue creyendo que está en vigor. Es exactamente la forma del
+  > defecto que P-004 ya tuvo que reparar a mano con `CheckRetiredProjectRefMode`: *«`encoding/json`
+  > descarta la clave desconocida EN SILENCIO … el borrado quita el efecto, no avisa de la creencia»*.
+  >
+  > **Asimetría entre dos decodificadores del mismo binario**, y la decisión de cuál gana no es un
+  > parche: estrictar `Load` **rompería el arranque** de cualquier configuración con una clave de más,
+  > incluida la del propio `project_ref_mode` retirado. Es una conversación.
+- **No barre las citas `FR-nnn` sin prefijo anteriores a 005**: al backlog, **enumeradas**.
+  > La disciplina 9 exige prefijo de spec —`P-004 FR-017`—, pero **su grep sólo busca `FR-017`**.
+  > Generalizado a `FR-0[0-9][0-9]` sobre `internal/` y `cmd/`, quedan **cinco vivas, todas anteriores
+  > a 005**: `internal/project/resolve_test.go` (FR-004a ×2, FR-006a ×2, FR-018 ×2 — cuatro
+  > cabeceras/mensajes de P-004) e `internal/transport/adhesion_test.go` (FR-013, de P-005 T010).
+  > **Las de 005 se corrigieron en su momento**; éstas se dejan porque el barrido general **da 82
+  > líneas sobre el árbol entero** y un grep ruidoso acaba desactivado — es la lección que la
+  > disciplina 8 ya pagó. **Va como barrido propio, con su patrón acotado a `internal/` y `cmd/`.**
 - **No arregla la fuga de USERINFO en los mensajes de endpoint**: al backlog, **medido y no impresión**.
   > **`url.Error` NO REDACTA** —medido: `url.Parse("https://usuario:CLAVE@…/ingest\x7f")` devuelve
   > `parse "https://usuario:CLAVE@…"`, con la contraseña dentro—. Pero el problema **es más ancho que
