@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -33,13 +34,13 @@ import (
 // ese certificado** sin montarle un almacén. La inyección del ejecutor es **la única vía** de probar
 // el camino completo sin arrancar procesos.
 //
-// ═══ QUÉ FALTA TODAVÍA ═════════════════════════════════════════════════════════════════════
+// ═══ LA PRESENTACIÓN — P-005 T027, y lo que ya no le tocaba hacer ══════════════════════════
 //
-// **La PRESENTACIÓN de los desenlaces es P-005 T027**: el mapeo de `contracts/cli.md`
-// §Comportamiento —canal y código por desenlace, con D3 y D4 produciendo salida idéntica, D2 sin
-// nombrar el Proyecto ajeno y D1 sin indicar la causa—. Hasta entonces, todo error del ejecutor sale
-// por stderr con el código de fallo **sin distinguir cuál de ellos fue**, que es el desenlace
-// correcto en canal y en código, y provisional en el mensaje.
+// El **reparto de canales** y los **ocho códigos** los fijó T021, porque T016 exige stdout no vacío
+// en el éxito y T017/T020 exigen `ExitCode() == 1` exacto. Lo que T027 añade es **la redacción**:
+// `mensajeDeUnion` y `mensajeDeRehuseRemoto`, con las cuatro promesas de `contracts/cli.md`
+// §Comportamiento —D3 ≡ D4 byte a byte, D2 sin nombrar el Proyecto ajeno, D1 sin indicar la causa, y
+// el no verificable dejando volver a intentarlo (P-005 FR-013a)—.
 
 // Los DOS códigos de salida del binario (`contracts/cli.md` §Los códigos de salida). **No hay un
 // tercero**: los ocho desenlaces del comando caben en dos valores porque la distinción que importa
@@ -217,19 +218,89 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 
 	denominacion, err := adherir(destino, cfg.DeviceToken, codigo, identidad)
 	if err != nil {
-		// ⚠️ PROVISIONAL — P-005 T027 pone aquí el mapeo por desenlace de `contracts/cli.md`
-		// §Comportamiento. Lo que ya es definitivo es el **canal** (stderr) y el **código** (1), que es
-		// lo que los tres desenlaces remotos de rehúse y el no verificable comparten. Los mensajes que
-		// llegan del transporte NO nombran el Proyecto ajeno ni la causa del rechazo: eso lo garantiza
-		// `transport.Adherir`, no esta línea.
-		fmt.Fprintln(stderr, "error:", err)
+		fmt.Fprintln(stderr, mensajeDeRehuseRemoto(err))
 		return codigoFallo
 	}
 
 	// El éxito comunica **la denominación del Proyecto** (P-005 FR-002) por **stdout**, que es la
-	// respuesta (P-005 FR-021). La redacción final —y que D3 y D4 sean indistinguibles— es de T027.
-	fmt.Fprintf(stdout, "unido al Proyecto %q\n", denominacion)
+	// respuesta (P-005 FR-021).
+	fmt.Fprintln(stdout, mensajeDeUnion(denominacion))
 	return codigoExito
+}
+
+// mensajeDeUnion es la salida de **D4 y de D3 a la vez**, y ésa es la garantía.
+//
+// ═══ D3 ≡ D4 ES ESTRUCTURAL, NO UNA COINCIDENCIA QUE HAYA QUE VIGILAR ══════════════════════
+//
+// P-005 FR-010 exige que unirse ahora y estar ya unido a ese mismo Proyecto sean **indistinguibles en
+// texto, canal y resultado del proceso**. Aquí no hay dos ramas que mantener sincronizadas: **el
+// comando nunca llega a saber cuál de los dos fue** —la plataforma responde `200` con la misma forma
+// en los dos casos (`contracts/adhesion.md` §Los cuatro desenlaces)—, así que sólo existe **un
+// camino**. Introducir una diferencia observable exigiría **inventar antes una distinción que no
+// existe**, y eso es más difícil que acordarse de no hacerlo.
+//
+// ⛔ **`%q` NO ES DECORACIÓN.** La denominación viene **del servidor**, y `%q` escapa los caracteres
+// de control: sin él, un nombre de Proyecto con un salto de línea o una secuencia de escape ANSI
+// podría **fabricar líneas de salida** que la persona leería como del comando. Es entrada ajena
+// impresa en una terminal.
+func mensajeDeUnion(denominacion string) string {
+	return fmt.Sprintf("unido al Proyecto %q", denominacion)
+}
+
+// mensajeDeRehuseRemoto redacta los desenlaces que decide la plataforma, según `contracts/cli.md`
+// §Comportamiento y salidas.
+//
+// ⛔ **Discrimina por CENTINELA, nunca por el texto del error**: los centinelas son el contrato de
+// `internal/transport` (`ErrCodigoNoUtilizable`, `ErrIdentidadYaAsignada`, `ErrNoVerificable`), y
+// casar cadenas ataría esta redacción a la de otro paquete.
+//
+// ⛔ **Ningún mensaje reproduce el código de adhesión** (P-005 FR-020, SC-005): no lo recibe, y por
+// eso no puede filtrarlo ni por descuido.
+func mensajeDeRehuseRemoto(err error) string {
+	switch {
+	case errors.Is(err, transport.ErrCodigoNoUtilizable):
+		// P-005 FR-012 — dice QUE no es utilizable y **NUNCA la causa**. Las cinco causas del `422`
+		// —inexistente, de otra organización, revocado, prefijo desconocido, `project_ref` no
+		// conforme— llegan aquí **como el mismo centinela**, así que producen el mismo mensaje **por
+		// construcción**: no hay dónde escribir la diferencia. Deducirla convertiría al comando en un
+		// oráculo para averiguar qué códigos existen.
+		return "error: el código de adhesión no es utilizable.\n" +
+			"       Pide uno nuevo a quien administre la organización"
+
+	case errors.Is(err, transport.ErrIdentidadYaAsignada):
+		// P-005 FR-011 — lo dice y **NUNCA nombra el Proyecto ajeno**. Tampoco puede: la plataforma no
+		// lo revela y el comando no infiere lo que ella calla.
+		return "error: este árbol de trabajo ya pertenece a otro Proyecto.\n" +
+			"       Habla con quien administre la organización si debería cambiar"
+
+	case errors.Is(err, transport.ErrNoVerificable):
+		// P-005 FR-013 + FR-013a — informa de que **no se pudo establecer** el desenlace, **no afirma
+		// ninguno**, y deja volver a intentarlo.
+		//
+		// **La segunda frase no es consuelo: es el requisito.** El estado remoto queda INDETERMINADO
+		// —si la petición llegó y se perdió la respuesta, la unión ocurrió—, y lo que la spec exige es
+		// que esa incertidumbre sea **inocua**. Callarlo dejaría a la persona sin saber si repetir es
+		// seguro, y la respuesta es que sí: el código no se agota al usarse y unirse dos veces es
+		// indistinguible de unirse una (P-005 FR-010).
+		//
+		// La causa sí viaja, y es el único desenlace donde procede: red, TLS y DNS son **accionables**,
+		// mientras que la causa de un rechazo no lo es y además revela. *(Residuo conocido: la causa
+		// puede llevar la URL dentro, y `url.Error` no redacta el `userinfo`. Es la deuda que
+		// `tasks.md` §Lo que este plan de tareas NO hace ya tiene anotada, con sus otros seis sitios;
+		// no se amplía aquí ni se estrena aquí.)*
+		return "error: no se pudo establecer el desenlace de la operación.\n" +
+			"       Puede que la unión se haya producido y puede que no: desde aquí no se distingue.\n" +
+			"       Vuelve a intentarlo cuando quieras — el código no se agota al usarse y unirse dos\n" +
+			"       veces es indistinguible de unirse una, así que repetir no duplica nada.\n" +
+			"       causa: " + err.Error()
+
+	default:
+		// ⛔ NO ES EL `default` QUE SOBRA DE UN `switch`. Aquí caen los fallos de **configuración** que
+		// el transporte detecta al ir a emitir —el endpoint en claro (`transport.ErrScheme`), el no
+		// analizable—, y **no son desenlaces de la adhesión**: no los decide la plataforma. Se
+		// presentan con su causa, que es lo que la persona tiene que corregir.
+		return "error: " + err.Error()
+	}
 }
 
 // leerCodigoDeAdhesion resuelve el código por las DOS vías equivalentes de `contracts/cli.md`

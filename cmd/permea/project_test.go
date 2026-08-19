@@ -790,6 +790,18 @@ func TestProjectJoin_LosOchoCodigosDeSalida(t *testing.T) {
 			t.Errorf("D3 y D4 salen con códigos DISTINTOS (%d y %d): el resultado del proceso revela "+
 				"cuál de las dos presentaciones surtió efecto, y P-005 FR-010 lo prohíbe", rD3.codigo, rD4.codigo)
 		}
+
+		// P-005 T027 · **LA SALIDA ENTERA, BYTE A BYTE.** P-005 FR-010 exige «mismo texto, mismo canal
+		// y mismo resultado del proceso», y el código es sólo el tercero. Se compara con el mismo
+		// `mismoDesenlace` que T016 —los tres canales por separado—, cuya capacidad de fallar ya
+		// demuestra allí la pieza 3. Aserción aparte y con `t.Errorf`: encadenada tras la del código,
+		// una mutación que tumbara aquélla la dejaría sin evaluar (disciplina 3 §inmunidad).
+		if !mismoDesenlace(rD3, rD4) {
+			t.Errorf("D3 y D4 producen SALIDAS DISTINTAS, y P-005 FR-010 las exige indistinguibles:\n"+
+				"  D4 (unión nueva):  código=%d stdout=%q stderr=%q\n"+
+				"  D3 (ya unido):     código=%d stdout=%q stderr=%q",
+				rD4.codigo, rD4.stdout, rD4.stderr, rD3.codigo, rD3.stdout, rD3.stderr)
+		}
 	})
 }
 
@@ -855,12 +867,11 @@ func TestProjectJoin_NingunDesenlaceFiltraElCodigo(t *testing.T) {
 	}
 
 	t.Run("CASO POSITIVO · el detector sabe encontrar", func(t *testing.T) {
-		t.Skip("PENDIENTE — lo ejecuta P-005 T027 junto con la siembra del código en la salida real " +
-			"del comando; retirar este t.Skip allí")
-
-		// La mitad del instrumento: una salida fabricada que SÍ lleva el código debe producir
-		// apariciones. La otra mitad —que el detector esté conectado a la salida REAL— sólo la
-		// demuestra la siembra en el comando, y es deber de T027.
+		// P-005 T027 lo puso en marcha. **Es la mitad del instrumento**: una salida fabricada que SÍ
+		// lleva el código debe producir apariciones. **La otra mitad —que el detector esté conectado a
+		// la salida REAL— no la demuestra ningún subtest**: la demostró la siembra del código en el
+		// comando, ejecutada en T027 y transcrita en `tasks.md`. Las dos hacen falta: sin ésta, el
+		// detector podría no encontrar nada nunca; sin aquélla, podría estar mirando otra cosa.
 		sembrada := "unido al Proyecto, código " + codigoDeAdhesion + "\n"
 		if vistas := aparicionesDelCodigo(codigoDeAdhesion, umbral, sembrada); len(vistas) == 0 {
 			t.Errorf("el detector NO encuentra el código en una salida que lo lleva entero: "+
@@ -941,8 +952,17 @@ func diferencias(antes, despues map[string]string) []string {
 // dice «sin modificar» **con cualquier desenlace, incluidos los de rehúse y los de error**: los dos
 // textos no podían ser ciertos a la vez. Moviendo el hecho lo son los dos, **sin excepción escrita**.
 //
-// ⚠️ **NACE VERDE**: una ausencia la satisface un comando que no escribe. **Su CASO POSITIVO lo
-// ejecuta P-005 T027.**
+// ⚠️ **NACE VERDE**: una ausencia la satisface un comando que no escribe. **Su CASO POSITIVO se
+// ejecuta abajo**, y P-005 T027 añadió la otra mitad: sembrar una escritura en el propio comando y
+// leer el rojo (transcrito en `tasks.md` T027).
+//
+// ⛔ **PUNTO CIEGO CONOCIDO, MEDIDO Y DECLARADO: la fila de D3.** Su montaje **ejecuta el comando una
+// vez antes de capturar** —eso es lo que la convierte en «segunda presentación»—, así que un fichero
+// que el comando escriba **con contenido constante** ya está dentro de la captura previa y la
+// comparación no ve nada. **Medido**: la siembra de T027 tumbó D4, D2, D1 y NV, y **D3 pasó**.
+// Se declara en vez de disimularse: la cobertura la dan las **otras cuatro filas**, que sí lo cazan,
+// y la fila de D3 sirve a T022/T023/T024 —donde el montaje sí es el correcto— pero **no acredita
+// nada aquí**. Cambiar el montaje para taparlo dejaría de medir D3 en las otras tres.
 func TestProjectJoin_NoEscribeNadaEnLocal(t *testing.T) {
 	for _, d := range losOchoDesenlaces() {
 		t.Run(d.nombre, func(t *testing.T) {
@@ -958,11 +978,11 @@ func TestProjectJoin_NoEscribeNadaEnLocal(t *testing.T) {
 		})
 	}
 
-	t.Run("CASO POSITIVO · lo ejecuta P-005 T027", func(t *testing.T) {
-		t.Skip("PENDIENTE — lo ejecuta P-005 T027; retirar este t.Skip allí")
-
-		// Una operación de la instalación que SÍ escribe en local: `--run` genera y encola, así que
-		// deja `state.json` —y la cola si hubiera algo que encolar—. La MISMA comparación debe fallar.
+	t.Run("CASO POSITIVO · el observador sabe ver un cambio", func(t *testing.T) {
+		// P-005 T027 lo puso en marcha. Una operación de la instalación que SÍ escribe en local:
+		// `--run` genera y encola, así que deja `state.json`. **La MISMA comparación** —`diferencias`
+		// sobre `huellaDelDirectorio`, la de arriba— tiene que verlo. Si no lo viera, el verde de
+		// arriba no distinguiría «no cambió» de «no miré».
 		dataDir, arbol, _ := entornoDeDesenlace(t, http.StatusOK, `{"project":{"name":"RecetApp"}}`)
 		antes := huellaDelDirectorio(t, dataDir)
 
@@ -1019,11 +1039,11 @@ func TestProjectJoin_LaPeticionNuncaSeEncola(t *testing.T) {
 			"de envío diferido, ni con el servidor inalcanzable (P-005 FR-018, SC-010)", len(antes), len(despues))
 	}
 
-	t.Run("CASO POSITIVO · lo ejecuta P-005 T027", func(t *testing.T) {
-		t.Skip("PENDIENTE — lo ejecuta P-005 T027; retirar este t.Skip allí")
-
-		// Una emisión ORDINARIA con el destino igualmente caído: `--run` escanea, encola y falla al
-		// drenar, así que la MISMA inspección debe registrar el aumento.
+	t.Run("CASO POSITIVO · la cola sabe crecer", func(t *testing.T) {
+		// P-005 T027 lo puso en marcha. Una emisión ORDINARIA con el destino **igualmente caído**:
+		// `--run` escanea, encola y falla al drenar, así que **la MISMA inspección** tiene que
+		// registrar el aumento. Que la cola no crezca en ninguno de los dos casos significaría que el
+		// observador no está mirando, y entonces SC-010 no cuenta como pasado.
 		dataDir, arbol, banco := entornoDeDesenlace(t, http.StatusOK, `{"project":{"name":"RecetApp"}}`)
 		banco.srv.Close()
 
@@ -1037,8 +1057,13 @@ func TestProjectJoin_LaPeticionNuncaSeEncola(t *testing.T) {
 			t.Fatalf("sembrar el log: %v", err)
 		}
 
+		// ⚠️ EL PROCESO SE CORTA A PROPÓSITO, Y NO INVALIDA LA MEDIDA. Contra un destino caído, el
+		// drenaje entra en el backoff acotado del transporte —hasta cinco reintentos doblando la
+		// espera— y tardaría más de medio minuto en rendirse. **La cola ya creció antes de eso**: el
+		// agente encola de forma durable ANTES de drenar (durabilidad, R4), que es precisamente lo que
+		// SC-010 observa. Un límite corto mide lo mismo sin pagar el backoff.
 		antes := colaDe(t, dataDir)
-		ejecutarEn(t, arbol, nil, 20*time.Second, "--run")
+		ejecutarEn(t, arbol, nil, 5*time.Second, "--run")
 
 		if despues := colaDe(t, dataDir); len(despues) <= len(antes) {
 			t.Errorf("una emisión ordinaria con el destino caído no hizo crecer la cola (%d → %d): el "+

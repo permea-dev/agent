@@ -1460,6 +1460,35 @@ es barata de encontrar**: antes de que nada más cambie.
   > Tras el enrolamiento el directorio contiene exactamente **`config.json` y `salt`**, y **ninguno de
   > los cinco caminos lo mueve**.
   >
+  > ### 🛡️ LA RED DEL ENROLAMIENTO SE AMPLIÓ AL DIRECTORIO ENTERO — y era necesario
+  > `assertNoPersist` (`cmd/permea/enroll_reject_test.go`) comprobaba **sólo `config.json`**. Bastaba
+  > mientras `enroll` sólo escribiera ese fichero. **Ya no**: el `salt` se crea dentro de una rama, y
+  > **el día que esas líneas se muevan** —un refactor, un `defer` mal puesto— un enrolamiento rechazado
+  > dejaría un secreto en el disco **y la red estaría mirando el fichero equivocado**. Un `config.json`
+  > ausente es compatible con un directorio lleno.
+  >
+  > **No es ajustar la red: es ampliarla para cubrir el cambio que se acaba de introducir.** La
+  > aserción anterior **no se toca** y la nueva se le suma, las dos con `t.Errorf` para que ninguna
+  > quede inalcanzable. El conjunto se **deriva recorriendo el directorio**, no de una lista de nombres.
+  >
+  > **Nació verde, y se validó por mutación**: sacar la creación del salt fuera de la rama del
+  > enrolamiento correcto —al principio de `enroll`—. **Compila**, y **mata sólo ese hecho**: cayeron
+  > los **cinco** tests de rechazo, **todos por la aserción nueva**, y nada más en todo el repositorio.
+  > ```
+  > --- FAIL: TestEnroll_Reject_{401,5xx,Network,Malformed,Pmea1}
+  >   un enrolamiento rechazado dejó 1 fichero(s) en el directorio de datos: [salt]
+  >   El estado indistinguible (SC-004) es el del directorio ENTERO, no el de `config.json`:
+  >   cualquier otro artefacto —el `salt` entre ellos— delata que hubo un intento
+  > ```
+  > **La aserción vieja NO disparó** —`config.json` seguía sin escribirse—, que es la prueba de que lo
+  > que cazó la fuga fue la ampliación y no lo que ya había. Revertida por edición inversa;
+  > `git diff --exit-code cmd/permea/enroll.go` → sin diferencias.
+  >
+  > ### 📏 PERMISOS DEL `salt`: **600** — medido, no supuesto
+  > `stat` sobre cuatro enrolamientos reales: `600 config.json` y **`600 salt`**. No es suerte del
+  > umask: `loadOrCreateSecret` pasa `0o600` a `atomicWrite`, que hace `Chmod` **antes** del `rename`.
+  > **No hay deuda de permisos que decidir.**
+  >
   > ### 🔬 QUÉ MONTA EL TEST, Y POR QUÉ SIGUE SEMBRANDO
   > El montaje escribe `config.json` **a mano** —no pasa por `enroll`—, así que **siembra los
   > secretos** para representar lo que una instalación enrolada tiene. **Ya no es un rodeo: es un
@@ -1485,36 +1514,74 @@ es barata de encontrar**: antes de que nada más cambie.
 
 ### Implementación
 
-- [ ] **T027** Implementar la **presentación de los desenlaces** en `cmd/permea/project.go`: el mapeo
+- [x] **T027** Implementar la **presentación de los desenlaces** en `cmd/permea/project.go`: el mapeo
   de `cli.md` §Comportamiento —canal y código de salida por desenlace—, con **D3 y D4 produciendo
   salida idéntica**, **D2 sin nombrar el Proyecto ajeno** y **D1 sin indicar la causa**.
-  ~~**Pone en verde T022 y T023.**~~ ⛔ **YA NO: los dos nacieron VERDES** —medido, ver T022 y T023—,
-  porque T016/T017/T020 obligaron a T021 a fijar **canales y códigos**. **Lo que le queda a T027 es la
-  REDACCIÓN**: hoy los desenlaces remotos salen con el mensaje crudo del transporte. Y con ella, **los
-  CINCO tests de Phase 7 quedan bajo su responsabilidad de no romper**, no sólo los tres verdes.
-  ⚠️ **Y esto sube el listón, no lo baja**: T022 y T023 dejan de ser tests que T027 «pone en verde» y
-  pasan a ser **la red que vigila que T027 no estropee lo que ya funciona** al cambiar los mensajes.
-  > ### ⚠️ Y AQUÍ SE EJECUTAN LOS TRES CASOS POSITIVOS — es deber de esta tarea
-  > **T024, T025 y T026 nacieron VERDES** (una ausencia la satisface un comando sin implementar), así
-  > que **su validación no es «ponerlos en verde»: es ejecutar su caso positivo ahora que hay
-  > comportamiento que pueda violarlos.** Los tres, con el **mensaje de fallo leído** (disciplina 3):
+  ~~**Pone en verde T022 y T023.**~~ ⛔ **Los dos nacieron VERDES** (medido, ver T022 y T023): T021 ya
+  había fijado canales y códigos. **Lo que esta tarea añade es LA REDACCIÓN**, en dos funciones —
+  `mensajeDeUnion` y `mensajeDeRehuseRemoto`—, y **los tres casos positivos**.
+  > ### ✅ LAS CUATRO PROMESAS, Y CUÁL SE SOSTIENE SOLA
+  > - **D3 ≡ D4, byte a byte** — **estructural, no vigilada**: el comando **nunca llega a saber cuál de
+  >   los dos fue** (la plataforma responde `200` igual en los dos), así que sólo existe **un camino**.
+  >   Introducir una diferencia exigiría **inventar antes la distinción**. Reforzado igualmente: el
+  >   subtest de T023 pasa de comparar sólo el código a comparar **los tres canales** con
+  >   `mismoDesenlace` — que es lo que FR-010 pide («mismo texto, mismo canal, mismo resultado»).
+  > - **D2 sin nombrar el Proyecto ajeno** — *«este árbol de trabajo ya pertenece a otro Proyecto»*.
+  >   Tampoco podría: la plataforma no lo revela.
+  > - **D1 sin indicar la causa** — las cinco causas del `422` llegan **como el mismo centinela**, así
+  >   que producen el mismo mensaje **por construcción**: no hay dónde escribir la diferencia (FR-012).
+  > - **P-005 FR-013a** — el no verificable dice que el desenlace **no se pudo establecer**, **no
+  >   afirma ninguno**, y **deja volver a intentarlo**: *«el código no se agota al usarse y unirse dos
+  >   veces es indistinguible de unirse una, así que repetir no duplica nada»*. **No es consuelo: es el
+  >   requisito** — lo que la spec exige es que la incertidumbre sea **inocua**, y callarlo dejaría a la
+  >   persona sin saber si repetir es seguro.
   >
-  > - **T024** — sembrar deliberadamente el código en una salida **debe tumbarlo**;
-  > - **T025** — una operación que **sí** escribe en local **debe hacer fallar la comparación**;
-  > - **T026** — una emisión ordinaria con el destino caído **debe hacer crecer la cola**.
+  > **Se discrimina por CENTINELA (`errors.Is`), nunca por el texto del error**: casar cadenas ataría
+  > esta redacción a la de `internal/transport`. Y **ningún mensaje recibe el código**, así que no puede
+  > filtrarlo ni por descuido.
   >
-  > **Si alguno no falla, no está mirando**, y el criterio que dice sostener —SC-005, SC-007, SC-010—
-  > **no cuenta como pasado**. Decir «T027 pone en verde T022–T026» habría sido cómodo y falso: tres de
-  > los cinco ya estaban verdes, y lo que les faltaba era exactamente esto.
-  > ### ⛔ ANTES DE MUTAR: REVISAR LOS `t.Fatalf` DE LOS TRES (disciplina 3 §inmunidad)
-  > **Toda aserción que quede DETRÁS de un `t.Fatalf` es inmune a la mutación**: el `Fatalf` corta el
-  > subtest y la de abajo nunca se evalúa, así que **la mutación la da por validada sin haberla tocado
-  > jamás**. Es un verde **inalcanzable**, y no se distingue de uno bueno mirando la salida.
+  > **`%q` en la denominación no es decoración**: el nombre viene **del servidor**, y `%q` escapa los
+  > caracteres de control — sin él, un Proyecto con un salto de línea o una secuencia ANSI podría
+  > **fabricar líneas de salida** que la persona leería como del comando.
   >
-  > **Al ejecutar los tres casos positivos**: comprobar primero que cada aserción independiente usa
-  > `t.Errorf` —y `t.Fatalf` sólo donde continuar no significa nada—. **Si alguna quedó encadenada,
-  > hacen falta tantas mutaciones como aserciones**, cada una dejando en pie las anteriores. *(Medido
-  > en T010: dos aserciones, dos mutaciones, y con una sola se habría dado la segunda por buena.)*
+  > **Dónde SÍ viaja la causa, y por qué sólo ahí**: en el no verificable. Red, TLS y DNS son
+  > **accionables**; la causa de un rechazo no lo es **y además revela**. *(Residuo: esa causa puede
+  > llevar la URL dentro y `url.Error` no redacta el `userinfo` — es la deuda ya anotada en §Lo que
+  > este plan de tareas NO hace, con sus otros seis sitios. Ni se estrena aquí ni se amplía aquí.)*
+  >
+  > ### ✅ LOS TRES CASOS POSITIVOS — EJECUTADOS, y con el rojo LEÍDO
+  > Los `t.Skip` retirados. **Dos mitades, y hacían falta las dos**: el subtest demuestra que el
+  > instrumento **sabe disparar**; la siembra en el comando demuestra que está **conectado a él**.
+  >
+  > | | Subtest positivo | Siembra en el comando → rojo leído |
+  > |---|---|---|
+  > | **T024** | el detector encuentra el código en una salida fabricada | **8/8 desenlaces**: `stderr reproduce el código de adhesión: 43 subcadena(s) de 8 caracteres, la primera "pmeaj1.9"` |
+  > | **T025** | `--run` escribe `state.json` y la comparación lo ve | **4/5**: `el comando modificó el estado local: APARECIÓ adhesion.json` |
+  > | **T026** | `--run` con el destino caído hace crecer la cola | `la cola pasó de 0 a 1 eventos` |
+  >
+  > **Ninguno de los tres se quedó callado**: SC-005, SC-007 y SC-010 cuentan como pasados.
+  >
+  > ### ⛔ PUNTO CIEGO MEDIDO EN T025 — LA FILA DE D3 NO ACREDITA NADA AHÍ
+  > La siembra tumbó **D4, D2, D1 y NV**, y **D3 PASÓ**. No es casualidad: el montaje de D3 **ejecuta
+  > el comando una vez antes de capturar** —eso es lo que lo convierte en «segunda presentación»—, así
+  > que un fichero escrito con **contenido constante** ya está en la captura previa y la comparación no
+  > ve nada.
+  > **Se declara en vez de taparse**: las **otras cuatro filas** sí lo cazan, así que T025 como test
+  > cumple; y cambiar el montaje para cerrar el hueco dejaría de medir D3 en T022, T023 y T024, donde
+  > el montaje sí es el correcto. Está escrito en la cabecera del test, no sólo aquí.
+  >
+  > ### ⚠️ SOLAPES ENTRE MUTACIONES, y por qué NO invalidan ninguna
+  > La siembra de T024 tumbó **también T022** —escribir en stderr en un desenlace de éxito rompe «stderr
+  > vacío»—, y la de T026 tumbó **también T025** —encolar **es** escribir en local—. En los dos casos es
+  > **UNA alteración observada por dos criterios distintos**, no una mutación que mate de más: no hay
+  > forma de filtrar un código sin escribir en un canal, ni de encolar sin tocar el disco. Se anota
+  > porque «mata sólo ese hecho» se comprueba sobre **el hecho**, no sobre el recuento de tests.
+  >
+  > ### 📏 EL TIEMPO DEL CASO POSITIVO DE T026
+  > Contra un destino caído, el drenaje entra en el **backoff acotado** del transporte y tardaría más
+  > de medio minuto en rendirse. **La cola ya creció antes**: el agente encola de forma durable **antes**
+  > de drenar (durabilidad, R4), que es justo lo que SC-010 observa. El límite se bajó a **5 s** y el
+  > proceso se corta a propósito — mide lo mismo sin pagar el backoff.
 
 ---
 
