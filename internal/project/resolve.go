@@ -48,8 +48,45 @@ func Derivar(cwdDeclarado, salt string) string {
 	// El techo se calcula sobre la MISMA ruta real, no sobre la declarada: si un enlace de fuera
 	// del directorio personal apuntara adentro (o al revés), un techo calculado sobre la forma
 	// literal acotaría un ascenso que ocurre en otro sitio.
+	identidad, _ := DerivarConRaiz(cwdDeclarado, salt)
+	return identidad
+}
+
+// DerivarConRaiz es `Derivar` **más el único dato que `Derivar` tapa**: si el ascenso llegó a
+// reconocer una raíz de proyecto, o si la identidad salió del fallback.
+//
+// ═══ POR QUÉ EXISTE, Y POR QUÉ NO SE RESOLVIÓ HACIENDO FALLAR A `Derivar` ══════════════════
+//
+// P-005 FR-006 necesita rehusar la adhesión cuando no hay raíz reconocible: unir una identidad
+// derivada de un directorio suelto produciría un **éxito perfectamente formado sobre la identidad
+// equivocada**, cuyo síntoma es indistinguible de una avería de servidor.
+//
+// El dato ya existía —`ascender` devuelve `(string, bool)`— y `derivarConTecho` lo usaba y lo
+// tiraba. La tentación era que `Derivar` devolviera error al no encontrar raíz, y **eso rompería
+// P-004 FR-010 en el camino de la ingesta** (`specs/004-identidad-de-proyecto/spec.md`, P-004
+// FR-010): un lote
+// entero se detendría porque un directorio dejó de existir. Por eso P-005 FR-015 exige exponerlo por
+// **vía adicional**, y esto es esa vía.
+//
+// ═══ CUERPO COMPARTIDO, NO DUPLICADO (P-005 FR-005) ════════════════════════════════════════
+//
+// `Derivar` y `DerivarConRaiz` **no son dos derivaciones que hoy coincidan**: son **la misma**.
+// Las dos pasan por `derivarConTechoYRaiz`, y `Derivar` se limita a descartar el segundo valor.
+// Esa es la razón de que P-005 SC-001 se pueda demostrar por **origen compartido** en vez de por
+// comparación caso a caso: alterar el cuerpo cambia **las dos a la vez**, por construcción.
+//
+// **NUNCA devuelve error**, igual que `Derivar`: exponer el dato no puede introducir una vía de
+// fallo donde no la había (P-005 FR-016).
+func DerivarConRaiz(cwdDeclarado, salt string) (identidad string, huboRaiz bool) {
+	// ORDEN, y es el requisito (FR-006a / D-004-2): PRIMERO la ubicación real, DESPUÉS el
+	// reconocimiento de raíz. Al revés, un enlace que apunta al interior de un proyecto nunca
+	// llegaría a reconocerse: su cadena literal ascendería por otro sitio y caería al fallback.
+	//
+	// El techo se calcula sobre la MISMA ruta real, no sobre la declarada: si un enlace de fuera
+	// del directorio personal apuntara adentro (o al revés), un techo calculado sobre la forma
+	// literal acotaría un ascenso que ocurre en otro sitio.
 	ubicacion := mejorValorDisponible(cwdDeclarado)
-	return derivarConTecho(ubicacion, salt, techoDeProduccion(ubicacion))
+	return derivarConTechoYRaiz(ubicacion, salt, techoDeProduccion(ubicacion))
 }
 
 // mejorValorDisponible obtiene la mejor forma del directorio declarado (data-model §entidad 4):
@@ -101,16 +138,36 @@ func mejorValorDisponible(declarado string) string {
 //
 // `ubicacion` es el MEJOR VALOR DISPONIBLE (data-model §entidad 4): la ruta real si se pudo
 // resolver, y la declarada si no.
+//
+// Conserva su firma de una sola salida **a propósito**: es la costura que usan los tests del caso 8
+// del contrato, y ampliarla los obligaría a cambiar sin que el cambio les aporte nada. El dato de la
+// raíz se obtiene de `derivarConTechoYRaiz`, que es donde vive el cuerpo.
 func derivarConTecho(ubicacion, salt, techo string) string {
+	identidad, _ := derivarConTechoYRaiz(ubicacion, salt, techo)
+	return identidad
+}
+
+// derivarConTechoYRaiz es **EL CUERPO COMPARTIDO**: la única implementación de la derivación en todo
+// el paquete. `Derivar`, `DerivarConRaiz` y `derivarConTecho` son envoltorios suyos.
+//
+// Que sea uno solo **no es orden, es el mecanismo de P-005 FR-005**: mientras la identidad que el
+// comando presenta y la que la ingesta estampa salgan de aquí, **no pueden divergir**. Dos cuerpos que
+// hoy devolvieran lo mismo serían dos cuerpos que mañana pueden no hacerlo, y el síntoma —«me he unido
+// y no aparece nada»— es indistinguible de una avería de servidor.
+func derivarConTechoYRaiz(ubicacion, salt, techo string) (identidad string, huboRaiz bool) {
 	// Entrada vacía → identidad ausente (FR-008/G1). No hay guarda propia: `event.Ref` ya
-	// devuelve "" para valor vacío (`internal/event/event.go:41-43`), y duplicar aquí la
+	// devuelve "" para valor vacío (`internal/event/event.go`, `Ref`), y duplicar aquí la
 	// definición de «ausente» crearía dos que podrían divergir.
 	if raiz, encontrada := ascender(ubicacion, techo); encontrada {
-		return event.Ref(salt, raiz)
+		return event.Ref(salt, raiz), true
 	}
 
 	// Fallback: el mejor valor disponible, ya normalizado por `mejorValorDisponible` (G6).
-	return event.Ref(salt, ubicacion)
+	//
+	// **`huboRaiz` es false, y el valor NO es vacío**: la derivación sigue produciendo identidad para
+	// un directorio suelto (P-004 FR-005). Quien decida rehusar por «no hay raíz» debe mirar el
+	// booleano, **nunca** si la identidad está vacía — vacía solo lo está con entrada vacía.
+	return event.Ref(salt, ubicacion), false
 }
 
 // ascender sube desde `desde` buscando el marcador, y se detiene AL LLEGAR AL TECHO.

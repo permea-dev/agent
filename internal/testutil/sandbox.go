@@ -16,7 +16,7 @@
 // paquete importara `config`, esos tests no podrían usar el helper: ciclo de importación.
 //
 // Así que la aserción se apoya en `os.UserConfigDir()`, que es la primitiva sobre la que
-// `config.DataDir()` está construido (`internal/config/config.go:51`). No es un rodeo: es
+// `config.DataDir()` está construido (`internal/config/config.go`, `DataDir`). No es un rodeo: es
 // comprobar el mecanismo real de resolución en vez de nuestra envoltura de él.
 package testutil
 
@@ -86,10 +86,11 @@ func Sandbox(t *testing.T) string {
 // SandboxConSemillas es Sandbox más las DOS SEMILLAS DETERMINISTAS de la línea base.
 //
 // PARA QUÉ: `config.LoadOrCreateSalt` genera un salt ALEATORIO cuando el fichero no existe
-// (`internal/config/identity.go:13-14`), y un sandbox nace vacío. Como las tres identidades
+// (`internal/config/identity.go`, `LoadOrCreateSalt`), y un sandbox nace vacío. Como las tres
 // del evento son `Ref(salt, valor)`, un salt aleatorio hace que los refs NO se repitan entre
 // pasadas — y entonces no hay nada que comparar contra la línea base. `loadOrCreateSecret`
-// lee el fichero si existe (`identity.go:24-28`), así que sembrarlo basta.
+// (`internal/config/identity.go`, `loadOrCreateSecret`) lee el fichero si existe, así que sembrarlo
+// basta.
 //
 // QUIÉN LA NECESITA: la verificación de neutralidad de T007 y cualquier test de proceso que
 // compare contra `baseline-sc004.tsv`. Los tests unitarios del resolutor (T008..T020) NO:

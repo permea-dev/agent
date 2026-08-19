@@ -40,6 +40,67 @@ Verifica la instalación con `permea --version`. Detalle de canales e integridad
 [`specs/002-distribucion/contracts/install-contract.md`](specs/002-distribucion/contracts/install-contract.md).
 Compilar desde fuente: ver [Portabilidad](#portabilidad).
 
+## Comandos
+
+Tres subcomandos, y el orden en que aparecen es el orden en que se usan:
+
+    permea enroll [<enrollment-string>]   empareja la instalación con su backend
+    permea project join [<código>]        une este árbol de trabajo a un Proyecto
+    permea status                         informa si la instalación está enrolada, y contra qué
+
+Los tres exigen **HTTPS**, sin exención ni modo de desarrollo: es la misma frontera que la
+emisión de eventos.
+
+### `permea enroll` — emparejar la instalación con su backend
+
+    echo "$ENROLL" | permea enroll -      # recomendada
+    permea enroll <enrollment-string>     # equivalente, pero ver el aviso
+
+El *enrollment string* lo emite quien administra la organización. Verifica el token contra el
+backend y **solo si lo acepta** guarda endpoint y token en `config.json`. Un enrolamiento
+rechazado **no escribe nada**: el estado queda idéntico al de no haberlo intentado.
+
+> **La vía de entrada estándar es la recomendada**, y la razón es concreta: pasado **por
+> argumento**, el valor queda en el **historial del intérprete de órdenes** y a la vista de quien
+> pueda enumerar procesos. El comando no controla eso; lo que sí garantiza es que **existe una vía
+> que no obliga a ponerlo en la línea de órdenes**. Por stdin **nunca se hace eco**.
+
+### `permea project join` — unir este árbol de trabajo a un Proyecto
+
+    cd ~/dev/mi-proyecto                  # DENTRO del árbol que se quiere agrupar
+    echo "$CODIGO" | permea project join -   # recomendada
+    permea project join <código>             # equivalente, mismo aviso que en `enroll`
+
+Une la instalación a un **Proyecto** del panel para que su consumo cuente bajo él — **incluido el
+que ya estaba medido**, sin reenviar ni reprocesar un solo evento: la agrupación ocurre **en el
+servidor**, sobre lo que ya llegó.
+
+- **El código lo acuña quien administra la organización**, desde el panel del backend contra el que
+  te enrolaste. No se genera en local, y no hay forma de fabricarlo desde aquí.
+- **Se ejecuta dentro del árbol de trabajo** que se quiere agrupar: si el directorio actual no
+  pertenece a un árbol con raíz reconocible, el comando **rehúsa y no emite ninguna petición**.
+- **Al completarse, dice el nombre del Proyecto** al que ha quedado unida la instalación. Es la
+  confirmación: sale por la salida estándar, y los errores por la de error.
+- **Repetirlo no tiene ninguna consecuencia.** El código no se agota al usarse, y unirse dos veces
+  es indistinguible de unirse una — así que si una ejecución no llega a completarse, **volver a
+  intentarlo es seguro y no duplica nada**. La segunda vez verás **exactamente la misma salida** que
+  la primera: el comando **no revela cuál de las dos surtió efecto**, y es a propósito.
+- **Si el servidor no responde, lo dice sin afirmar nada.** No dará por hecho que la unión ocurrió
+  ni que no ocurrió: desde aquí las dos cosas se ven igual, y el comando **no conjetura lo que no
+  puede establecer**. Es **el único desenlace tras el que alguien querría repetir**, así que es
+  justo aquí donde se cobra la promesa de arriba: **vuelve a intentarlo cuando quieras**.
+- **No persiste nada en local**: ni el código, ni el Proyecto, ni el hecho de haberse unido. El
+  efecto vive en el servidor, y los ficheros del directorio de datos quedan igual que estaban.
+- La operación es **de un solo intento**: transmite y espera. Nunca queda en la cola de envío
+  diferido, ni siquiera con el servidor inalcanzable.
+
+### `permea status` — diagnóstico local
+
+    permea status
+
+Dice si la instalación está enrolada y contra qué backend. Es **local**: no contacta con nadie.
+**Nunca imprime el token**, a lo sumo un indicador de presencia.
+
 ## Primeros pasos
     make test    # test de frontera en verde (empezar por aquí)
     make run     # dry-run: imprime eventos desde el fixture, sin transmitir
@@ -89,7 +150,7 @@ La versión del binario (`agent_version` en el evento) se inyecta con
 `-ldflags "-X main.version=<versión>"`.
 
 ## Estructura
-    cmd/permea        punto de entrada (modos scan/run/daemon)
+    cmd/permea        punto de entrada (subcomandos enroll/status/project join + modos scan/run/daemon)
     internal/event    LA FRONTERA (struct cerrado del evento)
     internal/ingest   lectores por herramienta (claude_code) + tests de frontera
     internal/pricing  cálculo de coste local (tabla empaquetada)

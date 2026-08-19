@@ -103,8 +103,29 @@ func TestBoundary_NoDenylistLeaks(t *testing.T) {
 
 // ═══ P-004 T005 · LA FRONTERA SE COMPRUEBA EN LOS TRES CAMINOS HACIA EL EXTERIOR ═══════════
 //
-// FR-017, tras D-004-4, acota la garantía a la salida **hacia el exterior** y la nombra entera:
-// el **evento serializado**, la **cola de envío** y el **transporte**. Comprobar solo el primero
+// ⚠️ **ACTUALIZADO POR P-005 T007 (D-005-P14) — «entera» dejó de ser cierto aquí.** Lo que sigue
+// nombra los tres caminos **de la emisión de eventos**, y cuando se escribió eran **toda** la salida
+// hacia el exterior. **Ya no lo son**: P-005 abre la **segunda puerta** de la frontera —la adhesión a
+// un Proyecto—, que emite **un cuerpo propio por un camino propio** y **no recorre ninguno de estos
+// tres**. Su testigo es **`internal/transport/boundary_adhesion_test.go`**, y allí está la nota
+// recíproca que apunta aquí.
+//
+// **Los dos ficheros se leen juntos.** Ampliar la frontera y dejar esta cabecera afirmando que la
+// nombra entera es peor que no decir nada: quien la lea contará tres caminos, los verá cubiertos y
+// concluirá que no falta nadie. **Desde P-005 son DOS PUERTAS y DOS TESTIGOS.**
+//
+// ═══ ⚠️ COLISIÓN DE NUMERACIÓN — SE CITA SIEMPRE CON PREFIJO DE SPEC ══════════════════════
+//
+// **`P-004 FR-017`** (el de aquí) es **el ALCANCE de la frontera**: qué caminos hacia el exterior hay
+// que vigilar. **`P-005 FR-017`** es **el TRANSPORTE SEGURO** de la adhesión: que el destino sea https
+// sin exención. **Mismo número, specs distintas, y los dos se citan en esta misma cabecera.**
+//
+// **Por eso en este repositorio el número NUNCA va suelto: `P-004 FR-017`, `P-005 FR-017`.** Es la
+// convención que ya usa la spec, y sin ella la siguiente feature que estrene un P-004 FR-017 convierte estas
+// cabeceras en una adivinanza.
+//
+// **P-004 FR-017**, tras D-004-4, acota la garantía a la salida **hacia el exterior** y **nombra los
+// tres caminos de la emisión de eventos**: Comprobar solo el primero
 // dejaba dos caminos sin testigo, y no son teóricos: por la cola pasa cada evento antes de
 // transmitirse, y el cuerpo HTTP es literalmente lo que sale de la máquina.
 //
@@ -144,7 +165,8 @@ func TestBoundary_TresCaminosHaciaElExterior(t *testing.T) {
 	exigirSinFugas(t, "camino 2 · queue.jsonl", string(cola))
 
 	// ── Camino 3 · el cuerpo que recibe el backend ──────────────────────────────────────
-	// httptest.NewTLSServer, nunca http en claro (contracts/transport.md:58). El cuerpo se
+	// httptest.NewTLSServer, nunca http en claro
+	// (`specs/001-agente-inicial/contracts/transport.md` §Notas de prueba). El cuerpo se
 	// captura en el servidor: es lo que de verdad salió de la máquina, no lo que el cliente
 	// pensaba enviar.
 	var recibido []byte

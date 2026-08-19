@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -17,11 +18,65 @@ import (
 
 // assertNoPersist verifica el estado indistinguible (SC-004): tras un rechazo/aborto,
 // config.json NO existe (idéntico a no haber enrolado).
+//
+// ═══ P-005 · SE AMPLIÓ AL DIRECTORIO ENTERO, Y NO ES CELO ══════════════════════════════════
+//
+// Hasta P-005 esta red miraba **un solo fichero**. Bastaba mientras `enroll` **sólo** escribiera
+// `config.json`. **Ya no es el caso**: P-005 le añadió la creación del `salt` al terminar un
+// enrolamiento CORRECTO (`cmd/permea/enroll.go`), y esa escritura vive **dentro** de una rama.
+//
+// **El día que esas líneas se muevan** —un refactor, un `defer` mal puesto, alguien subiéndolas para
+// "resolver las dependencias antes"— el enrolamiento rechazado empezaría a dejar un secreto en el
+// disco, y **la red que existe para cazarlo estaría mirando el fichero equivocado**. Un `config.json`
+// ausente es compatible con un directorio lleno.
+//
+// Por eso se comprueba **el directorio completo, derivado recorriéndolo**, no una lista de nombres:
+// una lista escrita a mano se queda corta con el siguiente artefacto, que es exactamente el defecto
+// que este repositorio ya registró tres veces.
+//
+// **Las dos aserciones son independientes y las dos usan `t.Errorf`**: con un `Fatalf` en la primera,
+// la segunda quedaría inalcanzable para cualquier mutación y pasaría por validada sin haberse
+// evaluado jamás.
 func assertNoPersist(t *testing.T, cfgDir string) {
 	t.Helper()
 	if _, err := os.Stat(filepath.Join(cfgDir, "permea", "config.json")); !os.IsNotExist(err) {
 		t.Errorf("no debía persistir config.json (estado indistinguible, SC-004); stat err=%v", err)
 	}
+	if residuos := ficherosDeDatos(t, filepath.Join(cfgDir, "permea")); len(residuos) > 0 {
+		t.Errorf("un enrolamiento rechazado dejó %d fichero(s) en el directorio de datos: %v\n"+
+			"El estado indistinguible (SC-004) es el del directorio ENTERO, no el de `config.json`: "+
+			"cualquier otro artefacto —el `salt` entre ellos— delata que hubo un intento",
+			len(residuos), residuos)
+	}
+}
+
+// ficherosDeDatos enumera los ficheros que hay bajo `dir`, recursivamente. Un directorio inexistente
+// son cero ficheros, sin error: es el estado de quien nunca enroló, y es el que se espera aquí.
+func ficherosDeDatos(t *testing.T, dir string) []string {
+	t.Helper()
+	var encontrados []string
+	err := filepath.WalkDir(dir, func(ruta string, d os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) {
+				return filepath.SkipAll
+			}
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(dir, ruta)
+		if err != nil {
+			return err
+		}
+		encontrados = append(encontrados, rel)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("enumerar el directorio de datos %q: %v", dir, err)
+	}
+	sort.Strings(encontrados)
+	return encontrados
 }
 
 // assertNoSecret verifica la higiene: la cadena s no contiene el token ni el enrollment

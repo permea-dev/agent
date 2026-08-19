@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/testutil"
 )
 
@@ -459,7 +460,8 @@ func TestDerivar_MejorEsfuerzoNuncaFalla(t *testing.T) {
 
 	t.Run("caso 13: permisos denegados", func(t *testing.T) {
 		// El t.Skip documentado se permite AQUÍ y se prohíbe en T010, y la asimetría es
-		// deliberada (tasks.md:132): aquí el caso de permisos es 1 de los 3 que cubren G8
+		// deliberada (`specs/004-identidad-de-proyecto/tasks.md`, T018 §«Por qué aquí SÍ se
+		// permite el t.Skip que T010 prohíbe»): aquí el caso de permisos es 1 de los 3 que cubren G8
 		// —los otros dos siguen ejerciéndola— y es físicamente inejecutable como root, que
 		// puede leerlo todo. En T010 el skip mataría la ÚNICA cobertura de una promesa.
 		if os.Geteuid() == 0 {
@@ -687,4 +689,139 @@ func TestResolutor_CadaUnoTieneSuPropiaCache(t *testing.T) {
 	if len(segundo.cache) != 0 {
 		t.Errorf("un resolutor nuevo debe nacer sin memoria del anterior; tiene %d entradas", len(segundo.cache))
 	}
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// P-005 T028 · SC-001 — LA IDENTIDAD PRESENTADA **ES** LA ESTAMPADA, POR ORIGEN COMPARTIDO
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestSC001_LaIdentidadPresentadaEsLaEstampada cubre P-005 SC-001, y con él P-005 FR-004 y FR-005.
+//
+// ═══ POR QUÉ NO BASTA CON QUE HOY COINCIDAN ════════════════════════════════════════════
+//
+// P-005 FR-005 no pide dos derivaciones que **den lo mismo**: pide que sean **la misma**. Dos cuerpos
+// que hoy coinciden son dos cuerpos que mañana pueden no hacerlo, y el síntoma —«me he unido y no
+// aparece nada»— es **indistinguible de una avería de servidor**. Por eso el criterio es de **origen
+// compartido**, y este test lo comprueba en sus tres piezas:
+//
+//	(a) hay UN punto único —`derivarConTechoYRaiz`— del que salen las dos, y alterarlo las mueve A LAS DOS;
+//	(b) las identidades coinciden sobre CUATRO clases de árbol;
+//	(c) una alteración deliberada pone (b) en ROJO — sin esto el criterio NO ES FALSABLE.
+//
+// **(c) son DOS mutaciones, no una, y hacen falta las dos** (`tasks.md` T028): romper el reparto en un
+// envoltorio tumba las igualdades; alterar el cuerpo compartido tumba **el anclaje** —y, a la vez, los
+// tests de P-004 sobre `Derivar`—, que es como se observa (a). Una sola mutación dejaría la otra mitad
+// **aparentando validada**.
+//
+// ⛔ **`t.Errorf` en TODAS las aserciones independientes** (disciplina 3 §inmunidad): encadenadas tras
+// un `t.Fatalf`, la mutación que tumba la primera pararía el subtest y las de abajo no llegarían a
+// evaluarse jamás.
+//
+// ⛔ **NO se usa `--scan` para obtener las identidades.** Ese camino usa un salt literal de dry-run
+// (`cmd/permea/main.go`, `dryRun`), así que sus refs **no comparan con nada** (`research.md` §R5).
+// Aquí las dos vías se piden **a las funciones**, con el mismo salt.
+func TestSC001_LaIdentidadPresentadaEsLaEstampada(t *testing.T) {
+	base := t.TempDir()
+
+	// Los marcadores se fabrican A MANO —directorio para el repositorio, FICHERO para el árbol
+	// paralelo—, que es lo único que el reconocimiento mira (`hayMarcador` hace `Lstat`). Que git
+	// produzca de verdad esas dos formas ya lo acredita `TestDerivar_ArbolesDeTrabajoParalelos`; aquí
+	// el sujeto es la comparación entre las dos vías, no git.
+	proyecto := filepath.Join(base, "proy")
+	hondo := filepath.Join(proyecto, "servicios", "api", "internal")
+	crearDirs(t, filepath.Join(proyecto, ".git"), hondo)
+
+	paralelo := filepath.Join(base, "paralelo")
+	crearDirs(t, paralelo)
+	marcador := []byte("gitdir: " + filepath.Join(proyecto, ".git", "worktrees", "paralelo") + "\n")
+	if err := os.WriteFile(filepath.Join(paralelo, ".git"), marcador, 0o600); err != nil {
+		t.Fatalf("fabricar el marcador del árbol paralelo: %v", err)
+	}
+
+	// (b) · LAS TRES CLASES EN LAS QUE SÍ HAY DOS IDENTIDADES QUE COMPARAR.
+	for _, c := range []struct {
+		nombre       string
+		cwd          string
+		raizEsperada string
+	}{
+		{"clase 1 · la raíz del árbol", proyecto, proyecto},
+		{"clase 2 · un subdirectorio profundo", hondo, proyecto},
+		{"clase 3 · un árbol de trabajo paralelo", paralelo, paralelo},
+	} {
+		t.Run(c.nombre, func(t *testing.T) {
+			presentada, huboRaiz := DerivarConRaiz(c.cwd, saltDePrueba)
+			estampada := Derivar(c.cwd, saltDePrueba)
+			porLaIngesta := NuevoResolutor().Derivar(c.cwd, saltDePrueba)
+
+			if !huboRaiz {
+				t.Errorf("no se reconoció raíz en %q, y las tres primeras clases SON árboles con raíz: "+
+					"sin eso el comando rehusaría y no habría identidad que presentar (P-005 FR-006)", c.cwd)
+			}
+
+			// ⛔ LA VACUIDAD PRIMERO. Dos cadenas vacías son iguales **carácter a carácter**, así que sin
+			// esta aserción las tres de abajo pasarían en verde justo cuando la derivación está rota del
+			// todo. Es el «indistinguible hueco» que esta spec ya corrigió dos veces.
+			if presentada == "" {
+				t.Errorf("la identidad presentada está VACÍA: la comparación de abajo se cumpliría sola, "+
+					"y en esta clase la derivación tiene que producir valor (%q)", c.cwd)
+			}
+
+			// LA COMPARACIÓN, CARÁCTER A CARÁCTER, contra las DOS formas del camino de ingesta: la
+			// función directa y el resolutor con caché, que es el que estampa de verdad en la pasada.
+			if presentada != estampada {
+				t.Errorf("la identidad PRESENTADA no es la ESTAMPADA (P-005 FR-004, SC-001)\n"+
+					"  presentada (DerivarConRaiz): %s\n  estampada  (Derivar):        %s", presentada, estampada)
+			}
+			if presentada != porLaIngesta {
+				t.Errorf("la identidad PRESENTADA no es la que estampa la INGESTA por su camino real\n"+
+					"  presentada (DerivarConRaiz):        %s\n  estampada  (Resolutor.Derivar):     %s",
+					presentada, porLaIngesta)
+			}
+
+			// ⛔ EL ANCLAJE — y es lo que hace observable la pieza (a). Las igualdades de arriba **no
+			// caen** si alguien altera el cuerpo compartido: cambia las dos a la vez y siguen iguales.
+			// Esto ancla **qué** compone ese cuerpo —`event.Ref` del salt y de la raíz del ascenso—, así
+			// que una alteración ahí sí lo tumba, **y tumba a la vez los tests de P-004 sobre `Derivar`**:
+			// las dos mitades moviéndose juntas es exactamente lo que «origen compartido» significa.
+			//
+			// La raíz se normaliza con `mejorValorDisponible`, la misma que usa la derivación: en un
+			// sistema donde el temporal cuelgue de un enlace, comparar contra la forma literal fallaría
+			// por la normalización y no por el hecho que se quiere medir.
+			if anclaje := event.Ref(saltDePrueba, mejorValorDisponible(c.raizEsperada)); presentada != anclaje {
+				t.Errorf("la identidad presentada no es `event.Ref(salt, raíz)` sobre la raíz esperada %q:\n"+
+					"  presentada: %s\n  anclaje:    %s\n"+
+					"El cuerpo compartido dejó de componer lo que SC-001 da por hecho que compone",
+					c.raizEsperada, presentada, anclaje)
+			}
+		})
+	}
+
+	// (b) · LA CUARTA CLASE, Y AQUÍ NO SE COMPARAN IDENTIDADES.
+	//
+	// ⛔ **Escribirlo importa porque invita a un test que compara dos vacíos y da verde por nada.**
+	//   · el comando **NO presenta identidad ninguna**: rehúsa antes de emitir (P-005 FR-006), así que
+	//     no hay valor presentado que comparar;
+	//   · lo que se compara es **el JUICIO**: que la vía nueva reporte «no hubo raíz». La otra mitad
+	//     —que el comando rehúse por esa razón— vive donde se puede observar, en
+	//     `cmd/permea/project_test.go` (el orden de los rehúses y las cero peticiones fuera de árbol);
+	//   · la derivación **SÍ produce un valor** aquí —el fallback del directorio, P-004 FR-005— y ese
+	//     valor **nunca se presenta**. Compararlo contra nada sería inventar un sujeto.
+	t.Run("clase 4 · un directorio SIN raíz — se compara el JUICIO, no el valor", func(t *testing.T) {
+		suelto := filepath.Join(base, "suelto")
+		crearDirs(t, suelto)
+
+		valor, huboRaiz := DerivarConRaiz(suelto, saltDePrueba)
+
+		if huboRaiz {
+			t.Errorf("se reconoció raíz en %q, que no cuelga de ningún árbol: el comando emitiría con una "+
+				"identidad de directorio suelto, y ese éxito bien formado sobre la identidad equivocada es "+
+				"justo lo que P-005 FR-006 existe para impedir", suelto)
+		}
+		if valor == "" {
+			t.Errorf("la derivación devolvió identidad VACÍA en un directorio sin raíz, y NO debe: sigue " +
+				"produciendo valor por el fallback (P-004 FR-005). Quien decida rehusar tiene que mirar el " +
+				"booleano, NUNCA la vacuidad — si alguien tomase «vacío» por «no hubo raíz», el día que el " +
+				"fallback devolviera valor el rehúse dejaría de ocurrir en silencio")
+		}
+	})
 }

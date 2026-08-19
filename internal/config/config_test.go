@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -281,4 +282,165 @@ func TestCheckRetiredProjectRefMode_FallaHaciaNoInterrumpir(t *testing.T) {
 			t.Errorf("una config ilegible no pide el modo retirado; su diagnóstico es de Load: %v", err)
 		}
 	})
+}
+
+// ═══ P-005 T013 · LA DERIVACIÓN DEL DESTINO DE LA ADHESIÓN ════════════════════════════════
+//
+// **Garantía**: `contracts/adhesion.md` §Cómo se obtiene `<base>`. El agente **no guarda una URL
+// base**: guarda **la ruta completa del endpoint de ingesta**, y de ahí deriva el de la adhesión
+// **conservando esquema, host, puerto y prefijo** y **sustituyendo SOLO el último segmento**.
+//
+// Los dos hechos de ruta —que la ingesta termina en `/ingest`, y que la adhesión es
+// `/projects/adhesion` bajo el mismo prefijo— **son CONTRATO, no literales locales** (D-005-P3).
+
+// TestDerivarEndpointDeAdhesion_ConservaTodoYSustituyeElUltimoSegmento es el camino feliz.
+func TestDerivarEndpointDeAdhesion_ConservaTodoYSustituyeElUltimoSegmento(t *testing.T) {
+	casos := []struct {
+		nombre   string
+		guardado string
+		quiere   string
+	}{
+		{"el del contrato, literal",
+			"https://api.permea.example/api/v1/ingest",
+			"https://api.permea.example/api/v1/projects/adhesion"},
+
+		// OBLIGATORIO: el banco de pruebas local usa :8443, y un puerto perdido en la derivación
+		// manda la adhesión a 443 — a un servidor que no es el que se estaba probando.
+		{"PUERTO NO ESTÁNDAR — el banco local",
+			"https://localhost:8443/api/v1/ingest",
+			"https://localhost:8443/api/v1/projects/adhesion"},
+
+		// Donde «sustituir el último» se confunde con «quedarse con el primero»: si la derivación
+		// cortara por el primer segmento, estos dos saldrían mal y el primer caso saldría bien.
+		{"prefijo de VARIOS segmentos",
+			"https://api.permea.example/servicios/agente/api/v2/ingest",
+			"https://api.permea.example/servicios/agente/api/v2/projects/adhesion"},
+		{"prefijo de varios segmentos CON puerto",
+			"https://interno.permea.example:9443/a/b/c/d/ingest",
+			"https://interno.permea.example:9443/a/b/c/d/projects/adhesion"},
+
+		// El extremo contrario: sin prefijo, el segmento va colgando de la raíz.
+		{"sin prefijo — `/ingest` en la raíz",
+			"https://api.permea.example/ingest",
+			"https://api.permea.example/projects/adhesion"},
+
+		// El host no se toca, ni aunque contenga la palabra.
+		{"host que contiene «ingest» — no se toca",
+			"https://ingest.permea.example/api/v1/ingest",
+			"https://ingest.permea.example/api/v1/projects/adhesion"},
+
+		// Un segmento intermedio homónimo: se sustituye EL ÚLTIMO, no el primero que coincida.
+		{"segmento intermedio homónimo — se sustituye EL ÚLTIMO",
+			"https://api.permea.example/ingest/v1/ingest",
+			"https://api.permea.example/ingest/v1/projects/adhesion"},
+	}
+
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			obtenido, err := DerivarEndpointDeAdhesion(c.guardado)
+
+			// Aserciones INDEPENDIENTES con t.Errorf (disciplina 3 §inmunidad): encadenarlas tras un
+			// t.Fatalf dejaría la segunda inalcanzable para cualquier mutación.
+			if err != nil {
+				t.Errorf("DerivarEndpointDeAdhesion(%q) devolvió err = %v; es una forma válida", c.guardado, err)
+			}
+			if obtenido != c.quiere {
+				t.Errorf("DerivarEndpointDeAdhesion(%q)\n  obtenido: %q\n  quiere:   %q",
+					c.guardado, obtenido, c.quiere)
+			}
+		})
+	}
+}
+
+// ═══ P-005 T014 · LA FORMA INESPERADA — P-005 FR-009 y P-005 FR-020 ═══════════════════════
+//
+// Un endpoint cuya ruta **no termina en el segmento conocido** → **rehúsa sin emitir petición**,
+// **nombrando LA FORMA de lo hallado** (FR-009) y **sin reproducir material sensible** aunque
+// estuviera en lo hallado (FR-020, que **manda sobre** FR-009).
+//
+// ⚠️ **Por eso la forma se nombra ESTRUCTURALMENTE y no citando lo hallado**: el último segmento de un
+// endpoint mal configurado puede ser cualquier cosa —un identificador, un token pegado por error—, así
+// que **repetirlo para «nombrar la forma» sería exactamente la fuga que FR-020 prohíbe**.
+
+// TestDerivarEndpointDeAdhesion_FormaInesperadaRehusa cubre el rehúse.
+func TestDerivarEndpointDeAdhesion_FormaInesperadaRehusa(t *testing.T) {
+	// Fixtures de ALTA ENTROPÍA: un valor que se parezca a la prosa de los mensajes da rojos falsos
+	// —la piedra de `" no perm"`—, y aquí además hace falta que **no** pueda aparecer por casualidad.
+	const secretoEnLaRuta = "9HpQ3mZv7KxR2wLb"
+
+	casos := []struct {
+		nombre   string
+		guardado string
+	}{
+		{"no termina en el segmento conocido", "https://api.permea.example/api/v1/eventos"},
+		{"«ingest» como SUFIJO pero no como SEGMENTO", "https://api.permea.example/api/v1/reingest"},
+		{"«ingest» como PREFIJO del último segmento", "https://api.permea.example/api/v1/ingesta"},
+		{"barra final — el último segmento está vacío", "https://api.permea.example/api/v1/ingest/"},
+		{"segmento conocido en medio, no al final", "https://api.permea.example/ingest/v1"},
+		{"ruta vacía", "https://api.permea.example"},
+		{"solo la raíz", "https://api.permea.example/"},
+		{"no analizable", "https://api.permea\x7f.example/api/v1/ingest"},
+		{"material sensible en la ruta", "https://api.permea.example/api/" + secretoEnLaRuta + "/eventos"},
+
+		// ── Lo que NO se reconoce, se rehúsa: la ruta es correcta, pero la URL trae partes que el
+		//    contrato no contempla. Conservarlas en silencio es lo contrario de la validación ruidosa,
+		//    y en el caso de USERINFO es además una fuga de credenciales al destino nuevo.
+		{"USERINFO — credenciales incrustadas", "https://usuario:" + secretoEnLaRuta + "@api.permea.example/api/v1/ingest"},
+		{"USERINFO sin contraseña", "https://usuario@api.permea.example/api/v1/ingest"},
+		{"QUERY", "https://api.permea.example/api/v1/ingest?token=" + secretoEnLaRuta},
+		{"FRAGMENTO", "https://api.permea.example/api/v1/ingest#" + secretoEnLaRuta},
+	}
+
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			derivado, err := DerivarEndpointDeAdhesion(c.guardado)
+
+			if err == nil {
+				t.Errorf("DerivarEndpointDeAdhesion(%q) NO rehusó, devolvió %q: conjeturar el destino "+
+					"manda la petición a donde nadie ha dicho (P-005 FR-009)", c.guardado, derivado)
+				return
+			}
+			if derivado != "" {
+				t.Errorf("rehusó pero devolvió %q: un rehúse no tiene destino", derivado)
+			}
+			if !errors.Is(err, ErrFormaDeEndpointInesperada) {
+				t.Errorf("errors.Is(err, ErrFormaDeEndpointInesperada) = false; err = %v", err)
+			}
+
+			// P-005 FR-020 — ningún fragmento de lo hallado en el mensaje. Mismo umbral que SC-005.
+			msg := err.Error()
+			for _, valor := range []struct{ campo, v string }{
+				{"el endpoint hallado", c.guardado},
+				{"el material sensible de la ruta", secretoEnLaRuta},
+			} {
+				if len([]rune(valor.v)) < 8 {
+					continue
+				}
+				if frag := fragmentoFiltrado(msg, valor.v); frag != "" {
+					t.Errorf("el mensaje reproduce un fragmento de %s (≥8 caracteres): %q\n  mensaje: %q",
+						valor.campo, frag, msg)
+				}
+			}
+		})
+	}
+}
+
+// TestDerivarEndpointDeAdhesion_ElRehuseNOMBRA_laForma es la otra mitad de FR-009, y va aparte.
+//
+// **«Nombrando la forma» no se puede comprobar casando texto** —la disciplina lo prohíbe, y con razón:
+// ataría el test a una redacción—. Se comprueba por **distinguibilidad**: dos endpoints con **formas
+// estructuralmente distintas** deben producir **mensajes distintos**. Un mensaje constante —«forma
+// inesperada»— **no nombra nada**, y es exactamente lo que este test impide.
+func TestDerivarEndpointDeAdhesion_ElRehuseNOMBRA_laForma(t *testing.T) {
+	_, errSinSegmento := DerivarEndpointDeAdhesion("https://api.permea.example")
+	_, errOtroSegmento := DerivarEndpointDeAdhesion("https://api.permea.example/api/v1/eventos")
+
+	if errSinSegmento == nil || errOtroSegmento == nil {
+		t.Fatalf("premisa rota: los dos deben rehusar; %v · %v", errSinSegmento, errOtroSegmento)
+	}
+	if errSinSegmento.Error() == errOtroSegmento.Error() {
+		t.Errorf("el rehúse NO nombra la forma: las dos formas dan el MISMO mensaje %q\n"+
+			"  una ruta vacía y una ruta con otro último segmento son formas distintas (P-005 FR-009)",
+			errSinSegmento.Error())
+	}
 }
