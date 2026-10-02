@@ -1167,7 +1167,7 @@ y se rehace desde el tramo C1.
 
 ### Tramo C1 · Puertas locales
 
-- [ ] **T072** Sobre la rama, con todos los bloques commiteados, transcribir aquí la salida de:
+- [x] **T072** Sobre la rama, con todos los bloques commiteados, transcribir aquí la salida de:
   - quickstart V1;
   - `git diff 0311fa1 -- internal/event` vacío;
   - el `grep` de `event.NewID`;
@@ -1175,13 +1175,57 @@ y se rehace desde el tramo C1.
   - la cabecera de tarifas cita el commit vigente del catálogo (T043): **`e50d0a5`** *(enmendado
     2026-10-02, Q-006-1 resuelta)*;
   - `grep -rn nolint --include=*.go .` → exactamente una.
+  > **Hecho el 2026-10-02 (C1)**, sobre `b504268` (`006 B5: …`), con los doce commits de 006 desde
+  > `0311fa1` y el árbol limpio. Go 1.22.2 y golangci-lint 2.12.2.
+  > - **V1**:
+  >   - `gofmt -l .` vacío;
+  >   - `go vet ./...` sin hallazgos;
+  >   - `go test -count=1 ./...`: **432 pass, 0 fail, 0 skip**, 9/9 paquetes ok;
+  >   - `golangci-lint run`: «0 issues.», sin tope (`max-issues-per-linter: 0`, `max-same-issues: 0`);
+  >   - `grep -rn nolint --include=*.go .`: **una**, `internal/transport/adhesion_test.go`, la de
+  >     SA1007 (E-006-P4).
+  > - `git diff 0311fa1 -- internal/event`: vacío.
+  > - `event.NewID` fuera de `internal/event`: vacío.
+  > - Disciplina 8: vacío.
+  > - Cabecera de `internal/pricing/pricing.go`: «Catálogo replicado: permea-dev/permea-platform ·
+  >   backend/config/pricing.php · e50d0a5».
+  > - **Además, por encargo de C1**:
+  >   - Windows y darwin compilan;
+  >   - `make run` rc 0 (2 eventos, dry-run);
+  >   - `goreleaser check` rc 0;
+  >   - `go mod verify`: «all modules verified»;
+  >   - `go mod tidy -diff` **no existe en Go 1.22** («flag provided but not defined: -diff»). En su
+  >     lugar, `go mod tidy` sobre una copia (`git archive HEAD`) en el directorio temporal deja
+  >     `go.mod` idéntico; no hay `go.sum`, porque sólo se usa la biblioteca estándar;
+  >   - `bfgnet` 0 / 0 / 0;
+  >   - `grep -c PENDIENTE CHANGELOG.md` → **1**: se resuelve en C5 y no se toca aquí;
+  >   - `git diff --stat 0311fa1..HEAD`: **42 files changed, 5545 insertions(+), 141 deletions(-)**.
+  > - **Arreglos de documentos de C1**:
+  >   - README §Comandos: «Los tres exigen HTTPS» pasa a «`enroll` y `project join` exigen HTTPS…;
+  >     `status` no contacta con nadie»;
+  >   - §Recuento y tabla de cobertura, con T089–T093 y las 13 mutaciones añadidas.
 
 ### Tramo C2 · Copia congelada y medidas V
 
-- [ ] **T073** Copia congelada y contador independiente (quickstart §La copia congelada y §El contador
+- [x] **T073** Copia congelada y contador independiente (quickstart §La copia congelada y §El contador
   independiente). Transcribir: fecha, nº de ficheros, facturables, sintéticas, sin identificador,
   mensajes distintos y tokens una vez por mensaje. **Sólo recuentos** (disciplina 9).
-- [ ] **T074** Medidas sobre la copia, transcritas como recuento frente a valor esperado:
+  > **Hecho el 2026-10-02 (C2)**. Raíz temporal única `/tmp/permea-006-XXXXXX`, con la copia, los
+  > sandboxes, el binario y los resultados dentro.
+  > - **Copia congelada** de `~/.claude/projects` tomada el **2026-10-02T23:13:50+02:00** con `cp -a`:
+  >   27 ficheros `.jsonl`, 156 MB. Se puso en sólo lectura.
+  > - **Binario**: `go build` desde `b504268`. El árbol sólo difería en `README.md` y `tasks.md`, sin
+  >   ningún `.go`.
+  > - **Contador independiente**: el `python3` del quickstart, ampliado a las cuatro partidas por
+  >   separado y sin importar nada del agente.
+  >   - **ficheros 27 · facturables 23 778 · sintéticas 3 · sin identificador 0**;
+  >   - **mensajes distintos 11 105 · tokens una vez por mensaje 5 040 966 143**: `in` 28 350,
+  >     `out` 13 246 462, `cw` 35 114 677, `cr` 4 992 576 654;
+  >   - por modelo: `claude-opus-5` 7 318, `claude-opus-5-5` 3 757, `claude-sonnet-5` 30.
+  >
+  >   Referencia de M2: 10 698 mensajes y 4 835 167 368 tokens. La copia es posterior, y no es el
+  >   valor esperado.
+- [x] **T074** Medidas sobre la copia, transcritas como recuento frente a valor esperado:
   - V2 (SC-001);
   - V3 (SC-002);
   - V4 a y b (SC-003);
@@ -1189,20 +1233,122 @@ y se rehace desde el tramo C1.
   - V7 (SC-006);
   - V10 (SC-021);
   - V12 (SC-010).
-- [ ] **T075** **V4-c** (E-006-P2): `--run` **sólo** en los dos sandboxes `env -i`, **sin enrolar** y
+  > **Hecho el 2026-10-02 (C2)**. Cada `--scan` se lanzó con `env -i` dentro de los sandboxes `sb1` y
+  > `sb2`, uno por fichero de la copia: 27 + 27 ejecuciones, todas con rc 0. El árbol de cada sandbox
+  > quedó igual antes y después: `--scan` no escribe nada. **Las ocho medidas coinciden.**
+  >
+  > | Medida | Criterio | Esperado | Obtenido | ¿Coincide? |
+  > |---|---|---|---|:--:|
+  > | V2 | SC-001 | líneas `evento:` = 11 105 | 11 105 en `sb1` y 11 105 en `sb2` | sí |
+  > | V2 falsable | SC-001 | duplicar una línea `assistant` no cambia el recuento | 445 → 445; «repetidas» 550 → 551 | sí |
+  > | V3 | SC-002 | suma de las cuatro partidas = 5 040 966 143 | 5 040 966 143, con las cuatro partidas iguales una a una | sí |
+  > | V4 a | SC-003 | `go test ./internal/ingest -run EventID` en verde | ok, 8 PASS y 0 FAIL | sí |
+  > | V4 b | SC-003 | dos sandboxes, mismo conjunto, todo de 32 hex, sin colisiones | 11 105 y 11 105, `cmp` idéntico; 0 que no sean de 32 hex; 11 105 únicos | sí |
+  > | V5 | SC-004 | golden en verde, y 0 apariciones de identificadores de la copia en la salida | 5 tests `Boundary` en verde; 44 428 identificadores buscados (enteros y sin prefijo), **0** apariciones | sí |
+  > | V7 | SC-006 | `model=<synthetic>` = 0 | 0 (el contador ve 3 sintéticas) | sí |
+  > | V10 | SC-021 | `event_id` repetidos = 0 | 0 | sí |
+  > | V12 | SC-010 | `cost_avail=false` en los modelos en uso = 0 | 0 | sí |
+  >
+  > **Resumen por stderr, sumadas las 27 pasadas**: 23 778 facturables = 11 105 eventos + 12 670
+  > repetidas + 3 sintéticas; 0 sin identificador; 0 con consumo distinto de la primera.
+  >
+  > **V12, por modelo con fila**: los tres al **100 %** de `cost_avail=true`: `claude-opus-5`
+  > 7 318 / 7 318, `claude-opus-5-5` 3 757 / 3 757 y `claude-sonnet-5` 30 / 30. No apareció ningún modelo
+  > sin fila. Las tarifas se contrastaron con `e50d0a5`.
+  >
+  > Evento de referencia de cada modelo: el primero con las cuatro partidas distintas de cero.
+  > Fórmula: `(in·I + out·O + cw·CW + cr·CR) / 1e6`.
+  > - `claude-opus-5-5` (4 / 20 / 5 / 0,20), con `in` 2, `out` 213, `cw` 15 507 y `cr` 25 147:
+  >   0,000008 + 0,004260 + 0,077535 + 0,005029 = 0,086832 → **$0,0868**. El agente da $0,0868.
+  > - `claude-opus-5` (5 / 25 / 6,25 / 0,50), con `in` 2, `out` 183, `cw` 14 071 y `cr` 24 533:
+  >   0,000010 + 0,004575 + 0,087944 + 0,012266 = 0,104795 → **$0,1048**. El agente da $0,1048.
+  > - `claude-sonnet-5` (2 / 10 / 2,50 / 0,20), con `in` 2, `out` 91, `cw` 114 971 y `cr` 25 215:
+  >   0,000004 + 0,000910 + 0,287428 + 0,005043 = 0,293384 → **$0,2934**. El agente da $0,2934.
+- [x] **T075** **V4-c** (E-006-P2): `--run` **sólo** en los dos sandboxes `env -i`, **sin enrolar** y
   sobre la copia. Primero `permea status` → «no enrolado» en cada uno; si no, **se para**.
   - **Esperado**: «sync omitido» en los dos, sales distintas, el **mismo** conjunto de `event_id` y
     tantos como mensajes.
   - Medir también la memoria máxima de cada `--run` con `/usr/bin/time -v` y contrastarla con T032.
-- [ ] **T076** Borrar la copia, los dos sandboxes y los temporales de `/tmp` de las medidas. Anotarlo.
+  > **Hecho el 2026-10-02 (C2)**. Sandboxes `sb1` y `sb2`, lanzados con `env -i` y sólo `HOME`,
+  > `XDG_CONFIG_HOME` (dentro del sandbox), `PATH=/usr/bin:/bin`, `HTTPS_PROXY=http://127.0.0.1:9` y
+  > `HTTP_PROXY=http://127.0.0.1:9`. El `config.json` lleva sólo `logs_root` apuntando a la copia: sin
+  > endpoint y sin token.
+  > 1. `permea status` → «no enrolado» exacto en los dos, con rc 0 y stderr vacío.
+  > 2. `permea --run` con `/usr/bin/time -v`: rc 0 en los dos. stderr: el banner, «N eventos
+  >    encolados», el resumen de pasada y «sync omitido: sin endpoint configurado». Ningún hex de 32 en
+  >    stderr.
+  > 3. Resultados:
+  >    - **«sync omitido» en los dos**;
+  >    - **las dos sales son distintas**: 2 huellas sha256 distintas;
+  >    - **mismo conjunto de `event_id`**: 11 105 y 11 105, con la misma huella y `cmp` idéntico;
+  >    - **tantos como mensajes distintos** (11 105), todos únicos;
+  >    - el conjunto de la cola es además idéntico al de `--scan` (V4 b);
+  >    - resumen de pasada: 23 778 facturables, 11 105 eventos, 12 670 repetidas, 3 sintéticas, 0 sin
+  >      identificador y 0 con consumo distinto.
+  >
+  > **Memoria máxima (RSS)**: **13 692 kB** en `sb1` y **13 224 kB** en `sb2`, con 1,05 s y 0,96 s de
+  > reloj.
+  >
+  > Contraste con T032. T032 mide *heap* de la pasada (≈ 0,90 MB para 10 698 mensajes, unos 84 B por
+  > mensaje); aquí se mide RSS del proceso. La RSS base del mismo binario con `--version` es de unos
+  > **6,5 MB** (6 524 / 6 460 / 6 524 kB). El incremento, unos 7 MB por leer 156 MB de logs y escribir
+  > 11 105 eventos, es del mismo orden de magnitud bajo y no contradice T032.
+- [x] **T076** Borrar la copia, los dos sandboxes y los temporales de `/tmp` de las medidas. Anotarlo.
+  > **Hecho el 2026-10-02 (C2)**.
+  > - Se comprobó que la raíz empezaba por `/tmp/permea-006-`. Se devolvió el permiso de escritura a la
+  >   copia y se borró la raíz entera con `rm -rf`, rc 0: copia, `sb1`, `sb2`, binario y resultados.
+  >   Nada más se borró.
+  > - No se creó ningún temporal fuera de la raíz: los `/tmp/scan-006.txt`, `/tmp/ids-*`, `/tmp/cola-*`,
+  >   `/tmp/run-*` y `/tmp/sales.txt` del quickstart no existen.
+  > - `ls -d /tmp/permea-006-*` → nada.
+  > - **Testigo de la instalación real** (`~/.config/permea`, `stat` de nombre, tamaño y fecha de
+  >   modificación, nunca el contenido): 5 ficheros antes y después, **idéntico**. No había ningún
+  >   proceso `permea` en marcha.
 
 ### Tramo C3 · Snapshot
 
-- [ ] **T077** `goreleaser check`, luego `goreleaser release --snapshot --clean`. Transcribir:
+- [x] **T077** `goreleaser check`, luego `goreleaser release --snapshot --clean`. Transcribir:
   - la versión estampada (**no** `0.3.0`, `research.md` R10);
   - los 5 archivos y `sha256sum -c` del fichero de checksums.
 
   Localizar `permea_*_windows_amd64.zip` para W1. **No se publica nada.**
+  > **Hecho el 2026-10-02 (C3)**, sobre `b504268`, con GoReleaser v2.16.0. **No se publicó nada**: sólo
+  > `--snapshot` («skipping announce, publish, and validate»), sin etiqueta, release, push, tap ni
+  > bucket.
+  > - `goreleaser check` → rc 0.
+  > - `goreleaser release --snapshot --clean` → rc 0. El hook `go mod tidy` deja `go.mod` igual (mismo
+  >   md5).
+  > - **Versión estampada: `0.2.1-SNAPSHOT-b504268`**, **no** `0.3.0` (`dist/metadata.json`: `tag`
+  >   v0.2.1, `previous_tag` v0.2.0). R10 la suponía «probablemente `0.2.2-SNAPSHOT-<sha>`, sin
+  >   comprobar»: es `0.2.1-…`. SC-022 sólo exige que no sea `0.0.1-dev`.
+  > - **Los 5 archivos**:
+  >   - `permea_0.2.1-SNAPSHOT-b504268_darwin_amd64.tar.gz`, 2 455 736 B;
+  >   - `…_darwin_arm64.tar.gz`, 2 311 744 B;
+  >   - `…_linux_amd64.tar.gz`, 2 408 501 B;
+  >   - `…_linux_arm64.tar.gz`, 2 226 405 B;
+  >   - `…_windows_amd64.zip`, 2 477 442 B.
+  >
+  >   `sha256sum -c permea_0.2.1-SNAPSHOT-b504268_checksums.txt`, dentro de `dist/`: **5 × OK**, rc 0.
+  > - `git status --porcelain` después: sólo ` M README.md` y ` M specs/006-medicion-fiel/tasks.md`.
+  >   `dist/` no aparece porque está ignorado (`.gitignore:20`, `/dist/`).
+  > - **Binario empaquetado de Linux**, extraído en `/tmp/permea-006-snap-XXXXXX` y lanzado con
+  >   `env -i` y un HOME temporal:
+  >   - `permea --version` → `0.2.1-SNAPSHOT-b504268`, rc 0, stderr vacío;
+  >   - `permea help` → rc 0 y stderr vacío; stdout de 1 670 B, **idéntico byte a byte** (`cmp`) a la
+  >     ayuda general aprobada;
+  >   - el HOME temporal quedó vacío.
+  >
+  >   El temporal se borró tras comprobar el prefijo.
+  > - **Para W1**:
+  >   - fichero `dist/permea_0.2.1-SNAPSHOT-b504268_windows_amd64.zip`, 2 477 442 B, sha256
+  >     `d07efb21675a1ecaa7dcd8102b493f608d4ce0c4b35f68b5b25549eb0951ad15`, igual que en el fichero de
+  >     checksums;
+  >   - trae `LICENSE` (11 352 B), `README.md` (11 716 B) y `permea.exe` (5 673 472 B);
+  >   - `file permea.exe`: «PE32+ executable (console) x86-64, for MS Windows».
+  >
+  >   `dist/` se conserva.
+  > - **El README empaquetado es el del árbol de trabajo**, con el arreglo de C1 todavía sin commit, y
+  >   no el de `HEAD`. Al binario no le afecta. La release real se construye desde la etiqueta.
 - [ ] **T078** ✋ **Commit** (dueño) de las transcripciones C1–C3:
   `006 cierre: puertas, medidas sobre la copia congelada y snapshot`
 
@@ -1304,16 +1450,16 @@ B0 ──► B1 ──► B2a ──► B2b ──► B2c ──► [T043 ✋ Q-
 | FR-001 | T025, T029–T031 | | FR-018 | T047, T066 |
 | FR-002 | T013 (1)(2), T019, T020 | | FR-019 | T047, T048 |
 | FR-003 | T011, T014, T020 | | FR-020 | T045, T049 |
-| FR-004 | T013 (2), T017, T019 | | FR-021 | T052, T053, T059, T060 |
+| FR-004 | T013 (2), T017, T019 | | FR-021 | T052, T053, T059, T060, T091, T092 |
 | FR-005 | T026, T030 | | FR-022 | T055, T056, T060 |
-| FR-006 | T013 (4), T017, T027, T030 | | FR-023 | T054, T061 |
+| FR-006 | T013 (4), T017, T027, T030 | | FR-023 | T054, T061, T091, T092 |
 | FR-007 | T013 (3), T020 | | FR-024 | T057 |
-| FR-008 | T013 (1), T020, T022 | | FR-025 | T066, T069 |
-| FR-009 | T038, T040 | | FR-026 | T066, T069 |
+| FR-008 | T013 (1), T020, T022 | | FR-025 | T066, T069, T093 |
+| FR-009 | T038, T040 | | FR-026 | T066, T069, T093 |
 | FR-010 | T036, T037, T039 | | FR-027 | T066 |
-| FR-011 | T009 | | FR-028 | T067, T069 |
+| FR-011 | T009 | | FR-028 | T067, T069, T093 |
 | FR-012 | puertas de cada bloque, T072 | | FR-029 | T068, T069 |
-| FR-013 | T011, T014 | | FR-030 | T077, T082–T085 |
+| FR-013 | T011, T014, T090 | | FR-030 | T077, T082–T085 |
 | FR-014 | T043–T047 | | FR-031 | T089, T001–T007, puertas, T072 |
 | FR-015 | T047, T048 | | FR-032 | T086, T087 |
 | FR-016 | T046, T047 | | FR-033 | T025, T029–T031, T033 |
@@ -1337,6 +1483,14 @@ B0 ──► B1 ──► B2a ──► B2b ──► B2c ──► [T043 ✋ Q-
 
 **34 / 34 requisitos y 22 / 22 criterios con tarea.**
 
+> *(Enmendado el 2026-10-02, C1.)* Se añaden las tareas nuevas a los requisitos que cubren:
+> - T090 (núcleos de la denylist) a FR-013;
+> - T091 y T092 (texto aprobado, D-006-14) a FR-021 y FR-023;
+> - T093 a FR-025 («Actualizar»), FR-026 (el test de CRLF respalda la variante de PowerShell) y
+>   FR-028 (CHANGELOG).
+>
+> Ningún requisito ni criterio cambia de estado.
+
 ---
 
 ## Recuento
@@ -1345,19 +1499,43 @@ B0 ──► B1 ──► B2a ──► B2b ──► B2c ──► [T043 ✋ Q-
 |---|:--:|:--:|
 | B0 | T089, T001–T008 (9) | 1 |
 | B1 | T009–T016 (8) | 1 |
-| B2a | T017–T023 (7) | 1 |
+| B2a | T090, T017–T023 (8) | 1 |
 | B2b | T024–T035 (12) | 1 |
 | B2c | T036–T042 (7) | 1 |
 | Q-006-1 | T043–T044 (2) | 1 |
 | B3 | T045–T051 (7) | 1 |
-| B4 | T052–T064 (13) | 1 |
-| B5 | T065–T071 (7) | 1 |
+| B4 | T052–T064, T091, T092 (15) | 1 |
+| B5 | T065–T071, T093 (8) | 1 |
 | Cierre C1–C9 | T072–T088 (17) | 8 (T078, T079, T080, T082, T083, T084, T086, T088) |
-| **Total** | **89** | **17** |
+| **Total** | **93** | **17** |
 
 **Mutaciones**: M-B0, M-B1, y m1–m19 del plan: **21**, cada una con censo y co-caídas declarados.
 **Rojos**: (1)–(26), de los cuales nacen verdes y se validan por mutación (14), (17) y (25), y el
 golden de T014.
+
+> *(Enmendado el 2026-10-02, C1.)* El recuento recoge T089–T093. T089 ya figuraba en B0; se suman
+> T090 a B2a, T091 y T092 a B4, y T093 a B5. **Total: 93 tareas** (antes 89), y siguen **17 ✋**.
+>
+> **Mutaciones: 34** (antes 21): las 21 del plan y 13 añadidas en los bloques, todas con censo
+> declarado antes de mutar y reversión verificada por md5:
+> - B2a:
+>   - la de T090, sin nombre: el identificador truncado en `SessionRef`;
+>   - **m-hex** y **m-formas**.
+> - B2b: **m-ids**.
+> - B3: **m-s46** y **m-h45**, y, en el remate, **m-cruce** y **m-centimos** (antes «m14» y «m15»).
+> - B4: **m-token-ayuda**, **m-token-errores** y **m-token-status**, y, en el remate, **m-jerga**.
+> - B5: **m-crlf**.
+>
+> **Rojos**: (1)–(29). (27)–(29) son de T091.
+>
+> Validados por mutación, porque nacen verdes:
+> - enteros: (14), (17) y (25), y el golden de T014;
+> - en parte, por subtests:
+>   - (5), con m1, m-formas y m-hex;
+>   - (10), con m-ids y m7;
+>   - (16), con m-h45 y m-s46;
+>   - (29), con m-jerga;
+>   - el subtest CRLF de T093, con m-crlf.
 
 ---
 

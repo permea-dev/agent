@@ -84,8 +84,8 @@ Tres subcomandos, y el orden en que aparecen es el orden en que se usan:
     permea status                         informa si la instalación está enrolada, y contra qué
     permea project join [<código>]        une este árbol de trabajo a un Proyecto
 
-Los tres exigen **HTTPS**, sin exención ni modo de desarrollo: es la misma frontera que la
-emisión de eventos.
+`enroll` y `project join` exigen **HTTPS**, sin exención ni modo de desarrollo: es la misma
+frontera que la emisión de eventos. `status` no contacta con nadie.
 
 ### `permea enroll` — emparejar la instalación con su backend
 
