@@ -373,6 +373,13 @@ func (a *agent) tick() error {
 }
 
 // dryRun imprime los eventos de frontera de un JSONL sin tocar estado ni cola.
+//
+// P-006 FR-010: aplica las MISMAS reglas que la emisión —una pasada por fichero, así que un mensaje
+// de varias líneas es UN evento; `<synthetic>` y las líneas sin identificadores no salen—, e imprime
+// por evento las cuatro partidas de tokens y el `event_id`. Es el instrumento con el que se mide sobre
+// una copia de los logs sin transmitir nada. El `event_id` no depende de la sal y es un hash:
+// imprimirlo en local no revela nada que no salga ya por la frontera. Los identificadores del
+// proveedor NUNCA se imprimen.
 func dryRun(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -380,7 +387,8 @@ func dryRun(path string) error {
 	}
 	defer func() { _ = f.Close() }() // solo lectura: el error de Close no afecta a datos
 
-	ctx := ingest.Context{Salt: "dry-run-salt", MachineID: "local", DevID: "dev-local", OrgID: "org-local", AgentVersion: version}
+	pasada := ingest.NuevaPasada()
+	ctx := ingest.Context{Salt: "dry-run-salt", MachineID: "local", DevID: "dev-local", OrgID: "org-local", AgentVersion: version, Pasada: pasada}
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
 	n := 0
@@ -398,12 +406,14 @@ func dryRun(path string) error {
 		if len(ref) > 8 {
 			ref = ref[:8] + "…"
 		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cost=$%.4f cost_avail=%t project_ref=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.CostUSD, ev.CostAvailable, ref)
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
+			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
 	}
 	if err := sc.Err(); err != nil {
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", n)
+	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
 	return nil
 }

@@ -583,32 +583,73 @@ no hay `registro-*.md` en este repositorio).
 
 ## Bloque B2c · Dry-run y actualización (`plan.md` D-006-P5, FR-009, FR-010)
 
-- [ ] **T036** [P] **Rojo** (12) `TestScan_UnEventoPorMensaje` en `cmd/permea/main_test.go`. Proceso:
+- [x] **T036** [P] **Rojo** (12) `TestScan_UnEventoPorMensaje` en `cmd/permea/main_test.go`. Proceso:
   `--scan` sobre un fichero con un mensaje de tres líneas → exit 0 y exactamente **una** línea
   `evento:` en stdout. **Cae**: salen tres.
-- [ ] **T037** [P] **Rojo** (13) `TestScan_LineaConCuatroPartidasYEventID`: la línea `evento:` lleva
+  > **🔴 Medido el 2026-10-02**: `main_test.go:484`, «`--scan` imprimió 3 líneas `evento:` para un
+  > mensaje de tres líneas; se esperaba 1». En sandbox, con identificadores sintéticos.
+- [x] **T037** [P] **Rojo** (13) `TestScan_LineaConCuatroPartidasYEventID`: la línea `evento:` lleva
   `in=`, `out=`, `cw=`, `cr=` y `event_id=` con 32 hex. **Estos nombres de campo los usan las medidas
   V3 y V4 del quickstart.** **Cae**: hoy no hay `cw`, `cr` ni `event_id`.
-- [ ] **T038** (14) `TestActualizar_NoReenviaNiReescribeLaCola` en `cmd/permea/main_test.go`. Sandbox
+  > **🔴 Medido**: caen los dos subtests. `cuatro_partidas` (`main_test.go:507`, «la línea no lleva
+  > "cw=7"» y «"cr=3"») y `event_id_32_hex` (`:514`, «la línea no lleva `event_id=`»).
+- [x] **T038** (14) `TestActualizar_NoReenviaNiReescribeLaCola` en `cmd/permea/main_test.go`. Sandbox
   con `state.json` a mitad de un log y un evento antiguo con `event_id` aleatorio en `queue.jsonl`. Una
   pasada de `generate()`:
   - encola sólo lo posterior al offset;
   - deja la línea antigua **byte a byte** igual.
 
   **Nace verde** (no hay nada que cambiar en el estado), así que lo valida T040.
-- [ ] **T039** En `cmd/permea/main.go`, `dryRun()`:
+  > **Nace verde**, con sus dos subtests (`la_cola_previa_byte_a_byte` y
+  > `solo_lo_posterior_al_offset`). Estado previo con `state.New` + `Save` (offset al final de la
+  > primera línea), y cola sembrada con un evento de `event_id` `00112233…eeff` y
+  > `agent_version` `0.2.1`. Lo acreditan m9 y m10.
+- [x] **T039** En `cmd/permea/main.go`, `dryRun()`:
   - pasada propia;
   - formato de T037;
   - resumen por stderr, que sustituye a «N eventos generados» o lo amplía.
 
   **Verde**: (12) y (13).
-- [ ] **T040** **Mutaciones m9–m10**:
+  > **Verde**: `dryRun()` con pasada propia. Línea `evento: … in= out= cw= cr= cost= cost_avail=
+  > project_ref= event_id=`. Por stderr, la línea «N eventos generados» se conserva y se añade el
+  > resumen de la pasada. (12) y (13) verdes. Suite **335 pass**, 0 fail.
+- [x] **T040** **Mutaciones m9–m10**:
   - **m9**: en `generate()`, empezar con un estado nuevo en vez de cargar `state.json`. Censo: (14).
     **Antes de mutar**, buscar con `grep` en `cmd/permea/*_test.go` otros tests que ejecuten dos
     pasadas, y declararlos como co-caídas si los hay.
   - **m10**: vaciar la cola al empezar `generate()`. Censo: (14). Co-caídas: ninguna, porque (11) parte
     de una cola vacía.
-- [ ] **T041** Puertas del bloque.
+  > **Censos DECLARADOS el 2026-10-02, antes de mutar**, nombrando subtests. El `grep` previo
+  > encontró dos tests más que ejecutan `--run` como proceso: los de `TestRetirada_*` en
+  > `main_test.go` y los casos positivos de `TestProjectJoin_*` en `project_test.go`. Ninguno depende
+  > de lo que alteran m9 o m10: los primeros paran antes de generar, y los segundos parten de estado
+  > y cola vacíos. **Co-caídas: ninguna.** Todo lo no nombrado, verde.
+  > - **m9** · `generate()` empieza con `state.New()` en vez de `state.Load`. Cae
+  >   `TestActualizar_NoReenviaNiReescribeLaCola/solo_lo_posterior_al_offset`, porque relee la primera
+  >   línea y salen 2 eventos nuevos. `la_cola_previa_byte_a_byte`, verde.
+  > - **m10** · `generate()` borra `queue.jsonl` al empezar. Cae
+  >   `TestActualizar_NoReenviaNiReescribeLaCola/la_cola_previa_byte_a_byte`. `solo_lo_posterior_al_offset`
+  >   verde, porque cuenta sólo los eventos nuevos.
+  > **Ejecutadas.** Cada una cayó **exactamente** según su censo y se revirtió por edición inversa
+  > (md5 de `main.go` `0949b8361da7aa7a8f3a0a570a8802c1`, idéntico):
+  > - **m9**: (14)/`solo_lo_posterior_al_offset` (`main_test.go:584`, «la pasada encoló 2 eventos
+  >   nuevos»);
+  > - **m10**: (14)/`la_cola_previa_byte_a_byte` (`main_test.go:569`, «la línea que ya estaba en la
+  >   cola cambió o desapareció»).
+  >
+  > `vet` limpio con las dos.
+- [x] **T041** Puertas del bloque.
+  > **Puertas, 2026-10-02**:
+  > - `gofmt` vacío;
+  > - `vet` limpio;
+  > - lint **0**;
+  > - `go test -count=1 ./...` **9/9 ok, 335 pass, 0 fail**;
+  > - `internal/event` sin diff;
+  > - Windows y darwin compilan;
+  > - `make run` (el `--scan` del fixture) sale con 0: 2 líneas `evento:` con `cw=`/`cr=`/`event_id=`
+  >   y el resumen «pasada: 2 líneas facturables · 2 eventos · …»;
+  > - `event.NewID` sin llamantes;
+  > - disciplina 8, sin resultados.
 - [ ] **T042** ✋ **Commit** (dueño): `006 B2c: dry-run con cuatro partidas y event_id; actualizar no reenvia`
 
 ---
