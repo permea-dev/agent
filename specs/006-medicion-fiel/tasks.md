@@ -1432,12 +1432,16 @@ y se rehace desde el tramo C1.
 
 ### Tramo C7 · Etiqueta
 
-- [ ] **T084** ✋ **El dueño**, en `main` actualizado y limpio:
+- [x] **T084** ✋ **El dueño**, en `main` actualizado y limpio:
   `git tag -a v0.3.0 -m "v0.3.0: medicion fiel y publicable"` y `git push origin v0.3.0`.
+  > **Hecho por el dueño el 2026-10-02.** `git tag -a v0.3.0 -m "v0.3.0: medicion fiel y publicable"`
+  > sobre `c0f6935` (merge de la PR #3), empujada a las 23:52 (Europe/Madrid). Workflow `release`
+  > `37069270565`: éxito, con GoReleaser en 53 s. Dos avisos sin efecto: acciones sobre Node 20 y
+  > caché sin `go.sum`.
 
 ### Tramo C8 · Verificación de los tres canales
 
-- [ ] **T085** Sólo lectura (quickstart §P1):
+- [x] **T085** Sólo lectura (quickstart §P1):
   - `gh run list` (el workflow de release en verde);
   - `gh release view v0.3.0` (5 archivos y checksums);
   - el `permea.json` del bucket y el cask en `0.3.0`;
@@ -1445,10 +1449,38 @@ y se rehace desde el tramo C1.
 
   Transcribir. Si el tap o el bucket no se actualizaron, se mira primero `TAP_GITHUB_TOKEN`: renovado
   el 2026-10-01 según el orquestador, sin comprobar por Claude.
+  > **Hecho el 2026-10-03 (C8)**, en sólo lectura, sobre `main` = `c0f6935` = `v0.3.0`. **Los tres
+  > canales sirven la `0.3.0`.**
+  > - **`gh run list`** (release): `37069270565`, `v0.3.0`, push, completed **success**,
+  >   2026-10-02T21:51:19Z.
+  > - **`gh release view v0.3.0`**: publicada el 2026-10-02T21:52:06Z, ni borrador ni pre-release.
+  >   Archivos:
+  >   - `darwin_amd64.tar.gz`, 2 451 234 B;
+  >   - `darwin_arm64.tar.gz`, 2 301 019 B;
+  >   - `linux_amd64.tar.gz`, 2 405 558 B;
+  >   - `linux_arm64.tar.gz`, 2 210 099 B;
+  >   - `windows_amd64.zip`, 2 475 208 B;
+  >   - `permea_0.3.0_checksums.txt`, 491 B.
+  >
+  >   Descargados a un temporal, `sha256sum -c` da **5 × OK**.
+  > - **Scoop** (`permea-dev/scoop-permea`, `permea.json`): `"version": "0.3.0"`. Su hash de
+  >   `windows_amd64.zip` es igual al publicado.
+  > - **Cask** (`permea-dev/homebrew-permea`, `Casks/permea.rb`): `version "0.3.0"`. Sus cuatro `sha256`
+  >   (darwin arm64 y amd64, linux arm64 y amd64) son iguales a los publicados. El tap y el bucket se
+  >   actualizaron, así que `TAP_GITHUB_TOKEN` funciona.
+  > - **`install.sh`**:
+  >   - `curl -sI …/releases/latest` → `302`, `location: …/releases/tag/v0.3.0`;
+  >   - la resolución de `latest_tag` del script da `v0.3.0`;
+  >   - el `install.sh` servido desde `main` es idéntico al del repositorio.
+  > - **Binario de Linux publicado**, en `env -i` con un HOME temporal: `--version` → `0.3.0`, y `help`
+  >   **idéntico byte a byte** a la ayuda aprobada, con stderr vacío.
+  > - **Segunda fuente, el orquestador, sin credenciales**: los 5 archivos pasan `sha256sum -c`; el hash
+  >   del manifiesto de Scoop y los cuatro del cask coinciden con los archivos publicados; el binario
+  >   de Linux publicado da `0.3.0` y su `help` es idéntico al texto aprobado.
 
 ### Tramo C9 · W2 — ensayo final
 
-- [ ] **T086** ✋ **El dueño ejecuta W2** (quickstart §W2):
+- [x] **T086** ✋ **El dueño ejecuta W2** (quickstart §W2):
   1. `scoop update`;
   2. `--version` = `0.3.0`;
   3. `enroll` por stdin;
@@ -1456,8 +1488,47 @@ y se rehace desde el tramo C1.
   5. `-run`.
 
   Después, el recuento de eventos en la plataforma para esa instalación y ventana.
-- [ ] **T087** Transcribir W2: eventos en la plataforma frente a mensajes distintos en los logs, para
+  > **Ejecutado por el dueño el 2026-10-02, de 23:55 a 23:59 (Europe/Madrid)**, en Windows con
+  > PowerShell 5.1.
+  > 1. `scoop update` y `scoop update permea`: 0.2.1 → **0.3.0**, con el hash comprobado por Scoop.
+  > 2. `permea --version` → **`0.3.0`**.
+  > 3. ⚠️ **Desviación: no se reenroló.** Sigue el enrolamiento de W1, hecho con el mismo código.
+  > 4. `permea status` → enrolado, token configurado.
+  > 5. **Contador independiente desde WSL** sobre los logs de Windows, **antes** de la pasada:
+  >    - 26 ficheros · 12 051 facturables · 1 sintética · 0 sin identificador;
+  >    - **5 286 mensajes distintos**;
+  >    - `in` 10 606 · `out` 5 690 429 · `cw` 19 228 991 · `cr` 2 112 609 020.
+  > 6. `permea --run`: 5 286 eventos encolados.
+  >    - Pasada: 12 051 facturables · 5 286 eventos · 6 764 repetidas · 1 sintética · 0 sin
+  >      identificador · **158 con consumo distinto de la primera**.
+  >    - «5286 eventos transmitidos y confirmados».
+  > 7. **Plataforma** (producción): esa instalación tiene **5 286** eventos con `agent_version` 0.3.0,
+  >    todos con `event_id` distinto. Las sumas `in` 10 606 · `out` 5 690 429 · `cw` 19 228 991 · `cr`
+  >    2 112 609 020 son **idénticas** a las del contador.
+- [x] **T087** Transcribir W2: eventos en la plataforma frente a mensajes distintos en los logs, para
   esa ventana (SC-020). Cerrar el checklist del quickstart.
+  > **Hecho el 2026-10-03.** **SC-020 se cumple**: 5 286 eventos en la plataforma = 5 286 mensajes
+  > distintos en los logs, con las cuatro sumas idénticas. Checklist del quickstart cerrado.
+  >
+  > **Hallazgo de W2, 2026-10-02 — NO se corrige en 006.**
+  > - **Qué pasa**: 158 líneas, en **143 mensajes** de 5 286 (2,7 %), traen un consumo distinto al de
+  >   la primera línea del mismo mensaje. Sólo difiere la **salida**; la entrada y las cachés son
+  >   iguales.
+  > - **Cuánto**: sumando esos mensajes, la primera línea da **1 306** tokens de salida y la última
+  >   **89 817**. La última es también el máximo, en los 143. Con «la primera línea manda» (FR-005) se
+  >   cuentan **88 511 tokens de salida de menos**: el **1,6 %** de la salida de ese historial.
+  > - **Dónde no aparece**: en la copia de WSL de C2 (0 sobre 23 778 líneas).
+  > - **Por qué no se vio antes**: el contador independiente usa la misma regla, así que SC-002 no podía
+  >   detectarlo. **En ese punto, la medida no era independiente.** La coincidencia de sumas de W2 entre
+  >   el contador, el agente y la plataforma confirma que los tres aplican la misma regla, no que la
+  >   regla cuente bien.
+  > - **Sin resolver**: por qué aparece en Windows y no en WSL, y qué ocurre entre pasadas (`--daemon`)
+  >   si la línea parcial y la final caen en pasadas distintas.
+  > - **Anotado** con nota fechada en:
+  >   - `spec.md`: FR-005, SC-002 y §Fuera de alcance, como deuda remitida a la versión siguiente;
+  >   - `quickstart.md`: §El contador independiente y el checklist;
+  >   - `CHANGELOG.md`: «Limitación conocida»;
+  >   - el README: la viñeta «Un evento por mensaje».
 - [ ] **T088** ✋ **Commit de cierre** (dueño; rama o `main`, a su criterio):
   `006 cierre: ensayo final en Windows (W2) y checklist`
 

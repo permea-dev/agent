@@ -374,6 +374,20 @@ versión está publicada** y el dueño la ha ensayado en Windows **dos veces**:
 - **P-006 FR-005**: Si las líneas de un mismo mensaje traen consumos distintos, el evento **DEBE**
   reflejar el de **la primera línea leída**, y las líneas **NUNCA** se suman. La discrepancia **DEBE**
   quedar visible en el diagnóstico local de la pasada.
+  > **Hallazgo de W2, 2026-10-02.** La regla «la primera línea manda» **cuenta de menos**. En W2 (logs
+  > de Windows, 5 286 mensajes), 158 líneas de **143 mensajes (2,7 %)** traen un consumo distinto al de
+  > la primera línea del mismo mensaje.
+  > - Sólo difiere la **salida**; la entrada y las cachés son iguales.
+  > - Sumando esos mensajes, la primera línea da 1 306 tokens de salida y la última 89 817. La última
+  >   es también el máximo, en los 143.
+  > - Con esta regla se cuentan **88 511 tokens de salida de menos**: el **1,6 %** de la salida de ese
+  >   historial.
+  > - En la copia de WSL de C2 el caso no aparece: 0 sobre 23 778 líneas.
+  >
+  > **No se corrige en 006**: la `0.3.0` se publicó con esta regla, y queda declarada como limitación en
+  > el CHANGELOG y el README. Sin resolver: por qué aparece en Windows y no en WSL, y qué ocurre entre
+  > pasadas (`--daemon`) si la línea parcial y la final caen en pasadas distintas. Ver §Fuera de
+  > alcance.
 - **P-006 FR-006**: Una línea facturable con **sólo uno** de los dos identificadores **DEBE** derivar su
   `event_id` del que tiene, sin posibilidad de coincidir con un `event_id` derivado del par. Una línea
   **sin ninguno** **NUNCA** se emite, y **DEBE** contarse como no contable en el diagnóstico local de la
@@ -559,6 +573,11 @@ no el valor esperado en otra copia.
 - **P-006 SC-002**: Sobre la misma copia, **la suma de las cuatro partidas de tokens de los eventos del
   dry-run es igual a la suma contando cada mensaje una vez**. Referencia: **4 835 167 368**, frente a
   10 292 101 351 sumando por línea. Se mide con el recuento independiente de SC-001.
+  > **Hallazgo de W2, 2026-10-02.** El contador independiente aplica **la misma regla** que el agente:
+  > la primera línea manda. Por eso SC-002 **no podía detectar** que esa regla cuenta de menos: en ese
+  > punto, **la medida no era independiente**. SC-002 acredita que no se cuenta de más, pero no que
+  > no se cuente de menos. En W2 faltan 88 511 tokens de salida (1,6 %), y ni el contador ni la
+  > plataforma lo vieron, porque los dos coinciden con el agente. Ver FR-005.
 - **P-006 SC-003**: **Determinismo.** Dos lecturas independientes de la misma copia, con estado de
   lectura vacío, directorios de datos distintos y **secretos locales distintos**, producen
   **exactamente el mismo conjunto** de `event_id`. El número de `event_id` distintos es igual al de
@@ -833,3 +852,11 @@ Enumerado con su motivo, para que la ausencia no se lea como olvido.
 - **Actualizar los artefactos fechados de 002** que dicen `bfgnet/…` o `Formula/permea.rb`. Son
   registro de cuando se escribieron; los que se corrigen aquí son el README y los comentarios de la
   configuración viva.
+- **Deuda — los tokens de salida que crecen entre líneas de un mismo mensaje** *(Hallazgo de W2,
+  2026-10-02)*. Con «la primera línea manda» (FR-005) se cuentan de menos: un 1,6 % de la salida en
+  los datos de Windows de W2. **Se remite a la versión siguiente**, que debe decidir:
+  - qué valor manda (la última línea o el máximo, que en W2 coinciden);
+  - cómo se mide de forma **independiente** de esa regla (ver SC-002);
+  - por qué aparece en Windows y no en WSL;
+  - qué pasa entre pasadas (`--daemon`) si la línea parcial y la final caen en pasadas distintas,
+    cuando el `event_id` ya se emitió con el valor parcial.

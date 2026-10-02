@@ -87,6 +87,16 @@ EOF
 Referencia del 2026-10-02, sobre el historial de ese día: 10 698 mensajes y 4 835 167 368 tokens (M2).
 **No es el valor esperado en otra copia.**
 
+> **Limitación del contador — Hallazgo de W2, 2026-10-02.** El contador aplica `setdefault`: **la
+> primera línea manda**, igual que el agente (FR-005). Por tanto **no es independiente en ese punto**.
+> Confirma que no se cuenta de más, pero no puede detectar que se cuente de menos cuando las líneas
+> de un mismo mensaje traen tokens de salida crecientes.
+>
+> En W2 había 143 mensajes de 5 286 en ese caso, con 88 511 tokens de salida de menos (1,6 %), y el
+> contador coincidió con el agente y con la plataforma. Una medida independiente debería contar
+> también, por mensaje, cuántos tienen líneas con consumo distinto y la diferencia entre la primera y
+> la última. Queda para la versión siguiente (spec, §Fuera de alcance).
+
 ---
 
 # PARTE A · Validaciones (V1 – V18)
@@ -366,14 +376,31 @@ ensayo entero. Se anota: fecha, commit del snapshot y resultado de cada paso.
 plataforma, el recuento de eventos de esa instalación en la ventana del ensayo es igual al de mensajes
 distintos de sus logs en esa ventana, contados como en el contador independiente. Se anota con fecha.
 
+> **Anotado el 2026-10-02 (W2, T086–T087).** El dueño lo ejecutó de 23:55 a 23:59 (Europe/Madrid), en
+> Windows con PowerShell 5.1.
+> - Scoop actualizó de 0.2.1 a 0.3.0, y `--version` → `0.3.0`.
+> - **Desviación**: no se reenroló; sigue el enrolamiento de W1, hecho con el mismo código. `status` →
+>   enrolado, token configurado.
+> - `--run`: 5 286 eventos transmitidos y confirmados.
+> - Plataforma: **5 286** eventos con `agent_version` 0.3.0 = **5 286** mensajes distintos (contador
+>   desde WSL), con las cuatro sumas idénticas. **SC-020 se cumple.**
+> - **Hallazgo**: 143 mensajes con tokens de salida crecientes entre líneas, 1,6 % de salida de menos.
+>   No se corrige en 006: ver §El contador independiente y spec FR-005.
+
 ---
 
 ## Checklist de cierre
 
-- [ ] V1–V18 en verde, con sus salidas anotadas en `tasks.md`.
-- [ ] Q-006-1 decidida (**sí, el 2026-10-02**), y la cabecera de tarifas cita el commit vigente del
+- [x] V1–V18 en verde, con sus salidas anotadas en `tasks.md`: V1 y V6 en T072; V2–V5, V7, V10 y V12
+  en T074; V4-c en T075; V8, V9, V11 y V13–V17 en los tests de los bloques B2–B4; V18 en T069. *(Cerrado
+  el 2026-10-03.)* **Salvedad de V3 (SC-002)**: no era independiente de la regla de FR-005 (Hallazgo de
+  W2, 2026-10-02).
+- [x] Q-006-1 decidida (**sí, el 2026-10-02**), y la cabecera de tarifas cita el commit vigente del
   catálogo (`e50d0a5`).
 - [x] W1 (ensayo antes de la etiqueta) anotado, sin fallos. *(2026-10-02, T079–T081.)*
-- [ ] P1: release publicada y canales en `0.3.0`.
-- [ ] W2 (ensayo final) anotado.
-- [ ] `rm -rf "$COPIA"`, y los temporales de `/tmp/*-006*` y `/tmp/ids-*` borrados.
+- [x] P1: release publicada y canales en `0.3.0`. *(`v0.3.0` sobre `c0f6935`; T084 y T085.)*
+- [x] W2 (ensayo final) anotado. *(T086 y T087: SC-020 se cumple, con el hallazgo de W2 anotado.)*
+- [x] `rm -rf "$COPIA"`, y los temporales de `/tmp/*-006*` y `/tmp/ids-*` borrados. *(T076 y C3.)* La
+  copia y todos los temporales de las medidas están borrados. El 2026-10-03 sólo queda
+  `/tmp/agente-006-pr-body.md` (2026-10-02 23:49): es el cuerpo del PR, no lo creó Claude y no lleva
+  datos de logs. Se deja para que el dueño decida.

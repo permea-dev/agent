@@ -147,6 +147,9 @@ servidor**, sobre lo que ya llegó.
   agente emite **uno** por mensaje, con un `event_id` derivado del propio mensaje (el mismo en
   cualquier pasada o instalación), y la plataforma descarta los repetidos. Las líneas `<synthetic>`
   no se emiten. Al final de cada pasada, un resumen por stderr con **sólo recuentos**.
+  **Limitación conocida**: si las líneas de un mismo mensaje traen tokens de salida crecientes, se
+  cuenta el de la primera; en los datos medidos en Windows, un 1,6 % de la salida de menos. Se
+  corregirá en la versión siguiente.
 - **`--scan`** imprime por evento las cuatro partidas de tokens (`in=`, `out=`, `cw=`, `cr=`), el
   coste y el `event_id`.
 - **`--run`** hace una pasada: descubre los logs de Claude Code, lee solo lo nuevo por

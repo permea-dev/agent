@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.3.0 — 2026-10-03
+## 0.3.0 — 2026-10-02
 
 Primera versión desde la 0.2.1. Trae el enrolamiento, la identidad y la adhesión a proyecto, y
 corrige la medición. **Si venías de la 0.2.1, lee «Cambios que rompen» y «Las cifras bajan».**
@@ -53,6 +53,13 @@ salían **×2,13**. A partir de la 0.3.0 cada mensaje cuenta una vez. Es una cor
 Lo enviado antes de actualizar **no se corrige ni se reenvía**, y lo que la 0.2.1 dejó en cola se
 envía tal cual: la corrección aplica a lo que se mida desde la 0.3.0. (P-006 FR-009; §Fuera de alcance,
 «Los datos que la plataforma ya recibió»)
+
+### Limitación conocida
+
+Cuando Claude Code escribe varias líneas de un mismo mensaje con los **tokens de salida creciendo**, se
+cuenta el valor de **la primera** línea. En los datos medidos en Windows faltan así **un 1,6 % de los
+tokens de salida**; la entrada y las cachés no se ven afectadas. Se corregirá en la versión siguiente.
+(`specs/006-medicion-fiel/spec.md`, P-006 FR-005, «Hallazgo de W2, 2026-10-02»)
 
 ### Cambios que rompen
 
