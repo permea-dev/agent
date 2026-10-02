@@ -90,7 +90,7 @@ func runProjectOS(args []string) int {
 // sin arrancar un binario hijo. `main` es quien sale.
 func runProject(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr io.Writer, adherir ejecutorDeAdhesion) int {
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "error: falta el verbo. Verbos disponibles: join")
+		_, _ = fmt.Fprintln(stderr, "error: falta el verbo. Verbos disponibles: join")
 		return codigoFallo
 	}
 
@@ -100,7 +100,7 @@ func runProject(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr
 	default:
 		// NUNCA se intenta interpretar ni corregir el verbo (`contracts/cli.md` §La gramática): un
 		// comando que adivina lo que quisiste decir ejecuta lo que no pediste.
-		fmt.Fprintf(stderr, "error: verbo desconocido %q. Verbos disponibles: join\n", args[0])
+		_, _ = fmt.Fprintf(stderr, "error: verbo desconocido %q. Verbos disponibles: join\n", args[0])
 		return codigoFallo
 	}
 }
@@ -126,7 +126,7 @@ func runProject(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr
 func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr io.Writer, adherir ejecutorDeAdhesion) int {
 	codigo, err := leerCodigoDeAdhesion(args, stdin, stdinEsPipe)
 	if err != nil {
-		fmt.Fprintln(stderr, "error:", err)
+		_, _ = fmt.Fprintln(stderr, "error:", err)
 		return codigoFallo
 	}
 
@@ -136,7 +136,7 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 	// actual y punto. Ni lee configuración, ni necesita enrolamiento.
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Fprintln(stderr, "error: no se pudo determinar el directorio actual:", err)
+		_, _ = fmt.Fprintln(stderr, "error: no se pudo determinar el directorio actual:", err)
 		return codigoFallo
 	}
 	// ⛔ EL SALT NO INFLUYE EN `huboRaiz`, y por eso aquí va vacío. `DerivarConRaiz` obtiene ese
@@ -144,14 +144,14 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 	// la identidad. Preguntarlo sin salt tiene una consecuencia que sí importa: **el camino de rehúse
 	// no llega a tocar el secreto local**, y `LoadOrCreateSalt` lo CREARÍA si no existiera.
 	if _, hayRaiz := project.DerivarConRaiz(cwd, ""); !hayRaiz {
-		fmt.Fprintln(stderr, "error: este directorio no pertenece a un árbol de trabajo con raíz reconocible.\n"+
+		_, _ = fmt.Fprintln(stderr, "error: este directorio no pertenece a un árbol de trabajo con raíz reconocible.\n"+
 			"       Ejecuta el comando dentro del árbol de trabajo que quieres agrupar")
 		return codigoFallo
 	}
 
 	dir, err := config.DataDir()
 	if err != nil {
-		fmt.Fprintln(stderr, "error:", err)
+		_, _ = fmt.Fprintln(stderr, "error:", err)
 		return codigoFallo
 	}
 	cfg, err := config.Load(filepath.Join(dir, "config.json"))
@@ -165,7 +165,7 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 		//
 		// La causa se conserva: es de `encoding/json` sobre el fichero del usuario, no sobre nada que
 		// lleve el código dentro (P-005 FR-020).
-		fmt.Fprintln(stderr, "error: la configuración local no permite determinar el destino:", err)
+		_, _ = fmt.Fprintln(stderr, "error: la configuración local no permite determinar el destino:", err)
 		return codigoFallo
 	}
 
@@ -181,7 +181,7 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 	// Lo que este rehúse mira es **lo que `enroll` escribe**: endpoint y token. Sin uno de los dos no
 	// hay enrolamiento, y el mensaje dice cómo conseguirlo.
 	if cfg.Endpoint == "" || cfg.DeviceToken == "" {
-		fmt.Fprintln(stderr, "error: esta instalación no está enrolada.\n"+
+		_, _ = fmt.Fprintln(stderr, "error: esta instalación no está enrolada.\n"+
 			"       Enrólala primero:  permea enroll <enrollment-string>\n"+
 			"       (recomendado por stdin:  … | permea enroll -)")
 		return codigoFallo
@@ -195,7 +195,7 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 	// (P-005 FR-020 manda sobre FR-009), así que se propaga tal cual.
 	destino, err := config.DerivarEndpointDeAdhesion(cfg.Endpoint)
 	if err != nil {
-		fmt.Fprintln(stderr, "error:", err)
+		_, _ = fmt.Fprintln(stderr, "error:", err)
 		return codigoFallo
 	}
 
@@ -209,7 +209,7 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 	// existe para impedir.
 	salt, err := config.LoadOrCreateSalt(dir)
 	if err != nil {
-		fmt.Fprintln(stderr, "error:", err)
+		_, _ = fmt.Fprintln(stderr, "error:", err)
 		return codigoFallo
 	}
 	// MISMA función que el camino de la ingesta, no una equivalente: `project.Derivar` y
@@ -218,13 +218,13 @@ func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stder
 
 	denominacion, err := adherir(destino, cfg.DeviceToken, codigo, identidad)
 	if err != nil {
-		fmt.Fprintln(stderr, mensajeDeRehuseRemoto(err))
+		_, _ = fmt.Fprintln(stderr, mensajeDeRehuseRemoto(err))
 		return codigoFallo
 	}
 
 	// El éxito comunica **la denominación del Proyecto** (P-005 FR-002) por **stdout**, que es la
 	// respuesta (P-005 FR-021).
-	fmt.Fprintln(stdout, mensajeDeUnion(denominacion))
+	_, _ = fmt.Fprintln(stdout, mensajeDeUnion(denominacion))
 	return codigoExito
 }
 

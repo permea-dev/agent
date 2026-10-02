@@ -211,7 +211,7 @@ Tamaños: **S** < 50 líneas de producción · **M** 50–150 · **L** > 150 (lo
 
 | Bloque | Qué | Ficheros | Rojo (antes) | Verde (después) | Mutaciones que validan | Acredita | Tamaño |
 |---|---|---|---|---|---|---|---|
-| **B0 · Linter a 0** | Los 7 avisos (R9) | `project.go`; `endpoint.go`, `endpoint_test.go`, `enrollment.go`, `config.go`, `transport.go`; `adhesion_test.go` | `golangci-lint run` → 7 issues | 0 issues; los 297 tests verdes **sin tocar ninguna aserción** | No hay test nuevo: es un refactor que conserva la conducta. La red es la suite existente, incluidos los 5 sitios de `endpoint_test.go` que miran los dos valores de `JuzgarEndpoint` | FR-031 (lint), SC-018 (parcial; se re-mide en cada bloque) | **S** (~15 prod, ~8 test) |
+| **B0 · Linter a 0** | Los 7 avisos (R9) | `project.go`; `endpoint.go`, `endpoint_test.go`, `enrollment.go`, `config.go`, `transport.go`; `adhesion_test.go` | `golangci-lint run` → 7 issues *(E-006-P7: 7 visibles con el tope por defecto; 15 sin él)* | 0 issues **sin tope**; los 297 tests verdes **sin tocar ninguna aserción** | No hay test nuevo: es un refactor que conserva la conducta. La red es la suite existente, incluidos los 5 sitios de `endpoint_test.go` que miran los dos valores de `JuzgarEndpoint` | FR-031 (lint), SC-018 (parcial; se re-mide en cada bloque) | **S** (~15 prod, ~8 test) |
 | **B1 · Contratos y testigos** | Redescribir el origen del `event_id` en 001. Identificadores en los fixtures y en las 6 líneas literales. Centinelas en la denylist. Testigos de la derivación **en rojo** | `specs/001…/contracts/transport.md`, `specs/001…/data-model.md`; `testdata/claude_code_sample.jsonl`, `testdata/boundary_sample.jsonl`; `boundary_test.go`, `main_test.go`; `eventid_test.go` (nuevo) | Por `FromClaudeCodeLine`, la API existente, para que el rojo sea de **test** y no de compilación: **(1)** misma línea en dos `Context` → mismo `event_id`: ROJO (hoy aleatorio); **(2)** vector del par → `43b8…f3e2`: ROJO; **(3)** `<synthetic>` → `nil`: ROJO (hoy emite); **(4)** línea sin ningún identificador → `nil`: ROJO | Golden ampliado **verde de nacimiento**. `TestSC009_…` **sigue verde** con los fixtures editados: prueba que el baseline no se movió (R7) | Golden: copiar `message.id` a un campo del evento (decodificándolo sólo para la mutación) → ROJO; revertir por edición inversa | FR-011, FR-013; SC-004 (golden); deja en rojo SC-003a, SC-006 y SC-008c | **S** prod (sólo docs) · ~120 test |
 | **B2a · La derivación** | `rawRecord` + ids; `eventid.go`; descartar `<synthetic>`; formas de un solo identificador; no emitir sin ninguno | `claudecode.go`, `eventid.go` (nuevo) | Los 4 rojos de B1 | Los 4 en verde, más: (5) las 3 formas distintas entre sí, todas de 32 hex; (6) vectores de una sola forma y de la ambigüedad | (m1) quitar el tipo del dominio → (5) ROJO · (m2) quitar el prefijo de longitud → vector de ambigüedad ROJO · (m3) volver a emitir `<synthetic>` → (3) ROJO · (m4) meter la sal en el hash → (1) ROJO | FR-002, FR-003, FR-004, FR-006 (derivar), FR-007, FR-008; SC-003a, SC-006 | **M** (~70 prod, ~100 test) |
 | **B2b · La pasada** | El conjunto de la pasada, los contadores y el resumen. Instanciada en `generate()` | `pasada.go` (nuevo), `claudecode.go`, `main.go` (`generate`, `runOnce`, `tick`) | Con un tipo vacío nil-seguro creado **primero**, para que compile: **(7)** un mensaje de 3 líneas en una pasada → 1 evento: ROJO; **(8)** consumo distinto → 1 evento con el de la primera + contador = 1: ROJO; **(9)** sin identificador → contador = 1: ROJO; **(10)** el resumen no contiene ningún centinela de identificador; **(11)** `generate()` en sandbox → la cola tiene 1 evento por mensaje: ROJO | Los 5 en verde. Con la pasada a nil, una línea repetida **se emite** (patrón `Resolutor`) | (m5) desactivar el conjunto → (7) y (11) ROJO · (m6) sumar en vez de quedarse con la primera → (8) ROJO · (m7) escribir el `event_id` en el resumen → (10) ROJO · (m8) `generate()` sin instanciar la pasada → (11) ROJO **y (7) verde**: prueba que (11) mira el camino real | FR-001, FR-005, FR-006 (contar), FR-033; SC-008, SC-021 (sandbox) | **M** (~90 prod, ~180 test) |
@@ -235,7 +235,7 @@ Tamaños: **S** < 50 líneas de producción · **M** 50–150 · **L** > 150 (lo
 **Puerta de cada bloque** (además de su verde):
 - `gofmt -l .` vacío;
 - `go vet ./...` limpio;
-- `golangci-lint run` → 0;
+- `golangci-lint run` → 0 *(sin tope desde B0, E-006-P7)*;
 - `go test ./...` → 9 paquetes ok;
 - `git diff 0311fa1 -- internal/event` vacío (SC-005);
 - `grep -rnE` de la disciplina 8 → nada.
@@ -344,6 +344,13 @@ Decisiones del orquestador sobre las dudas del plan, tomadas el mismo día, desp
   Toca: §Riesgos.
 - **E-006-P6 · El secreto de enrolamiento de W1 lo prepara el dueño**: tarea ✋ suya en el Cierre.
   Toca: quickstart W1, `tasks.md`.
+- **E-006-P7 · El linter, sin tope** (orquestador, 2026-10-02, tras la parada en T001). El «7» estaba
+  truncado por `max-same-issues: 3` por defecto; los avisos reales son **15** (12 `errcheck` en
+  `project.go`). El tope se quita **en `.golangci.yml`** (`max-same-issues: 0`,
+  `max-issues-per-linter: 0`) con una tarea nueva, **T089**, que va la primera de B0. T002 cubre las
+  12 escrituras. T001, T005, T007 y las puertas de todos los bloques miden con `golangci-lint run` a
+  secas. Toca: B0 (y `.golangci.yml`, que pasa a ser fichero del bloque), §Puertas, spec D-006-13,
+  `research.md` R9 y `tasks.md`.
 
 ---
 

@@ -6,7 +6,8 @@
 
 **Status**: Draft
 
-**Amended**: 2026-10-02 — enmiendas D-006-7 a D-006-13 y pregunta abierta Q-006-1
+**Amended**: 2026-10-02 — enmiendas D-006-7 a D-006-13 y pregunta abierta Q-006-1; nota E-006-P7 sobre
+el recuento del linter en D-006-13
 (§Decisiones › Enmiendas del 2026-10-02). Los números ya asignados no se renumeran;
 lo revocado se marca, no se borra.
 
@@ -136,6 +137,8 @@ el catálogo declara:
 **Otros puntos de partida** (del descubrimiento):
 - la ayuda (`report-agente.md` §10);
 - los 7 avisos de `golangci-lint`, todos en código de 005: 4 `errcheck` en `cmd/permea/project.go`, 2 `revive` y 1 `staticcheck` (§3);
+  *(Nota 2026-10-02, E-006-P7: **15 avisos reales; 7 visibles por el tope por defecto** de
+  `max-same-issues`, que es 3. Los 8 ocultos son más `errcheck` en `project.go`. Ver D-006-13.)*
 - las URLs `bfgnet/…` del README, que dan 404 (§1);
 - la ausencia de CHANGELOG (§1).
 
@@ -707,6 +710,13 @@ dice qué toca. Ningún número existente se ha reasignado.
   la tarde). **Revoca D-006-5.** Toca FR-031 y SC-018, que pasan a exigir 0, y saca «corregir los 7
   avisos» de §Fuera de alcance. Con esto la feature cumple la puerta de la constitución
   (`constitution.md:74`) sin excepción. D-006-6 no cambia.
+
+  *(Nota 2026-10-02, E-006-P7, orquestador.)* **15 avisos reales; 7 visibles por el tope por
+  defecto.** `golangci-lint` no enseña más de 3 avisos con el mismo texto (`max-same-issues`, por
+  defecto 3), y eso escondía 8 `errcheck` más en `cmd/permea/project.go`. El tope se quita **en
+  `.golangci.yml`**, no con opciones de línea de órdenes: la constitución nombra `golangci-lint run`
+  a secas, y un instrumento que esconde no sirve de puerta. «Los 7 avisos» de arriba se conserva
+  como se escribió.
 
 ---
 

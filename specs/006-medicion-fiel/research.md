@@ -326,9 +326,21 @@ primer posicional). Va a §Dudas. *(Confirmado el 2026-10-02, E-006-P3: se queda
 
 Medido el 2026-10-02 con `golangci-lint` 2.12.2 y la configuración `.golangci.yml` del repositorio.
 
+> **Enmendado el 2026-10-02 (E-006-P7).** La tabla está **truncada**: se midió con el tope por defecto
+> `max-same-issues: 3`. Sin el tope (`golangci-lint run --max-same-issues 0 --max-issues-per-linter 0`,
+> medido el 2026-10-02 al ejecutar B0) salen **15**:
+> - **12** `errcheck` en `cmd/permea/project.go`: las cuatro de la fila 1–4 y **8 ocultas**, todas
+>   escrituras `fmt.Fprint*` al `stderr`/`stdout` de `projectJoin`;
+> - los 2 `revive` y el `staticcheck` de las filas 5–7.
+>
+> La de `os.Stderr` en `runProjectOS` no sale porque `errcheck` la excluye por defecto. **Decisión del
+> orquestador**: el tope se quita en `.golangci.yml` (`issues.max-same-issues: 0`,
+> `issues.max-issues-per-linter: 0`), y la corrección de la fila 1–4 se extiende a las 12 escrituras,
+> con el mismo idioma.
+
 | # | Aviso | Dónde | Corrección prevista | Alternativa descartada |
 |---|---|---|---|---|
-| 1–4 | `errcheck`: valor de error de `fmt.Fprintln`/`Fprintf` sin comprobar | `cmd/permea/project.go:93`, `:103`, `:129`, `:139` | `_, _ = fmt.Fprintln(…)`, el idioma que el repositorio ya usa para escrituras de diagnóstico (`status.go:42`, `:53`, `:55`; `enroll.go:111`) | `//nolint:errcheck`: el repositorio no tiene ninguno (`grep -rn nolint` vacío) y el idioma explícito dice lo mismo sin silenciar el linter |
+| 1–4 *(12 reales, E-006-P7)* | `errcheck`: valor de error de `fmt.Fprintln`/`Fprintf` sin comprobar | `cmd/permea/project.go:93`, `:103`, `:129`, `:139` | `_, _ = fmt.Fprintln(…)`, el idioma que el repositorio ya usa para escrituras de diagnóstico (`status.go:42`, `:53`, `:55`; `enroll.go:111`) | `//nolint:errcheck`: el repositorio no tiene ninguno (`grep -rn nolint` vacío) y el idioma explícito dice lo mismo sin silenciar el linter |
 | 5 | `revive` `error-return`: «error should be the last type» | `internal/config/endpoint.go:83`, `JuzgarEndpoint(endpoint) (errAnalisis error, admisible bool)` | **Reordenar a `(admisible bool, errAnalisis error)`**. Llamantes: `enrollment.go:82`, `config.go:100`, `transport.go:148`, `:256`, y 5 sitios de `endpoint_test.go`. El compilador los encuentra todos | `//nolint:revive`. La razón del orden actual («por qué devuelve el error y no un segundo booleano», `endpoint.go:69-72`) habla de **devolver** el error, no de su **posición**: el orden no tiene justificación escrita |
 | 6 | `revive` `unused-parameter`: `r` sin usar | `internal/transport/adhesion_test.go:267` | Renombrar a `_` | — |
 | 7 | `staticcheck` SA1007: URL inválida en constante | `internal/transport/adhesion_test.go:194`, `url.Parse(endpointNoAnalizableAdhesion)`; la constante en `:112` | **`//nolint:staticcheck` en esa línea, con el motivo**: la URL inválida es **el sujeto** del test (la causa de `url.Parse` que `Adherir` debe conservar). Será la **única** directiva `nolint` del repositorio, y se declara | Construir la cadena en tiempo de ejecución para que staticcheck no la vea: **engaña al instrumento en vez de declarar la excepción**. Un auditor leería una construcción rara sin saber por qué |

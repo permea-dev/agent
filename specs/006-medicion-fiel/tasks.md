@@ -84,7 +84,7 @@ Toda mutación de este fichero sigue estos pasos, en este orden:
 ```sh
 gofmt -l .                                   # → vacío
 go vet ./...                                 # → sin hallazgos
-golangci-lint run                            # → 0 issues (2.12.2; desde B0)
+golangci-lint run                            # → 0 issues (2.12.2; desde B0; A SECAS y SIN TOPE desde T089, E-006-P7)
 go test -count=1 ./...                       # → 9 paquetes ok (B1: salvo sus 4 rojos declarados)
 git diff 0311fa1 -- internal/event           # → vacío (SC-005, D-006-3)
 grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml|tsv|mod|gitignore):[0-9]+|[(`]:[0-9]+' \
@@ -108,29 +108,60 @@ no hay `registro-*.md` en este repositorio).
 > **Por qué va primero**: la constitución exige `golangci-lint` limpio **para cerrar cualquier tarea**
 > (`.specify/memory/constitution.md:72-75`). Con 7 avisos heredados, nada de lo que sigue podría
 > cerrarse limpio (`plan.md` D-006-P10).
+>
+> **Enmendado el 2026-10-02 (E-006-P7).** Los avisos reales son **15**, no 7: el tope por defecto
+> `max-same-issues: 3` escondía 8 `errcheck` más en `project.go`. El bloque empieza por **T089**, que
+> quita el tope en `.golangci.yml`, y desde ahí todo se mide con `golangci-lint run` a secas.
 
-- [ ] **T001** **Rojo**: ejecutar `golangci-lint run` (2.12.2) y transcribir aquí los avisos. Se
+- [x] **T089** *(nueva, 2026-10-02, E-006-P7; va la PRIMERA del bloque)* En `.golangci.yml`, quitar
+  el tope de avisos: `issues.max-same-issues: 0` e `issues.max-issues-per-linter: 0`. Clave exacta de
+  la 2.12.2, validada con `golangci-lint config verify`. **Rojo**: `golangci-lint run` **sin
+  opciones** pasa de **7** a **15**. Ningún otro cambio en la configuración.
+  > **Hecho el 2026-10-02.** `issues.max-issues-per-linter: 0` e `issues.max-same-issues: 0` en
+  > `.golangci.yml`, con un comentario del motivo. `golangci-lint config verify` → sin error.
+  > **Rojo medido**: `golangci-lint run` a secas, **7 issues** antes (errcheck 4 · revive 2 ·
+  > staticcheck 1) → **15 issues** después (errcheck 12 · revive 2 · staticcheck 1).
+- [x] **T001** **Rojo**: ejecutar `golangci-lint run` (2.12.2) y transcribir aquí los avisos. Se
   esperan **7**: 4 `errcheck` en `cmd/permea/project.go` (las cuatro escrituras de error de
   `runProject` y `projectJoin`), 1 `revive` `error-return` en `internal/config/endpoint.go`
   (`JuzgarEndpoint`), 1 `revive` `unused-parameter` y 1 `staticcheck` SA1007 en
   `internal/transport/adhesion_test.go`. Si salen otros o más, **se para**.
-- [ ] **T002** [P] Avisos 1–4: en `cmd/permea/project.go`, `_, _ =` delante de las cuatro escrituras
+  *(Enmendado 2026-10-02, E-006-P7: tras T089 se esperan **15**: 12 `errcheck` en
+  `cmd/permea/project.go` y los 3 de arriba. Si salen otros o más que esos 15, se para.)*
+  > **Medido el 2026-10-02** (2.12.2, a secas, tras T089): **15**. Son `project.go` en las líneas 93,
+  > 103, 129, 139, 147, 154, 168, 184, 198, 212, 221 y 227 (`errcheck`), `endpoint.go` 83
+  > (`revive` error-return), y `adhesion_test.go` 267 (`revive` unused-parameter) y 194
+  > (`staticcheck` SA1007). Coinciden con los 15 previstos por E-006-P7.
+- [x] **T002** [P] Avisos 1–4: en `cmd/permea/project.go`, `_, _ =` delante de las cuatro escrituras
   de `fmt.Fprintln`/`fmt.Fprintf` a `stderr` («falta el verbo», «verbo desconocido», el error de la
   entrada y el del directorio actual). Es el idioma que el repositorio ya usa en `status.go` y
   `enroll.go`.
-- [ ] **T003** [P] Aviso 5: reordenar `config.JuzgarEndpoint` a `(admisible bool, errAnalisis error)`
+  *(Enmendado 2026-10-02, E-006-P7: cubre las **12** escrituras `fmt.Fprint*` al `stderr`/`stdout`
+  de `runProject` y `projectJoin` que señala el linter sin tope, no sólo cuatro. Mismo idioma.)*
+  > **Hecho.** 12 × `_, _ = fmt.Fprint…` en `project.go`. La escritura a `os.Stderr` de
+  > `runProjectOS` no se toca: `errcheck` la excluye por defecto y no estaba señalada.
+- [x] **T003** [P] Aviso 5: reordenar `config.JuzgarEndpoint` a `(admisible bool, errAnalisis error)`
   en `internal/config/endpoint.go`, y sus llamantes: `ParseEnrollmentString` (`enrollment.go`),
   `Config.Validate` (`config.go`), `Client.Send` y `Client.Adherir` (`internal/transport/transport.go`),
   y los cinco sitios de `internal/config/endpoint_test.go`. **Los tests cambian sólo el orden del
   destructurado, ninguna aserción.** El comentario de la función se actualiza por nombre.
-- [ ] **T004** [P] Avisos 6–7 en `internal/transport/adhesion_test.go`:
+  > **Hecho.** Firma `(admisible bool, errAnalisis error)`. Se cambió el destructurado en los cuatro
+  > llamantes de producción y en los cinco sitios de `endpoint_test.go`, que sólo cambian de orden
+  > (`_, errAnalisis` ×3 y `admisible, errAnalisis` ×2): **ninguna aserción tocada**. El comentario de
+  > la función gana la sección «El orden de los resultados: el error al final (P-006 B0)».
+- [x] **T004** [P] Avisos 6–7 en `internal/transport/adhesion_test.go`:
   - el parámetro `r` del manejador de `backendAdhesion` pasa a `_`;
   - en el `url.Parse` de `TestAdherir_ConservaLaCausaDelParseo`, `//nolint:staticcheck`, con el motivo
     en la misma línea: la URL inválida es el **sujeto** del test (E-006-P4). Será la única directiva
     `nolint` del repositorio.
-- [ ] **T005** **Verde**: `golangci-lint run` → **0**. `go test ./...` → 9 paquetes ok y **297 pass**.
+  > **Hecho.** `r` → `_` en `backendAdhesion`; `//nolint:staticcheck // SA1007: …` con su motivo en
+  > la misma línea. `grep -rn nolint --include=*.go .` → 1.
+- [x] **T005** **Verde**: `golangci-lint run` → **0** *(a secas y sin tope, E-006-P7)*. `go test ./...` → 9 paquetes ok y **297 pass**.
   `git diff` de los `_test.go` sólo contiene el destructurado de T003, el `_` y el `nolint`.
-- [ ] **T006** **Mutación M-B0**: `JuzgarEndpoint` devuelve `admisible = true` siempre.
+  > **Verde medido**: `golangci-lint run` → **0 issues**. `go test -count=1 ./...` → **9 paquetes
+  > ok, 297 pass**, 0 fail, 0 skip. El diff de los `_test.go` contiene sólo los 5 destructurados, el
+  > `_` y el `nolint`.
+- [x] **T006** **Mutación M-B0**: `JuzgarEndpoint` devuelve `admisible = true` siempre.
   - **Censo** (completarlo **antes** de mutar con `grep -ln 'http://' --include=*_test.go -r .` y
     escribir aquí los nombres que falten):
     - `TestJuzgarEndpoint_HechoEsquema` y `TestJuzgarEndpoint_NoAnalizableNoAfirmaEsquema`
@@ -142,8 +173,47 @@ no hay `registro-*.md` en este repositorio).
       `cmd/permea/enroll_reject_test.go`.
   - **Co-caídas**: ninguna fuera de la lista.
   - Protocolo de mutación. Acredita que el reorden no desenganchó ningún testigo.
-- [ ] **T007** Puertas del bloque.
+  > **Censo DECLARADO el 2026-10-02, antes de mutar** (completado con el `grep` de arriba; la
+  > mutación concreta es `return true, err` y `return true, nil` en las dos salidas de
+  > `JuzgarEndpoint`). Deben caer **exactamente** estos 10 tests de nivel superior:
+  > - `internal/config`: `TestJuzgarEndpoint_HechoEsquema`,
+  >   `TestJuzgarEndpoint_NoAnalizableNoAfirmaEsquema`, `TestValidate_RejectsNonHTTPS`,
+  >   `TestParseEnrollmentString_Rejects` (el subcaso http) y
+  >   `TestParseEnrollmentString_ElErrorNoReproduceFragmentosDelArgumento` (su rama 5, «endpoint en
+  >   claro»);
+  > - `internal/transport`: `TestSend_RejectsHTTP`, `TestAdherir_RechazaCanalEnClaro`,
+  >   `TestAdherir_LosDosHechosSonDistinguibles` y `TestSC008_SinTransporteSeguroNoSeCompleta`;
+  > - `cmd/permea`: `TestEnroll_Reject_Malformed_AbortsBeforePing` (el subcaso http).
+  >
+  > **Co-caídas declaradas: ninguna.** Los demás paquetes, verdes.
+  >
+  > **Ejecutada el 2026-10-02.**
+  > - **Primera forma descartada** (disciplina 3, mutación inválida): `return true, nil` deja `u` sin
+  >   usar → `internal/config/endpoint.go: u declared and not used`. Revertida por edición inversa,
+  >   md5 idéntico al previo.
+  > - **Forma válida**: `return true, err` y `return u != nil, nil`. Misma semántica, «siempre
+  >   admisible»; compila y pasa `vet`.
+  > - **Resultado**: cayeron **exactamente los 10 tests de nivel superior declarados**. Ningún otro
+  >   paquete cayó (`event`, `ingest`, `pricing`, `project`, `state`, `testutil`: ok).
+  > - **⚠️ Precisión a nivel de subtest**: en `TestParseEnrollmentString_Rejects` cayó, además del
+  >   subcaso `endpoint http (no https)`, el subcaso **`endpoint vacío`**, que el censo no nombraba
+  >   (decía «el subcaso http»). Es el mismo hecho: `""` se analiza sin error y su esquema vacío no
+  >   es admisible. **El censo vinculante era el de nivel superior y coincidió**. Se anota en vez de
+  >   ocultarlo.
+  > - **Reversión** por edición inversa: md5 `c617a5816134dfc19cf7084b1c30486c`, idéntico al previo.
+  >   Suite: 297 pass.
+- [x] **T007** Puertas del bloque *(con `golangci-lint run` a secas, sin tope: E-006-P7)*.
+  > **Puertas, 2026-10-02**:
+  > - `gofmt -l .` vacío;
+  > - `go vet ./...` limpio;
+  > - `golangci-lint run` **0 issues** (a secas, sin tope);
+  > - `go test -count=1 ./...` **9/9 ok, 297 pass** (6 s);
+  > - `git diff 0311fa1 -- internal/event` vacío;
+  > - `GOOS=windows go build ./...` y `GOOS=darwin go build ./...` compilan;
+  > - el `grep` de la disciplina 8, sin resultados.
 - [ ] **T008** ✋ **Commit** (dueño): `006 B0: golangci-lint a 0 (los 7 avisos heredados de 005)`
+  *(Enmendado 2026-10-02, E-006-P7: mensaje propuesto ahora
+  `006 B0: golangci-lint a 0 y sin tope (15 avisos heredados de 005)`.)*
 
 ---
 
@@ -633,7 +703,7 @@ B0 ──► B1 ──► B2a ──► B2b ──► B2c ──► [T043 ✋ Q-
 | FR-011 | T009 | | FR-028 | T067, T069 |
 | FR-012 | puertas de cada bloque, T072 | | FR-029 | T068, T069 |
 | FR-013 | T011, T014 | | FR-030 | T077, T082–T085 |
-| FR-014 | T043–T047 | | FR-031 | T001–T007, puertas, T072 |
+| FR-014 | T043–T047 | | FR-031 | T089, T001–T007, puertas, T072 |
 | FR-015 | T047, T048 | | FR-032 | T086, T087 |
 | FR-016 | T046, T047 | | FR-033 | T025, T029–T031, T033 |
 | FR-017 | T047 (sin cambio de semántica; `TestCost_UnknownModel` sigue) | | FR-034 | T079–T081 |
@@ -662,7 +732,7 @@ B0 ──► B1 ──► B2a ──► B2b ──► B2c ──► [T043 ✋ Q-
 
 | Grupo | Tareas | De ellas ✋ |
 |---|:--:|:--:|
-| B0 | T001–T008 (8) | 1 |
+| B0 | T089, T001–T008 (9) | 1 |
 | B1 | T009–T016 (8) | 1 |
 | B2a | T017–T023 (7) | 1 |
 | B2b | T024–T035 (12) | 1 |
@@ -672,7 +742,7 @@ B0 ──► B1 ──► B2a ──► B2b ──► B2c ──► [T043 ✋ Q-
 | B4 | T052–T064 (13) | 1 |
 | B5 | T065–T071 (7) | 1 |
 | Cierre C1–C9 | T072–T088 (17) | 8 (T078, T079, T080, T082, T083, T084, T086, T088) |
-| **Total** | **88** | **17** |
+| **Total** | **89** | **17** |
 
 **Mutaciones**: M-B0, M-B1, y m1–m19 del plan: **21**, cada una con censo y co-caídas declarados.
 **Rojos**: (1)–(26), de los cuales nacen verdes y se validan por mutación (14), (17) y (25), y el
