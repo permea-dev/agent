@@ -328,13 +328,22 @@ plataforma, para la instalación de ensayo, y lo deja en `enroll.txt` en la máq
 
 | Paso | Comando (PowerShell) | Esperado | Anotado |
 |---|---|---|---|
-| 1 | `.\permea.exe --version` | la versión del snapshot, **no** `0.0.1-dev` | ☐ |
-| 2 | `Get-Content enroll.txt \| .\permea.exe enroll -` | «enrolado contra …», sin el token | ☐ |
-| 3 | `.\permea.exe status` | «enrolado contra … (token: configurado)» | ☐ |
-| 4 | `.\permea.exe --scan <log de %USERPROFILE%\.claude\projects\…>` | tantos `evento:` como mensajes distintos de ese fichero | ☐ |
+| 1 | `.\permea.exe --version` | la versión del snapshot, **no** `0.0.1-dev` | ☑ `0.2.1-SNAPSHOT-b504268` |
+| 2 | `Get-Content enroll.txt \| .\permea.exe enroll -` | «enrolado contra …», sin el token | ☑ «enrolado contra …», sin token (con la desviación de abajo) |
+| 3 | `.\permea.exe status` | «enrolado contra … (token: configurado)» | ☑ |
+| 4 | `.\permea.exe --scan <log de %USERPROFILE%\.claude\projects\…>` | tantos `evento:` como mensajes distintos de ese fichero | ☑ 230 eventos = 230 mensajes (PowerShell y WSL) |
 
 El paso 4 se cuenta desde WSL leyendo el mismo fichero en `/mnt/c/Users/<usuario>/.claude/projects/…`
 con el contador independiente. **Sin comprobar** que esa ruta sea accesible desde este WSL.
+
+> **Anotado el 2026-10-02 (W1, T079–T081).** El dueño lo ejecutó de 23:29 a 23:38 (Europe/Madrid), en
+> Windows con PowerShell 5.1. Snapshot del commit `b504268`; su `Get-FileHash` coincide con T077.
+> **Los cuatro pasos, superados**, y no se lanzó `--run`.
+> - **Desviación de E-006-P6**: no se usó `enroll.txt`. El código se pasó por stdin desde un literal en
+>   la línea de PowerShell (`'…' | .\permea.exe enroll -`). No queda ningún fichero con el secreto, sí en
+>   el historial de PowerShell, y el dueño lo sabe.
+> - **Paso 4**: la ruta del log resultó accesible desde WSL. El contador independiente da 230 mensajes
+>   distintos.
 
 **Si algún paso falla, la etiqueta no se crea.** Se corrige, se rehace el snapshot y se repite el
 ensayo entero. Se anota: fecha, commit del snapshot y resultado de cada paso.
@@ -364,7 +373,7 @@ distintos de sus logs en esa ventana, contados como en el contador independiente
 - [ ] V1–V18 en verde, con sus salidas anotadas en `tasks.md`.
 - [ ] Q-006-1 decidida (**sí, el 2026-10-02**), y la cabecera de tarifas cita el commit vigente del
   catálogo (`e50d0a5`).
-- [ ] W1 (ensayo antes de la etiqueta) anotado, sin fallos.
+- [x] W1 (ensayo antes de la etiqueta) anotado, sin fallos. *(2026-10-02, T079–T081.)*
 - [ ] P1: release publicada y canales en `0.3.0`.
 - [ ] W2 (ensayo final) anotado.
 - [ ] `rm -rf "$COPIA"`, y los temporales de `/tmp/*-006*` y `/tmp/ids-*` borrados.

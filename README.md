@@ -157,6 +157,8 @@ servidor**, sobre lo que ya llegó.
   de autenticación (401/403) detiene el sync por configuración errónea. `Ctrl-C` para parar.
 - Sin `endpoint` configurado, la medición local funciona igual: los eventos quedan en la
   cola y nada se transmite.
+- **Windows, PowerShell 5.1**: al redirigir la salida a un fichero (`2>`, `>`), las tildes pueden
+  verse mal. Es la codificación de PowerShell, y no afecta a lo que se mide ni a lo que se envía.
 
 ## Coste y tarifas
 

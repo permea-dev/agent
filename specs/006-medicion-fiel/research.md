@@ -376,6 +376,11 @@ D-006-6). El quickstart fija la versión con la que se mide el 0.
 | El tap y el bucket existen bajo `permea-dev` | `gh api repos/permea-dev/scoop-permea/contents/` → `permea.json`; `…/homebrew-permea/contents/` → `Casks` (2026-10-02) |
 | Los repositorios `bfgnet/…` del README | `gh api` → **404** (2026-10-02) |
 
+> **Enmendado el 2026-10-02 (C3, T077).** La versión del snapshot de 006 fue
+> **`0.2.1-SNAPSHOT-b504268`** (`dist/metadata.json`: `tag` v0.2.1), no `0.2.2-…`: GoReleaser v2.16.0
+> usa la última etiqueta tal cual. La conclusión no cambia: **no es `0.3.0`** ni `0.0.1-dev`, que es
+> lo único que exige SC-022.
+
 **Decisión**: el orden del cierre es el de §Cierre en [`plan.md`](./plan.md):
 1. puertas locales;
 2. snapshot;

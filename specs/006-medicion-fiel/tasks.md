@@ -1354,9 +1354,15 @@ y se rehace desde el tramo C1.
 
 ### Tramo C4 · W1 — ensayo en Windows ANTES de la etiqueta
 
-- [ ] **T079** ✋ **El dueño prepara el secreto de enrolamiento** de la instalación de ensayo, desde la
+- [x] **T079** ✋ **El dueño prepara el secreto de enrolamiento** de la instalación de ensayo, desde la
   plataforma, en `enroll.txt` en la máquina Windows (E-006-P6). Claude no lo ve ni lo transcribe.
-- [ ] **T080** ✋ **El dueño ejecuta W1** (quickstart §W1) con el zip de T077:
+  > **Hecho por el dueño el 2026-10-02.** Agente de ensayo creado en su organización de pruebas.
+  >
+  > ⚠️ **Desviación de E-006-P6**: no se usó `enroll.txt`. El código se pasó por stdin desde un literal
+  > en la línea de PowerShell (`'…' | .\permea.exe enroll -`). No queda ningún fichero con el secreto,
+  > pero sí queda en el historial de PowerShell, y el dueño lo sabe. Claude no vio el secreto ni lo
+  > transcribe.
+- [x] **T080** ✋ **El dueño ejecuta W1** (quickstart §W1) con el zip de T077:
   1. `--version`;
   2. `enroll` por stdin;
   3. `status`;
@@ -1364,6 +1370,27 @@ y se rehace desde el tramo C1.
 
   Anota fecha, commit del snapshot y el resultado de cada paso. **Si alguno falla, no hay etiqueta**:
   se corrige y se repite desde C1.
+  > **Ejecutado por el dueño el 2026-10-02, de 23:29 a 23:38 (Europe/Madrid)**, en Windows con
+  > PowerShell 5.1.
+  > - **Binario**: `permea_0.2.1-SNAPSHOT-b504268_windows_amd64.zip`, del commit del snapshot `b504268`.
+  >   Su `Get-FileHash` SHA256 = `D07EFB21…0951AD15`, igual al de T077.
+  > - **Resultado: los cuatro pasos, superados.**
+  >   1. `.\permea.exe --version` → `0.2.1-SNAPSHOT-b504268` ✓.
+  >      - Además, `help` → la ayuda aprobada, con las tildes correctas y sin líneas partidas.
+  >      - `status` antes de enrolar → «no enrolado».
+  >   2. `enroll` por stdin → «enrolado contra https://app.permea.ai/api/v1/ingest (dev_id: …)», sin
+  >      el token ✓. Con la desviación de E-006-P6 anotada en T079.
+  >   3. `status` → «enrolado contra … (dev_id: …, token: configurado)» ✓.
+  >   4. `--scan` sobre el log más reciente de `%USERPROFILE%\.claude\projects` → **230 eventos** ✓.
+  >      - Resumen: 684 líneas facturables · 230 eventos · 454 repetidas · 0 sintéticas · 0 sin
+  >        identificador · 0 con consumo distinto.
+  >      - Contador independiente en PowerShell, con la misma regla que el del quickstart: **230
+  >        mensajes distintos**.
+  > - **Observación**: al redirigir stderr a un fichero (`2>`), PowerShell 5.1 envuelve la salida en un
+  >   «NativeCommandError» y muestra mal las tildes. Escrito directamente en la consola, el resumen sale
+  >   correcto (comprobado). Es conducta de PowerShell, no del agente; queda anotado en el README
+  >   (§Modos de ejecución).
+  > - **No se lanzó `--run`**: no se envió nada.
 
 ### Tramo C5 · Cuerpo del PR
 
@@ -1371,7 +1398,7 @@ y se rehace desde el tramo C1.
 > `CHANGELOG.md` lleva la fecha de la etiqueta, y `grep -c PENDIENTE CHANGELOG.md` → **0**. Si no da 0,
 > no se fusiona.
 
-- [ ] **T081** Transcribir aquí el resultado de W1. Para el paso 4, el recuento de mensajes de ese log
+- [x] **T081** Transcribir aquí el resultado de W1. Para el paso 4, el recuento de mensajes de ese log
   contado desde WSL. Redactar el cuerpo del PR en
   `~/dev/permea-platform/tmp/agente-006-pr.md`:
   - qué entra (B0–B5);
@@ -1380,6 +1407,21 @@ y se rehace desde el tramo C1.
   - las rupturas declaradas en el CHANGELOG;
   - las enmiendas D-006-7…13 y E-006-P1…P6;
   - la línea de atribución del repositorio.
+  > **Hecho el 2026-10-02 (C5).**
+  > - **W1**: transcrito en T079 y T080, sin fallos.
+  > - **Paso 4, contado desde WSL**: el dueño dejó la ruta de Windows del log en
+  >   `/mnt/c/Users/bfgne/permea-w1/w1-log.txt`. Se convirtió con `wslpath`; el fichero es accesible
+  >   (5 843 715 B). El contador independiente del quickstart da **684 facturables, 0 sintéticas, 0
+  >   sin identificador y 230 mensajes distintos**, igual que `--scan` en Windows. Sólo recuentos: ni
+  >   la ruta del log ni su contenido se transcriben.
+  > - **Cuerpo del PR** en `~/dev/permea-platform/tmp/agente-006-pr.md`. Por encargo de C5 cubre además
+  >   D-006-14, E-006-P7 y Q-006-1 resuelta, lo que queda tras fusionar y las puertas.
+  > - **Documentos**:
+  >   - `CHANGELOG.md`: `## 0.3.0 — 2026-10-03`; `grep -c PENDIENTE CHANGELOG.md` → **0**, así que se
+  >     cumple la condición de fusión del tramo;
+  >   - nota de PowerShell 5.1 en el README;
+  >   - nota fechada en `research.md` R10 sobre la versión del snapshot;
+  >   - casillas de W1 marcadas en el quickstart.
 - [ ] **T082** ✋ **El dueño**: commit de la transcripción de W1
   (`006 cierre: ensayo en Windows sobre el snapshot (W1)`), push de la rama y PR
   `006-medicion-fiel` → `main` con ese cuerpo.

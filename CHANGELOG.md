@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.3.0 — PENDIENTE
+## 0.3.0 — 2026-10-03
 
 Primera versión desde la 0.2.1. Trae el enrolamiento, la identidad y la adhesión a proyecto, y
 corrige la medición. **Si venías de la 0.2.1, lee «Cambios que rompen» y «Las cifras bajan».**
