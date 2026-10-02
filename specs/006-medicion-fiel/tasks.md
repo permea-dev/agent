@@ -224,24 +224,36 @@ no hay `registro-*.md` en este repositorio).
 > **El rojo de B1 son los testigos de la derivación** (T013), que se escriben contra la API que ya
 > existe (`ingest.FromClaudeCodeLine`). Así caen **por conducta** y no por compilación.
 
-- [ ] **T009** [P] Redescribir el origen del `event_id` en `specs/001-agente-inicial/contracts/transport.md`
+- [x] **T009** [P] Redescribir el origen del `event_id` en `specs/001-agente-inicial/contracts/transport.md`
   (§Deduplicación, la frase «lo genera el agente con `crypto/rand` (`event.NewID`)») y en
   `specs/001-agente-inicial/data-model.md` (la fila de `event_id`). Determinista, derivado de los
   identificadores del mensaje, remitiendo a `specs/006-medicion-fiel/contracts/event-id.md`. **La forma
   del campo no cambia.** FR-011.
-- [ ] **T010** [P] **E-006-P1**: en `internal/ingest/testdata/claude_code_sample.jsonl`, añadir
+  > **Hecho el 2026-10-02.** En `transport.md`, la frase de `crypto/rand` queda tachada y se añade
+  > «Redescrito por P-006 FR-011»: determinista, hash sin sal de `message.id` y `requestId`, remisión
+  > a `006/contracts/event-id.md`, misma forma (32 hex). En `data-model.md`, el origen de la fila
+  > `event_id` pasa a «derivado del mensaje», con el anterior tachado.
+- [x] **T010** [P] **E-006-P1**: en `internal/ingest/testdata/claude_code_sample.jsonl`, añadir
   `message.id` y `requestId` **sintéticos y distintos** a las dos líneas `assistant`
   (`msg_FIXTUREREF00000000000001` / `req_FIXTUREREF00000000000001` y `…02`). En
   `internal/project/testdata/README.md` §Lo que estos fixtures NO son, una nota fechada: se editó el
   2026-10-02 (006 E-006-P1) para añadir los dos campos; ninguna de las tres columnas del baseline los
   lee. **Condición**: `TestSC009_RegresionCeroDelCaminoDeIngesta` y `TestBoundary_NoDenylistLeaks`
   siguen **verdes sin tocar sus aserciones**. Si alguno cae, se para.
-- [ ] **T011** [P] En `internal/ingest/testdata/boundary_sample.jsonl`, `message.id` y `requestId`
+  > **Hecho.** Los ids `msg_FIXTUREREF0000000000000{1,2}` / `req_FIXTUREREF0000000000000{1,2}`
+  > (28 caracteres) se insertaron como texto, sin reserializar: el resto de cada línea queda byte a
+  > byte. La nota fechada está en `internal/project/testdata/README.md`. **Condición medida**:
+  > `TestSC009_…` y `TestBoundary_NoDenylistLeaks` PASS, sin tocar sus aserciones, y el md5 de
+  > `baseline-sc004.tsv` sin cambios (`bfb54db8f7a2d5036b75adc662cb4e19`).
+- [x] **T011** [P] En `internal/ingest/testdata/boundary_sample.jsonl`, `message.id` y `requestId`
   **centinela** en las dos líneas `assistant` (`msg_CENTINELAID00000000001`, `req_CENTINELAID00000000001`
   y `…02`). Los cuatro valores, más los cuatro de T010, a la `denylist` de
   `internal/ingest/boundary_test.go`, con un bloque de comentario por nombre: «P-006 FR-013 · los
   identificadores del proveedor». FR-013.
-- [ ] **T012** [P] Añadir `message.id` y `requestId` (sintéticos, distintos entre sí) a las seis líneas
+  > **Hecho.** `msg_/req_CENTINELAID0000000000{1,2}` en `boundary_sample.jsonl`. La denylist gana el
+  > bloque «P-006 FR-013 · los identificadores del proveedor», con 8 valores: 4 centinelas y 4 de
+  > T010. `internal/ingest` verde: el golden nace verde, como se preveía.
+- [x] **T012** [P] Añadir `message.id` y `requestId` (sintéticos, distintos entre sí) a las seis líneas
   `assistant` escritas en tests:
   - las cuatro de `internal/ingest/boundary_test.go` (en `TestBoundary_UnknownFutureFieldDoesNotLeak`,
     `TestBoundary_CostAvailable` ×2 y `TestBoundary_KeepsMetrics`);
@@ -250,7 +262,10 @@ no hay `registro-*.md` en este repositorio).
 
   Sin ellas, FR-006 las dejaría sin evento (`research.md` R7), y la del subtest seguiría verde **sin
   ejercer nada**.
-- [ ] **T013** **Rojo** — nuevo `internal/ingest/eventid_test.go`, cuatro tests independientes, todos
+  > **Hecho.** Seis literales con `msg_/req_TESTLITERAL000000000000{1…6}`: 4 en `boundary_test.go`
+  > (`UnknownFutureFieldDoesNotLeak`, `CostAvailable` ×2, `KeepsMetrics`) y 2 en `main_test.go`
+  > (`TestAgentVersion_ReachesEvent` y el subtest de `--scan`). Suite completa verde tras T010–T012.
+- [x] **T013** **Rojo** — nuevo `internal/ingest/eventid_test.go`, cuatro tests independientes, todos
   por `FromClaudeCodeLine`:
   - (1) `TestEventID_LaMismaLineaDaElMismoIDEnDosInstalaciones`: la misma línea con dos `Context` de
     sal, máquina y desarrollador distintos da el **mismo** `event_id`. **Cae** porque `event.NewID` es
@@ -263,15 +278,54 @@ no hay `registro-*.md` en este repositorio).
     identificadores → `nil`. **Cae**: hoy se emite.
 
   Transcribir aquí el mensaje real de cada rojo. **Superficie nueva: ninguna.**
-- [ ] **T014** **Mutación M-B1** (el golden, nacido verde): en `internal/ingest/claudecode.go`,
+  > **🔴 Medido el 2026-10-02: los cuatro caen, cada uno por su razón.**
+  > ```
+  > eventid_test.go:45: P-006 FR-002: la misma línea dio dos event_id distintos en dos instalaciones:
+  >       A: 616a9238b162b2e5190f8aa25dcbb5dd
+  >       B: 62a88b6158eb4986599903afe15e4a34
+  > eventid_test.go:58: P-006 FR-002: event_id del par = "c54d0a9a9c517ce61354a1c0477eca80", want "43b8b3b6446704ae3cb8bb74683bf3e2" (contracts/event-id.md, §Vectores de prueba)
+  > eventid_test.go:71: P-006 FR-007: una línea <synthetic> NO debe producir evento; se produjo uno de modelo "<synthetic>"
+  > eventid_test.go:85: P-006 FR-006: una línea sin message.id ni requestId NO debe producir evento; se produjo event_id="cbe9998c3f1f77a005bb4be8b82556bc"
+  > ```
+  > Los `event_id` del mensaje son los aleatorios de `event.NewID`, no identificadores del proveedor.
+- [x] **T014** **Mutación M-B1** (el golden, nacido verde): en `internal/ingest/claudecode.go`,
   decodificar `message.id` **sólo para la mutación** y escribirlo en claro en `SessionRef`.
   - **Censo**: `TestBoundary_TresCaminosHaciaElExterior` (los tres caminos, por el centinela de T011)
     y `TestBoundary_NoDenylistLeaks` (por los valores de T010 en la denylist).
   - **Co-caída**: `TestSC009_RegresionCeroDelCaminoDeIngesta`, porque cambia la columna `session_ref`.
   - Ninguna otra.
   - Protocolo de mutación; revertir por edición inversa.
-- [ ] **T015** Puertas del bloque. **`go test` cierra con exactamente los cuatro rojos de T013** y nada
+  > **Censo DECLARADO el 2026-10-02, antes de mutar.** La mutación concreta: añadir
+  > `ID string \`json:"id"\`` a `rawRecord.Message` y `SessionRef: r.Message.ID` en
+  > `FromClaudeCodeLine`. Ninguno de los tres tests usa `t.Run`, así que no hay subtests que nombrar.
+  > - **Caen**: `TestBoundary_TresCaminosHaciaElExterior`, en los tres caminos (evento serializado,
+  >   `queue.jsonl` y cuerpo transmitido), por `msg_CENTINELAID…`; y `TestBoundary_NoDenylistLeaks`, por
+  >   `msg_FIXTUREREF…`.
+  > - **Co-caída**: `TestSC009_RegresionCeroDelCaminoDeIngesta`, porque cambia la columna
+  >   `session_ref`.
+  > - **Los 4 rojos de T013 siguen en rojo**: ya caían antes de mutar, así que no cuentan como caída.
+  > - Todo lo demás, verde.
+  > **Ejecutada.** Compiló y pasó `vet`. Cayeron **exactamente** los declarados:
+  > - `TestBoundary_TresCaminosHaciaElExterior`: los 3 caminos × los 2 centinelas `msg_CENTINELAID…`
+  >   (`FUGA DE FRONTERA [camino 1 · evento serializado]`, `[camino 2 · queue.jsonl]` y
+  >   `[camino 3 · cuerpo transmitido]`);
+  > - `TestBoundary_NoDenylistLeaks`: los 2 `msg_FIXTUREREF…`;
+  > - co-caída `TestSC009_…`: «conjunto de identidades: got 2 filas, want 1».
+  >
+  > Los 4 rojos de T013 siguieron en rojo; no cayó nada más (8 paquetes ok, sólo `ingest` en
+  > FAIL). **Reversión** por edición inversa: md5 de `claudecode.go`
+  > `ad24460e2e8e3a11ac2dc3a415057fb1` antes y después; `git diff` del fichero, vacío.
+- [x] **T015** Puertas del bloque. **`go test` cierra con exactamente los cuatro rojos de T013** y nada
   más en rojo; se transcribe la lista de `FAIL`.
+  > **Puertas, 2026-10-02**:
+  > - `gofmt -l .` vacío;
+  > - `go vet ./...` limpio;
+  > - `golangci-lint run` **0**;
+  > - `go test -count=1 ./...`: **297 pass, 4 fail**. Los FAIL son exactamente los de T013, todos en
+  >   `internal/ingest`; los otros 8 paquetes ok;
+  > - `git diff 0311fa1 -- internal/event` vacío;
+  > - `git diff a702de8 --stat`: ningún fichero de producción (sólo 2 tests, 2 fixtures, el README del
+  >   fixture, 2 docs de 001 y `tasks.md`; el nuevo `eventid_test.go` está sin seguimiento).
 - [ ] **T016** ✋ **Commit** (dueño):
   `006 B1: contratos de 001 redescritos, ids en fixtures y testigos del event_id EN ROJO`
 

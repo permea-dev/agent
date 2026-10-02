@@ -16,7 +16,7 @@ Struct **cerrado** (allowlist). No admite passthrough de campos crudos del log.
 |---|---|---|---|
 | `schema_version` | int | constante (`SchemaVersion`) | Fijo por versión de contrato. |
 | `agent_version` | string | local (`Context.AgentVersion`) | Trazabilidad del binario. |
-| `event_id` | string | `event.NewID()` (crypto/rand) | Único; clave de deduplicación (FR-006). |
+| `event_id` | string | ~~`event.NewID()` (crypto/rand)~~ **derivado del mensaje** (P-006 FR-011, 2026-10-02): hash sin sal de `message.id` y `requestId`, ver `specs/006-medicion-fiel/contracts/event-id.md` | Único por mensaje; clave de deduplicación (FR-006). Misma forma: 32 hex. |
 | `occurred_at` | time.Time | log (`timestamp`) | Marca de la llamada. |
 | `tool` | string | fijo `"claude_code"` | Origen de la métrica. |
 | `model` | string | log (`message.model`) | Modelo empleado. |

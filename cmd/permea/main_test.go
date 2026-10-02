@@ -47,7 +47,7 @@ func TestAgentVersion_ReachesEvent(t *testing.T) {
 	}
 
 	// Una línea de asistente facturable -> el Event resultante debe llevar la versión.
-	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}`)
+	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","requestId":"req_TESTLITERAL0000000000005","message":{"id":"msg_TESTLITERAL0000000000005","model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}`)
 	ev, err := ingest.FromClaudeCodeLine(line, ictx)
 	if err != nil {
 		t.Fatalf("FromClaudeCodeLine: %v", err)
@@ -294,7 +294,7 @@ func TestRetirada_LasExcepcionesDeD0045(t *testing.T) {
 	t.Run(`--scan con "plain" presente → procesa sin parar`, func(t *testing.T) {
 		dataDir := entornoDePrueba(t, "plain")
 		fixture := filepath.Join(dataDir, "muestra.jsonl")
-		linea := `{"type":"assistant","timestamp":"2026-08-09T10:00:00Z","sessionId":"s","cwd":"/tmp/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}` + "\n"
+		linea := `{"type":"assistant","timestamp":"2026-08-09T10:00:00Z","sessionId":"s","cwd":"/tmp/x","requestId":"req_TESTLITERAL0000000000006","message":{"id":"msg_TESTLITERAL0000000000006","model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}` + "\n"
 		if err := os.WriteFile(fixture, []byte(linea), 0o600); err != nil {
 			t.Fatalf("escribir fixture: %v", err)
 		}
