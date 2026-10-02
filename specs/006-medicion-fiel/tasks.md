@@ -461,31 +461,47 @@ no hay `registro-*.md` en este repositorio).
 
 ## Bloque B2b · La pasada (`plan.md` D-006-P3/P4, `research.md` R3/R4)
 
-- [ ] **T024** Nuevo `internal/ingest/pasada.go`, **andamiaje**:
+- [x] **T024** Nuevo `internal/ingest/pasada.go`, **andamiaje**:
   - un tipo «pasada», como puntero en `ingest.Context` y **nil válido** (patrón del `Resolutor`);
   - métodos que **no deduplican, no cuentan** y devuelven un resumen vacío.
 
   Existe para que T025–T029 caigan **por conducta** y no por compilación. **Superficie nueva**,
   mirada por T025–T029.
-- [ ] **T025** [P] **Rojo** (7) `TestPasada_UnMensajeDeTresLineasEsUnEvento` (`internal/ingest/pasada_test.go`):
+  > **Hecho el 2026-10-02.** `Pasada`, `Recuentos`, `NuevaPasada`, y `Recuentos()`/`Resumen()`
+  > devolviendo ceros y vacío. El campo `Pasada *Pasada` en `ingest.Context`, nil válido, con
+  > comentario por nombre. Compila; sin cablear.
+- [x] **T025** [P] **Rojo** (7) `TestPasada_UnMensajeDeTresLineasEsUnEvento` (`internal/ingest/pasada_test.go`):
   tres líneas con el mismo par, en una pasada → **un** evento, con los tokens de **una** línea. **Cae**:
   el andamiaje no deduplica.
-- [ ] **T026** [P] **Rojo** (8) `TestCasoLimite_ConsumoDistinto`: segunda línea del mismo par con
+  > **🔴 Medido**: caen los 3 subtests. `un_evento` (`pasada_test.go:62`, «produjeron 3 eventos; se
+  > esperaba 1»), `tokens_de_una_linea` (`:67`, «suman 420 tokens») y `recuentos` (`:73`, todos a
+  > 0).
+- [x] **T026** [P] **Rojo** (8) `TestCasoLimite_ConsumoDistinto`: segunda línea del mismo par con
   `usage` distinto → **no** se emite, el evento conserva el de la primera, y el contador de «consumo
   distinto» = 1. **Cae** por el contador. SC-008 (a).
-- [ ] **T027** [P] **Rojo** (9) `TestCasoLimite_SinIdentificador`: una línea sin identificadores →
+  > **🔴 Medido**: caen los 3. `un_solo_evento` (`:87`, «2 eventos»), `conserva_el_consumo_de_la_primera`
+  > (`:92`, «suman 1140 tokens») y `cuenta_la_discrepancia` (`:97`, «ConsumoDistinto = 0»).
+- [x] **T027** [P] **Rojo** (9) `TestCasoLimite_SinIdentificador`: una línea sin identificadores →
   contador «sin identificador» = 1. **Cae** por el contador. SC-008 (c).
-- [ ] **T028** [P] **Rojo** (10) `TestPasada_ElResumenNoLlevaIdentificadores`, con tres aserciones
+  > **🔴 Medido**: caen `cuenta_sin_identificador` (`:112`, «SinIdentificador = 0») y
+  > `sinteticas_aparte` (`:117`, «Sinteticas = 0»). El segundo es una ampliación: el contador de
+  > sintéticas no tenía testigo.
+- [x] **T028** [P] **Rojo** (10) `TestPasada_ElResumenNoLlevaIdentificadores`, con tres aserciones
   independientes:
   - el resumen **no está vacío** y contiene el número de facturables;
   - no contiene ninguno de los identificadores de entrada;
   - no contiene ningún `event_id` emitido.
 
   **Cae** por la primera: el andamiaje devuelve vacío. Sin ella el test nacería verde y vacuo.
-- [ ] **T029** **Rojo** (11) `TestPasada_GenerateEncolaUnoPorMensaje` en `cmd/permea/main_test.go`. En
+  > **🔴 Medido**: cae `no_vacio_con_facturables` (`:143`, «resumen = ""»).
+  > `sin_identificadores_de_entrada` y `sin_event_id` nacen verdes y los validan m-ids y m7.
+- [x] **T029** **Rojo** (11) `TestPasada_GenerateEncolaUnoPorMensaje` en `cmd/permea/main_test.go`. En
   sandbox, con `logs_root` a un temporal que contiene un log con un mensaje de tres líneas, una pasada
   de `generate()` deja **un** evento en `queue.jsonl`. **Cae**: deja tres.
-- [ ] **T030** Implementar la pasada en `internal/ingest/pasada.go`:
+  > **🔴 Medido**: `main_test.go:443`, «un mensaje de tres líneas dejó 3 eventos en la cola; se
+  > esperaba 1». En T031, la llamada a `a.generate()` del test pasó de `_, err :=` a `_, _, err :=`,
+  > por la firma nueva; **ninguna aserción cambió**.
+- [x] **T030** Implementar la pasada en `internal/ingest/pasada.go`:
   - conjunto con **clave de 16 bytes**, no la cadena hex (`research.md` R3.4), y el `usage` de la
     primera línea;
   - los seis contadores de `data-model.md`;
@@ -493,23 +509,73 @@ no hay `registro-*.md` en este repositorio).
 
   Cablearla en `FromClaudeCodeLine`: una repetición devuelve `(nil, nil)`; con la pasada a nil, se
   emite.
-- [ ] **T031** En `cmd/permea/main.go`:
+  > **Hecho.** Conjunto `map[[16]byte]consumo` (clave: los 16 bytes del `event_id`), seis
+  > contadores, y `Resumen()` sólo con recuentos. Cableado en `FromClaudeCodeLine`, en este orden:
+  > facturable → sintética → sin identificador → `registrar` (la primera emite; las repetidas no, se
+  > cuentan, y nunca se suman).
+- [x] **T031** En `cmd/permea/main.go`:
   - `generate()` instancia una pasada **por llamada** (en `--daemon`, una por ciclo);
   - `runOnce` escribe el resumen por **stderr**;
   - `tick` lo escribe sólo si la pasada leyó alguna línea facturable.
 
   **Verde**: (7)–(11).
-- [ ] **T032** **Medida** (no es test): memoria de una pasada sobre **10 698 mensajes sintéticos**,
+  > **Verde**: `generate()` devuelve `(int, *ingest.Pasada, error)` e instancia una pasada por
+  > llamada. `runOnce` escribe el resumen por stderr; `tick`, sólo si `Facturables > 0`. (7)–(11)
+  > verdes. Suite: **328 pass**, 0 fail.
+- [x] **T032** **Medida** (no es test): memoria de una pasada sobre **10 698 mensajes sintéticos**,
   tamaño de la referencia M2. `runtime.MemStats` antes y después, en un programa o test temporal que
   **no se commitea**. Transcribir aquí la cifra, que contrasta la estimación de `research.md` R3.4.
-- [ ] **T033** **Mutaciones m5–m8**:
+  > **Medido el 2026-10-02**, con un test temporal (`internal/ingest/zz_medida_memoria_test.go`,
+  > **borrado, no se commitea**):
+  > - 10 698 mensajes sintéticos en 22 925 líneas (2 por mensaje, y 3 en uno de cada 7);
+  > - `runtime.GC()` y `HeapAlloc` antes de crear la pasada y después de leerlo todo, con la pasada
+  >   viva;
+  > - 3 ejecuciones: **891 592 / 895 008 / 900 456 bytes ≈ 0,90 MB, unos 84 B por mensaje**.
+  >
+  > Queda por debajo de la estimación de 1–2 MB de `research.md` R3.4.
+- [x] **T033** **Mutaciones m5–m8**:
   - **m5**: el conjunto nunca recuerda. Censo: (7) y (11). Co-caída: (8), porque sin conjunto no hay
     primera línea con la que comparar.
   - **m6**: no contar la discrepancia. Censo: (8).
   - **m7**: escribir el último `event_id` en el resumen. Censo: (10).
   - **m8**: `generate()` sin instanciar la pasada. Censo: (11). **(7) queda verde**, y eso demuestra
     que (11) mira el camino real.
-- [ ] **T034** Puertas del bloque.
+  > **Censos DECLARADOS el 2026-10-02, antes de mutar**, nombrando subtests. Un test con un subtest
+  > caído cae también como padre. Todo lo no nombrado, verde.
+  > - **m5** · `registrar` nunca recuerda (`… ; visto && false {`). Caen
+  >   `TestPasada_UnMensajeDeTresLineasEsUnEvento/{un_evento, tokens_de_una_linea, recuentos}`, la
+  >   co-caída `TestCasoLimite_ConsumoDistinto/{un_solo_evento, conserva_el_consumo_de_la_primera,
+  >   cuenta_la_discrepancia}` y `TestPasada_GenerateEncolaUnoPorMensaje`.
+  > - **m6** · no se cuenta la discrepancia. Cae `TestCasoLimite_ConsumoDistinto/cuenta_la_discrepancia`.
+  > - **m7** · la pasada guarda el último `event_id` y el resumen lo añade. Cae
+  >   `TestPasada_ElResumenNoLlevaIdentificadores/sin_event_id`.
+  > - **m8** · `generate()` no asigna `ictx.Pasada`. Cae `TestPasada_GenerateEncolaUnoPorMensaje`. **(7)
+  >   verde.**
+  >
+  > **Una más, añadida por la disciplina 3**: (10)/`sin_identificadores_de_entrada` nació verde, y
+  > ninguna de m5–m8 la tumba.
+  > - **m-ids** · `FromClaudeCodeLine` pasa el último `message.id` a la pasada y el resumen lo añade.
+  >   Cae `TestPasada_ElResumenNoLlevaIdentificadores/sin_identificadores_de_entrada`.
+  > **Ejecutadas las 5.** Cada una cayó **exactamente** según su censo, contando los padres, y se
+  > revirtió por edición inversa con md5 idéntico (`pasada.go` `c0c7d117f685b1024dcb1e53efb9b8d7`,
+  > `claudecode.go` `669ba50d21a0ccaa120d4f1afc733362`, `main.go` `253c09721fd129b9ce59f87ffd4fd0ce`):
+  > - **m5**: (7) ×3, (8) ×3 y (11);
+  > - **m6**: (8)/`cuenta_la_discrepancia`;
+  > - **m7**: (10)/`sin_event_id`;
+  > - **m8**: (11), con (7) verde;
+  > - **m-ids**: (10)/`sin_identificadores_de_entrada`.
+  >
+  > `vet` limpio con cada mutación.
+- [x] **T034** Puertas del bloque.
+  > **Puertas, 2026-10-02**:
+  > - `gofmt` vacío;
+  > - `vet` limpio;
+  > - lint **0**;
+  > - `go test -count=1 ./...` **9/9 ok, 328 pass, 0 fail**;
+  > - `internal/event` sin diff;
+  > - Windows y darwin compilan;
+  > - `event.NewID` sin llamantes;
+  > - disciplina 8, sin resultados.
 - [ ] **T035** ✋ **Commit** (dueño):
   `006 B2b: un mensaje un evento dentro de la pasada, con resumen por stderr`
 

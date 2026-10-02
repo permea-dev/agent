@@ -16,6 +16,7 @@ import (
 	"github.com/permea-dev/agent/internal/config"
 	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/testutil"
+	"github.com/permea-dev/agent/internal/transport"
 )
 
 // TestVersionFlag verifica el contrato de `--version` (contracts/artifacts.md): imprime
@@ -410,5 +411,35 @@ func TestRetirada_ElErrorQueGanaEsElDeLaClave(t *testing.T) {
 		t.Errorf("T027: con OTRO fallo de setup() disponible —el salt no se puede escribir—, el error\n"+
 			"que gana debe seguir siendo el de la CLAVE RETIRADA. El usuario tiene que saber qué le\n"+
 			"paró; un error cualquiera cumple el código de salida y falla el propósito.\nstderr:\n%s", stderr)
+	}
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// P-006 B2b · (11) · `generate()` instancia la pasada: un mensaje de tres líneas, UN evento en cola
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestPasada_GenerateEncolaUnoPorMensaje comprueba el CAMINO REAL de `--run`/`--daemon`. Que la pasada
+// deduplique en `internal/ingest` no basta si `generate()` no la instancia: este test es el que lo
+// mira (P-006 FR-033, SC-021). En sandbox (disciplina 6) y con identificadores sintéticos (disciplina 9).
+func TestPasada_GenerateEncolaUnoPorMensaje(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	logs := t.TempDir()
+	linea := `{"type":"assistant","timestamp":"2026-10-02T12:00:00Z","sessionId":"s","cwd":"/tmp/x","requestId":"req_GENERATE00000000000000001","message":{"id":"msg_GENERATE00000000000000001","model":"claude-opus-4-6","usage":{"input_tokens":100,"output_tokens":40}}}` + "\n"
+	if err := os.WriteFile(filepath.Join(logs, "sesion.jsonl"), []byte(linea+linea+linea), 0o600); err != nil {
+		t.Fatalf("escribir el log de prueba: %v", err)
+	}
+
+	cfg := config.Config{LogsRoot: logs}
+	a := &agent{dir: dataDir, cfg: cfg, ictx: newIngestContext("test", cfg, "sal-de-prueba", "maquina-de-prueba")}
+	if _, _, err := a.generate(); err != nil {
+		t.Fatalf("precondición: generate() falló: %v", err)
+	}
+
+	cola, err := transport.Load(dataDir)
+	if err != nil {
+		t.Fatalf("precondición: no se pudo leer la cola: %v", err)
+	}
+	if len(cola) != 1 {
+		t.Errorf("P-006 FR-033: un mensaje de tres líneas dejó %d eventos en la cola; se esperaba 1", len(cola))
 	}
 }

@@ -60,6 +60,13 @@ type Context struct {
 	// NIL ES VÁLIDO: sin resolutor se deriva igual, solo que sin el ahorro. Ningún punto de
 	// construcción existente tiene que cambiar para seguir funcionando.
 	Resolutor *project.Resolutor
+	// Pasada da a la emisión memoria de UNA PASADA (P-006 FR-001, FR-033): un mensaje cuyas líneas
+	// se lean en la misma pasada produce UN evento, y la pasada cuenta lo que lee. Mismo patrón que
+	// el Resolutor: quien la quiera la instancia por pasada —`generate()` y `dryRun()` en cmd/permea—.
+	//
+	// NIL ES VÁLIDO: sin pasada se deriva y se emite igual, sólo que sin deduplicar ni contar. Entre
+	// pasadas no hay memoria: los repetidos los descarta la plataforma por `(org_id, event_id)`.
+	Pasada *Pasada
 }
 
 // modeloSintetico es el modelo con el que Claude Code marca los mensajes que genera él mismo, sin
@@ -75,15 +82,26 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 	if err := json.Unmarshal(line, &r); err != nil {
 		return nil, err
 	}
-	if r.Type != "assistant" || r.Message.Model == "" || r.Message.Model == modeloSintetico {
+	if r.Type != "assistant" || r.Message.Model == "" {
+		return nil, nil
+	}
+	ctx.Pasada.contarFacturable()
+	if r.Message.Model == modeloSintetico {
+		ctx.Pasada.contarSintetica()
 		return nil, nil
 	}
 	// P-006 FR-002/FR-008: el `event_id` se DERIVA del mensaje; ya no se acuña uno aleatorio.
 	id, ok := derivarEventID(r.Message.ID, r.RequestID)
 	if !ok {
+		ctx.Pasada.contarSinIdentificador()
 		return nil, nil
 	}
 	u := r.Message.Usage
+	// P-006 FR-001/FR-005: dentro de la pasada, sólo la PRIMERA línea del mensaje se emite. Las
+	// demás se cuentan y NUNCA se suman. Con la pasada a nil, todo se emite.
+	if !ctx.Pasada.registrar(id, consumo{u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens}) {
+		return nil, nil
+	}
 	cost, costAvailable := pricing.Cost(r.Message.Model, u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens)
 	return &event.Event{
 		SchemaVersion:       event.SchemaVersion,

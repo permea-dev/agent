@@ -207,20 +207,23 @@ func newIngestContext(agentVersion string, cfg config.Config, salt, machineID st
 // Claude Code, lee solo las líneas nuevas por offset, construye el Event de frontera y lo
 // ENCOLA de forma durable. El estado se persiste DESPUÉS de encolar (durabilidad, R4): si
 // hay caída entre medias, a lo sumo se re-encola (at-least-once), nunca se pierde.
-func (a *agent) generate() (int, error) {
+//
+// Devuelve también la PASADA (P-006), para que quien llama escriba su resumen: cuántas líneas
+// facturables se leyeron, cuántos eventos salieron y cuántas se descartaron y por qué.
+func (a *agent) generate() (int, *ingest.Pasada, error) {
 	root, err := config.ClaudeCodeLogsRoot(a.cfg)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	logs, err := state.FindLogs(root)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	statePath := filepath.Join(a.dir, "state.json")
 	st, err := state.Load(statePath)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	// P-004 T032 · LA CACHÉ VIVE AQUÍ, Y POR ESO SU ÁMBITO ES LA PASADA. Se instancia dentro
@@ -231,6 +234,11 @@ func (a *agent) generate() (int, error) {
 	// una por ciclo.
 	ictx := a.ictx
 	ictx.Resolutor = project.NuevoResolutor()
+	// P-006 FR-001/FR-033 · LA PASADA, POR EL MISMO MOTIVO Y EN EL MISMO SITIO. Un mensaje cuyas
+	// líneas se lean en esta llamada produce UN evento. Una por llamada: en `--daemon`, una por ciclo,
+	// y entre ciclos no hay memoria (los repetidos los descarta la plataforma por `event_id`).
+	pasada := ingest.NuevaPasada()
+	ictx.Pasada = pasada
 
 	total := 0
 	for _, logPath := range logs {
@@ -250,14 +258,14 @@ func (a *agent) generate() (int, error) {
 			return nil
 		})
 		if err != nil {
-			return total, err
+			return total, pasada, err
 		}
 	}
 
 	if err := st.Save(statePath); err != nil {
-		return total, err
+		return total, pasada, err
 	}
-	return total, nil
+	return total, pasada, nil
 }
 
 // sync drena la cola pendiente hacia el backend por HTTPS (US2, T030). Sin endpoint
@@ -279,11 +287,12 @@ func runOnce() error {
 	if err != nil {
 		return err
 	}
-	n, err := a.generate()
+	n, pasada, err := a.generate()
 	if err != nil {
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos encolados en %s\n", n, transport.QueuePath(a.dir))
+	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -333,10 +342,17 @@ func runDaemon() error {
 // tick es una iteración del daemon: generar + drenar. Devuelve error solo cuando el sync
 // debe detenerse (auth); los fallos transitorios se registran y no abortan el bucle.
 func (a *agent) tick() error {
-	if n, err := a.generate(); err != nil {
+	if n, pasada, err := a.generate(); err != nil {
 		fmt.Fprintln(os.Stderr, "generación:", err)
-	} else if n > 0 {
-		fmt.Fprintf(os.Stderr, "%d eventos encolados\n", n)
+	} else {
+		if n > 0 {
+			fmt.Fprintf(os.Stderr, "%d eventos encolados\n", n)
+		}
+		// P-006: el resumen, sólo si la pasada leyó algo. Un resumen vacío cada ciclo es ruido, y el
+		// ruido enseña a ignorar los avisos.
+		if pasada.Recuentos().Facturables > 0 {
+			fmt.Fprintln(os.Stderr, pasada.Resumen())
+		}
 	}
 
 	if a.cfg.Endpoint == "" {
