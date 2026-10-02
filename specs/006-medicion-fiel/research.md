@@ -256,6 +256,11 @@ ninguna de las tres columnas lee **no cambia el baseline**: las identidades se d
 2. **El propio `TestSC009_…` lo demuestra**: si sigue verde tras el cambio, el baseline no se movió.
 Se declara en vez de hacerse en silencio. Va a §Dudas del informe.
 
+> **Decidido el 2026-10-02 (E-006-P1, orquestador).** Se edita en B1. Dos condiciones:
+> - `TestSC009_RegresionCeroDelCaminoDeIngesta` sigue verde **sin tocar sus aserciones**;
+> - `internal/project/testdata/README.md` (§Lo que estos fixtures NO son) anota la edición con fecha y
+>   motivo.
+
 ---
 
 ## R8 · La CLI — por qué hoy miente y dónde se corrige
@@ -291,6 +296,17 @@ Se declara en vez de hacerse en silencio. Va a §Dudas del informe.
 3. **`flag.Usage` sirve la misma ayuda por stdout.** Cubre combinaciones como `permea --run -h`: Go
    atiende `-h` durante el parseo, antes de ejecutar nada. **El mensaje de error de un flag desconocido
    sigue en stderr**: lo escribe `flag` en su salida, que no se toca.
+   > **Enmendado el 2026-10-02 (E-006-P3).** Ante una opción desconocida o sin valor ya **no** se
+   > escribe nada por stdout. El error, por stderr, nombra la opción y remite a `permea help`, y la
+   > salida es 2. Consecuencia de mecanismo: con el `FlagSet` por defecto (`ExitOnError`), Go escribe su
+   > propio mensaje **y** el uso, y sale él mismo. Para controlar canal y texto, el parseo pasa a un
+   > `FlagSet` con `ContinueOnError` y salida descartada:
+   > - `flag.ErrHelp` → la ayuda por stdout, exit 0;
+   > - cualquier otro error → el mensaje propio por stderr, exit 2.
+   >
+   > Comprobado en la librería estándar de Go 1.22: `ExitOnError` sale con 0 ante `ErrHelp` y con 2 ante
+   > los demás (medido para `-h`: exit 0, `report-agente.md` §10). **Sin comprobar** el texto exacto
+   > del error que devuelve `Parse` para una opción sin valor: la tarea lo mide.
 4. **Las ayudas de subcomando, en la primera línea de cada subcomando**, antes de leer stdin, antes de
    `config.DataDir()` y antes de cualquier rehúse:
    - en `runEnroll`, antes de `os.Stdin.Stat()`;
@@ -302,7 +318,7 @@ Se declara en vez de hacerse en silencio. Va a §Dudas del informe.
 
 **Fuera de la spec, y se conserva tal cual**: los argumentos sobrantes tras los flags
 (`permea --run extra`) siguen ignorándose, como hoy (`main.go:65-69`: `flag.Parse` se detiene en el
-primer posicional). Va a §Dudas.
+primer posicional). Va a §Dudas. *(Confirmado el 2026-10-02, E-006-P3: se quedan como están.)*
 
 ---
 
@@ -321,6 +337,8 @@ Medido el 2026-10-02 con `golangci-lint` 2.12.2 y la configuración `.golangci.y
 cerrar cualquier tarea** (`.specify/memory/constitution.md:72-75`). Con 7 avisos heredados, ninguna
 tarea de B1 a B5 podría cerrarse limpia. Además, los avisos 1–4 están en `project.go`, que B4 vuelve a
 editar: corregirlos primero evita mezclar los dos cambios en el mismo diff.
+
+**#7 aceptado el 2026-10-02 (E-006-P4, orquestador).**
 
 **Cuestión abierta**: el resultado depende de la versión del linter (2.12.2 local; en CI no se ejecuta,
 D-006-6). El quickstart fija la versión con la que se mide el 0.

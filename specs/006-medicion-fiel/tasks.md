@@ -1,0 +1,691 @@
+# Tasks: Medición fiel y publicable
+
+**Feature**: `006-medicion-fiel` · **Fecha**: 2026-10-02 · **Spec**: [spec.md](./spec.md) ·
+**Plan**: [plan.md](./plan.md) · **Research**: [research.md](./research.md) · **Contratos**:
+[event-id.md](./contracts/event-id.md) · [cli.md](./contracts/cli.md) · [tarifas.md](./contracts/tarifas.md) ·
+**Validación**: [quickstart.md](./quickstart.md)
+
+**Base**: `cbee0cd` (spec `03d3734` + plan, con las enmiendas E-006-P1 a P6 del 2026-10-02).
+**Línea base a preservar**: `go test ./...` → **9 paquetes `ok`, 297 tests pass, 0 `FAIL`** (medido
+2026-10-02 sobre `0311fa1`; el código no ha cambiado desde entonces).
+
+---
+
+## Format: `[ID] [P?] [✋?] Description`
+
+- **[P]**: sin dependencia entre sí, **escribibles en cualquier orden**. Igual que en 005, **NO**
+  significa «ficheros distintos»: dos `[P]` que tocan el mismo `_test.go` se escriben una detrás de
+  otra. El paralelismo es **de decisión**, no de edición concurrente.
+- **✋**: la ejecuta **el dueño** (Basilio), no Claude: commits, decisiones, la PR, la etiqueta y los
+  ensayos en Windows. Claude no hace git de escritura ni abre la PR.
+- **Numeración de creación**: T001… en el orden en que se escribieron. **No se renumera**: una tarea
+  añadida después recibe el siguiente número libre, aunque se ejecute antes.
+- **(1)…(26)** son los rojos y **(m1)…(m19)** las mutaciones de la tabla de bloques de `plan.md`, con
+  la misma numeración. Las mutaciones propias de este fichero que el plan no numeraba se llaman
+  **M-B0** y **M-B1**.
+- Ruta de fichero exacta en cada tarea.
+
+### Convenio: «Bloque» aquí, «Phase N del plan» allí
+
+Este fichero se ordena por **bloques** (B0 … B5, Cierre), los de `plan.md` §Bloques de implementación.
+El plan usa además «Phase 0/1/2 del plan» (research · diseño · tasks). **Toda cita al plan se escribe
+«Phase N del plan»**, cualificada.
+
+## Path Conventions
+
+Proyecto único Go. Rutas desde la raíz del repositorio: `cmd/permea/`, `internal/`,
+`specs/006-medicion-fiel/`.
+
+---
+
+## Disciplinas transversales — aplican a TODA tarea de test de este fichero
+
+**Las ocho de 005, sin cambios** (`specs/005-adhesion-a-proyecto/tasks.md`, §Disciplinas
+transversales). No se repiten; se dan por incluidas:
+
+1. Una garantía por tarea, anclada al **contrato**. Si contrato y spec discrepan, se para.
+2. Rojo antes de verde, **transcribiendo la razón real** del fallo.
+3. Todo test que nazca verde se valida por mutación:
+   - la mutación **compila y mata sólo su hecho**, y se revierte **por edición inversa**, nunca con
+     `git checkout`;
+   - **`t.Errorf` para aserciones independientes**; `t.Fatalf` sólo para precondiciones.
+4. Tests de proceso: se compara `ExitCode()`, nunca texto.
+5. La ausencia se comprueba por **canal vacío**.
+6. Aislamiento obligatorio (`HOME` / `USERPROFILE` / `XDG_CONFIG_HOME` temporales).
+7. Los dos canales se capturan **por separado**.
+8. En comentarios de código se cita **por nombre**, nunca por línea. Y **en este fichero tampoco** se
+   cita por línea el código que 006 edita: aquí también caduca antes que la fecha.
+
+Una más, **nueva en 006** (`plan.md` §Disciplinas):
+
+9. **Sobre la copia congelada de logs reales, sólo recuentos.** Nada imprime un `message.id`, un
+   `requestId` ni un `event_id` de un log real. Los vectores de prueba usan identificadores
+   **sintéticos**. La copia vive fuera del repositorio y se borra al terminar su tramo.
+
+### Protocolo de mutación de 006 — el censo va ANTES
+
+Toda mutación de este fichero sigue estos pasos, en este orden:
+
+1. **Declarar el censo en la propia tarea, antes de tocar nada.** Por nombre, qué tests deben caer.
+2. **Declarar las co-caídas**: qué otros tests caerán por arrastre, y por qué.
+3. Aplicar la mutación, ejecutar `go test ./... 2>&1`, y **comparar el conjunto de `FAIL` con lo
+   declarado**.
+4. **Si coincide exactamente**: revertir por edición inversa, comprobar el verde completo y transcribir
+   en la tarea el mensaje de fallo de cada test del censo.
+5. **Si cae algo no declarado, o no cae algo declarado, la mutación SE DEJA PUESTA y se PARA.** Se
+   reporta al orquestador con la salida. Lo primero es que un hecho que creíamos separado no lo está.
+   Lo segundo es que el test no mira lo que dice mirar. Ninguna de las dos cosas la resuelve quien
+   ejecuta.
+6. **Mutación inválida** (no compila, o panica): se descarta y se busca otra forma de alterar el mismo
+   hecho (disciplina 3). **No cuenta como superada.**
+
+### Puertas del bloque — se ejecutan al final de cada bloque, ANTES de su ✋ commit
+
+```sh
+gofmt -l .                                   # → vacío
+go vet ./...                                 # → sin hallazgos
+golangci-lint run                            # → 0 issues (2.12.2; desde B0)
+go test -count=1 ./...                       # → 9 paquetes ok (B1: salvo sus 4 rojos declarados)
+git diff 0311fa1 -- internal/event           # → vacío (SC-005, D-006-3)
+grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml|tsv|mod|gitignore):[0-9]+|[(`]:[0-9]+' \
+     --include='*.go' --include='*.sh' .     # → nada (disciplina 8)
+grep -rn "event.NewID" --include=*.go . | grep -v '^./internal/event/'   # → vacío (desde B2a)
+```
+
+### Nota de ejecución
+
+**Claude Code no ejecuta git de escritura.** Cada bloque termina en una tarea **✋ commit**: el marcado
+de casillas y las transcripciones de rojos y mutaciones viajan **en el mismo commit** que el código
+que documentan. El **mensaje de commit va previsto en cada ✋, sin tildes ni ñ.**
+
+**Dónde se registran rojos y mutaciones**: aquí, en la tarea que los espera (convención de 001–005;
+no hay `registro-*.md` en este repositorio).
+
+---
+
+## Bloque B0 · Linter a 0 (D-006-13, `research.md` R9)
+
+> **Por qué va primero**: la constitución exige `golangci-lint` limpio **para cerrar cualquier tarea**
+> (`.specify/memory/constitution.md:72-75`). Con 7 avisos heredados, nada de lo que sigue podría
+> cerrarse limpio (`plan.md` D-006-P10).
+
+- [ ] **T001** **Rojo**: ejecutar `golangci-lint run` (2.12.2) y transcribir aquí los avisos. Se
+  esperan **7**: 4 `errcheck` en `cmd/permea/project.go` (las cuatro escrituras de error de
+  `runProject` y `projectJoin`), 1 `revive` `error-return` en `internal/config/endpoint.go`
+  (`JuzgarEndpoint`), 1 `revive` `unused-parameter` y 1 `staticcheck` SA1007 en
+  `internal/transport/adhesion_test.go`. Si salen otros o más, **se para**.
+- [ ] **T002** [P] Avisos 1–4: en `cmd/permea/project.go`, `_, _ =` delante de las cuatro escrituras
+  de `fmt.Fprintln`/`fmt.Fprintf` a `stderr` («falta el verbo», «verbo desconocido», el error de la
+  entrada y el del directorio actual). Es el idioma que el repositorio ya usa en `status.go` y
+  `enroll.go`.
+- [ ] **T003** [P] Aviso 5: reordenar `config.JuzgarEndpoint` a `(admisible bool, errAnalisis error)`
+  en `internal/config/endpoint.go`, y sus llamantes: `ParseEnrollmentString` (`enrollment.go`),
+  `Config.Validate` (`config.go`), `Client.Send` y `Client.Adherir` (`internal/transport/transport.go`),
+  y los cinco sitios de `internal/config/endpoint_test.go`. **Los tests cambian sólo el orden del
+  destructurado, ninguna aserción.** El comentario de la función se actualiza por nombre.
+- [ ] **T004** [P] Avisos 6–7 en `internal/transport/adhesion_test.go`:
+  - el parámetro `r` del manejador de `backendAdhesion` pasa a `_`;
+  - en el `url.Parse` de `TestAdherir_ConservaLaCausaDelParseo`, `//nolint:staticcheck`, con el motivo
+    en la misma línea: la URL inválida es el **sujeto** del test (E-006-P4). Será la única directiva
+    `nolint` del repositorio.
+- [ ] **T005** **Verde**: `golangci-lint run` → **0**. `go test ./...` → 9 paquetes ok y **297 pass**.
+  `git diff` de los `_test.go` sólo contiene el destructurado de T003, el `_` y el `nolint`.
+- [ ] **T006** **Mutación M-B0**: `JuzgarEndpoint` devuelve `admisible = true` siempre.
+  - **Censo** (completarlo **antes** de mutar con `grep -ln 'http://' --include=*_test.go -r .` y
+    escribir aquí los nombres que falten):
+    - `TestJuzgarEndpoint_HechoEsquema` y `TestJuzgarEndpoint_NoAnalizableNoAfirmaEsquema`
+      (`internal/config/endpoint_test.go`);
+    - `TestValidate_RejectsNonHTTPS` (`config_test.go`);
+    - `TestSend_RejectsHTTP` (`transport_test.go`);
+    - `TestAdherir_RechazaCanalEnClaro` (`adhesion_test.go`);
+    - los tests de rechazo de `http://` de `enrollment_test.go`, `enrollment_higiene_test.go` y
+      `cmd/permea/enroll_reject_test.go`.
+  - **Co-caídas**: ninguna fuera de la lista.
+  - Protocolo de mutación. Acredita que el reorden no desenganchó ningún testigo.
+- [ ] **T007** Puertas del bloque.
+- [ ] **T008** ✋ **Commit** (dueño): `006 B0: golangci-lint a 0 (los 7 avisos heredados de 005)`
+
+---
+
+## Bloque B1 · Contratos y testigos — la frontera primero (Principio IV)
+
+> **El golden NO puede nacer rojo, y se dice**: hoy el lector no decodifica `message.id` ni
+> `requestId`, así que los centinelas no pueden aparecer. Nace verde y se valida por mutación (T014).
+> **El rojo de B1 son los testigos de la derivación** (T013), que se escriben contra la API que ya
+> existe (`ingest.FromClaudeCodeLine`). Así caen **por conducta** y no por compilación.
+
+- [ ] **T009** [P] Redescribir el origen del `event_id` en `specs/001-agente-inicial/contracts/transport.md`
+  (§Deduplicación, la frase «lo genera el agente con `crypto/rand` (`event.NewID`)») y en
+  `specs/001-agente-inicial/data-model.md` (la fila de `event_id`). Determinista, derivado de los
+  identificadores del mensaje, remitiendo a `specs/006-medicion-fiel/contracts/event-id.md`. **La forma
+  del campo no cambia.** FR-011.
+- [ ] **T010** [P] **E-006-P1**: en `internal/ingest/testdata/claude_code_sample.jsonl`, añadir
+  `message.id` y `requestId` **sintéticos y distintos** a las dos líneas `assistant`
+  (`msg_FIXTUREREF00000000000001` / `req_FIXTUREREF00000000000001` y `…02`). En
+  `internal/project/testdata/README.md` §Lo que estos fixtures NO son, una nota fechada: se editó el
+  2026-10-02 (006 E-006-P1) para añadir los dos campos; ninguna de las tres columnas del baseline los
+  lee. **Condición**: `TestSC009_RegresionCeroDelCaminoDeIngesta` y `TestBoundary_NoDenylistLeaks`
+  siguen **verdes sin tocar sus aserciones**. Si alguno cae, se para.
+- [ ] **T011** [P] En `internal/ingest/testdata/boundary_sample.jsonl`, `message.id` y `requestId`
+  **centinela** en las dos líneas `assistant` (`msg_CENTINELAID00000000001`, `req_CENTINELAID00000000001`
+  y `…02`). Los cuatro valores, más los cuatro de T010, a la `denylist` de
+  `internal/ingest/boundary_test.go`, con un bloque de comentario por nombre: «P-006 FR-013 · los
+  identificadores del proveedor». FR-013.
+- [ ] **T012** [P] Añadir `message.id` y `requestId` (sintéticos, distintos entre sí) a las seis líneas
+  `assistant` escritas en tests:
+  - las cuatro de `internal/ingest/boundary_test.go` (en `TestBoundary_UnknownFutureFieldDoesNotLeak`,
+    `TestBoundary_CostAvailable` ×2 y `TestBoundary_KeepsMetrics`);
+  - las dos de `cmd/permea/main_test.go` (en `TestAgentVersion_ReachesEvent` y en el subtest
+    `--scan con "plain" presente`).
+
+  Sin ellas, FR-006 las dejaría sin evento (`research.md` R7), y la del subtest seguiría verde **sin
+  ejercer nada**.
+- [ ] **T013** **Rojo** — nuevo `internal/ingest/eventid_test.go`, cuatro tests independientes, todos
+  por `FromClaudeCodeLine`:
+  - (1) `TestEventID_LaMismaLineaDaElMismoIDEnDosInstalaciones`: la misma línea con dos `Context` de
+    sal, máquina y desarrollador distintos da el **mismo** `event_id`. **Cae** porque `event.NewID` es
+    aleatorio.
+  - (2) `TestEventID_VectorDelPar`: el par sintético de `contracts/event-id.md` da exactamente
+    `43b8b3b6446704ae3cb8bb74683bf3e2`. **Cae** por la misma razón.
+  - (3) `TestSintetica_NoSeEmite`: `model=<synthetic>` → `nil`. **Cae** porque hoy sólo se descarta
+    el modelo vacío.
+  - (4) `TestCasoLimite_SinIdentificadorNoSeEmite`: una línea `assistant` sin ninguno de los dos
+    identificadores → `nil`. **Cae**: hoy se emite.
+
+  Transcribir aquí el mensaje real de cada rojo. **Superficie nueva: ninguna.**
+- [ ] **T014** **Mutación M-B1** (el golden, nacido verde): en `internal/ingest/claudecode.go`,
+  decodificar `message.id` **sólo para la mutación** y escribirlo en claro en `SessionRef`.
+  - **Censo**: `TestBoundary_TresCaminosHaciaElExterior` (los tres caminos, por el centinela de T011)
+    y `TestBoundary_NoDenylistLeaks` (por los valores de T010 en la denylist).
+  - **Co-caída**: `TestSC009_RegresionCeroDelCaminoDeIngesta`, porque cambia la columna `session_ref`.
+  - Ninguna otra.
+  - Protocolo de mutación; revertir por edición inversa.
+- [ ] **T015** Puertas del bloque. **`go test` cierra con exactamente los cuatro rojos de T013** y nada
+  más en rojo; se transcribe la lista de `FAIL`.
+- [ ] **T016** ✋ **Commit** (dueño):
+  `006 B1: contratos de 001 redescritos, ids en fixtures y testigos del event_id EN ROJO`
+
+---
+
+## Bloque B2a · La derivación (`contracts/event-id.md`, `plan.md` D-006-P1/P2)
+
+- [ ] **T017** [P] **Rojo** (5) `TestCasoLimite_UnSoloIdentificador` en `internal/ingest/eventid_test.go`.
+  Las tres formas (par, sólo `message.id`, sólo `requestId`) dan `event_id` **distintos entre sí**,
+  estables y de 32 hex. Incluye **el mismo valor** usado como `message.id` solo y como `requestId`
+  solo, que debe dar dos `event_id` distintos (ver m1). **Cae** por aleatoriedad. SC-008 (b).
+- [ ] **T018** [P] **Rojo** (6) `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad`, en el mismo fichero:
+  - los vectores de «sólo `message.id`» y «sólo `requestId`» de `contracts/event-id.md`;
+  - los dos de la ambigüedad sin prefijo de longitud.
+
+  Para que el vector de ambigüedad sea alcanzable por la API pública, se usa como `message.id`/`requestId`
+  el par de componentes del contrato. **Cae** por aleatoriedad.
+- [ ] **T019** Nuevo `internal/ingest/eventid.go`: la derivación del contrato, sin exportar:
+  - dominio `permea/event_id/v1` + `claude_code` + tipo;
+  - componentes con prefijo de longitud `uint32` big-endian;
+  - SHA-256 truncado a 16 bytes, hex en minúsculas.
+
+  **Superficie nueva**: la función, mirada por T013 (1)(2), T017 y T018.
+- [ ] **T020** En `internal/ingest/claudecode.go`:
+  - `rawRecord` decodifica `message.id` y `requestId`. El comentario de la guarda de frontera se
+    actualiza **por nombre**: son metadatos técnicos, nunca salen en claro, y sólo derivan el
+    `event_id` (spec §Verificación de la frontera);
+  - `<synthetic>` → `nil`;
+  - sin ningún identificador → `nil`;
+  - el `event_id` sale de T019, y **`event.NewID` deja de llamarse**.
+
+  **Verde**: (1)–(6). El golden y `TestSC009` siguen verdes.
+- [ ] **T021** **Mutaciones m1–m4** (protocolo; cada una con su censo, todo lo demás verde):
+  - **m1**: quitar el tipo del dominio. Censo: (2), (5) y (6). (5) cae por el caso del mismo valor en
+    las dos formas solas.
+  - **m2**: quitar el prefijo de longitud. Censo: (2) y (6). (5) **no** cae: las formas siguen
+    separadas por el tipo.
+  - **m3**: volver a emitir `<synthetic>`. Censo: (3).
+  - **m4**: meter `ctx.Salt` en el hash. Censo: (1), (2) y (6).
+- [ ] **T022** Puertas del bloque (incluido el `grep` de `event.NewID`).
+- [ ] **T023** ✋ **Commit** (dueño):
+  `006 B2a: event_id determinista por hash con dominio y sin sal; synthetic y lineas sin ids no se emiten`
+
+---
+
+## Bloque B2b · La pasada (`plan.md` D-006-P3/P4, `research.md` R3/R4)
+
+- [ ] **T024** Nuevo `internal/ingest/pasada.go`, **andamiaje**:
+  - un tipo «pasada», como puntero en `ingest.Context` y **nil válido** (patrón del `Resolutor`);
+  - métodos que **no deduplican, no cuentan** y devuelven un resumen vacío.
+
+  Existe para que T025–T029 caigan **por conducta** y no por compilación. **Superficie nueva**,
+  mirada por T025–T029.
+- [ ] **T025** [P] **Rojo** (7) `TestPasada_UnMensajeDeTresLineasEsUnEvento` (`internal/ingest/pasada_test.go`):
+  tres líneas con el mismo par, en una pasada → **un** evento, con los tokens de **una** línea. **Cae**:
+  el andamiaje no deduplica.
+- [ ] **T026** [P] **Rojo** (8) `TestCasoLimite_ConsumoDistinto`: segunda línea del mismo par con
+  `usage` distinto → **no** se emite, el evento conserva el de la primera, y el contador de «consumo
+  distinto» = 1. **Cae** por el contador. SC-008 (a).
+- [ ] **T027** [P] **Rojo** (9) `TestCasoLimite_SinIdentificador`: una línea sin identificadores →
+  contador «sin identificador» = 1. **Cae** por el contador. SC-008 (c).
+- [ ] **T028** [P] **Rojo** (10) `TestPasada_ElResumenNoLlevaIdentificadores`, con tres aserciones
+  independientes:
+  - el resumen **no está vacío** y contiene el número de facturables;
+  - no contiene ninguno de los identificadores de entrada;
+  - no contiene ningún `event_id` emitido.
+
+  **Cae** por la primera: el andamiaje devuelve vacío. Sin ella el test nacería verde y vacuo.
+- [ ] **T029** **Rojo** (11) `TestPasada_GenerateEncolaUnoPorMensaje` en `cmd/permea/main_test.go`. En
+  sandbox, con `logs_root` a un temporal que contiene un log con un mensaje de tres líneas, una pasada
+  de `generate()` deja **un** evento en `queue.jsonl`. **Cae**: deja tres.
+- [ ] **T030** Implementar la pasada en `internal/ingest/pasada.go`:
+  - conjunto con **clave de 16 bytes**, no la cadena hex (`research.md` R3.4), y el `usage` de la
+    primera línea;
+  - los seis contadores de `data-model.md`;
+  - el resumen.
+
+  Cablearla en `FromClaudeCodeLine`: una repetición devuelve `(nil, nil)`; con la pasada a nil, se
+  emite.
+- [ ] **T031** En `cmd/permea/main.go`:
+  - `generate()` instancia una pasada **por llamada** (en `--daemon`, una por ciclo);
+  - `runOnce` escribe el resumen por **stderr**;
+  - `tick` lo escribe sólo si la pasada leyó alguna línea facturable.
+
+  **Verde**: (7)–(11).
+- [ ] **T032** **Medida** (no es test): memoria de una pasada sobre **10 698 mensajes sintéticos**,
+  tamaño de la referencia M2. `runtime.MemStats` antes y después, en un programa o test temporal que
+  **no se commitea**. Transcribir aquí la cifra, que contrasta la estimación de `research.md` R3.4.
+- [ ] **T033** **Mutaciones m5–m8**:
+  - **m5**: el conjunto nunca recuerda. Censo: (7) y (11). Co-caída: (8), porque sin conjunto no hay
+    primera línea con la que comparar.
+  - **m6**: no contar la discrepancia. Censo: (8).
+  - **m7**: escribir el último `event_id` en el resumen. Censo: (10).
+  - **m8**: `generate()` sin instanciar la pasada. Censo: (11). **(7) queda verde**, y eso demuestra
+    que (11) mira el camino real.
+- [ ] **T034** Puertas del bloque.
+- [ ] **T035** ✋ **Commit** (dueño):
+  `006 B2b: un mensaje un evento dentro de la pasada, con resumen por stderr`
+
+---
+
+## Bloque B2c · Dry-run y actualización (`plan.md` D-006-P5, FR-009, FR-010)
+
+- [ ] **T036** [P] **Rojo** (12) `TestScan_UnEventoPorMensaje` en `cmd/permea/main_test.go`. Proceso:
+  `--scan` sobre un fichero con un mensaje de tres líneas → exit 0 y exactamente **una** línea
+  `evento:` en stdout. **Cae**: salen tres.
+- [ ] **T037** [P] **Rojo** (13) `TestScan_LineaConCuatroPartidasYEventID`: la línea `evento:` lleva
+  `in=`, `out=`, `cw=`, `cr=` y `event_id=` con 32 hex. **Estos nombres de campo los usan las medidas
+  V3 y V4 del quickstart.** **Cae**: hoy no hay `cw`, `cr` ni `event_id`.
+- [ ] **T038** (14) `TestActualizar_NoReenviaNiReescribeLaCola` en `cmd/permea/main_test.go`. Sandbox
+  con `state.json` a mitad de un log y un evento antiguo con `event_id` aleatorio en `queue.jsonl`. Una
+  pasada de `generate()`:
+  - encola sólo lo posterior al offset;
+  - deja la línea antigua **byte a byte** igual.
+
+  **Nace verde** (no hay nada que cambiar en el estado), así que lo valida T040.
+- [ ] **T039** En `cmd/permea/main.go`, `dryRun()`:
+  - pasada propia;
+  - formato de T037;
+  - resumen por stderr, que sustituye a «N eventos generados» o lo amplía.
+
+  **Verde**: (12) y (13).
+- [ ] **T040** **Mutaciones m9–m10**:
+  - **m9**: en `generate()`, empezar con un estado nuevo en vez de cargar `state.json`. Censo: (14).
+    **Antes de mutar**, buscar con `grep` en `cmd/permea/*_test.go` otros tests que ejecuten dos
+    pasadas, y declararlos como co-caídas si los hay.
+  - **m10**: vaciar la cola al empezar `generate()`. Censo: (14). Co-caídas: ninguna, porque (11) parte
+    de una cola vacía.
+- [ ] **T041** Puertas del bloque.
+- [ ] **T042** ✋ **Commit** (dueño): `006 B2c: dry-run con cuatro partidas y event_id; actualizar no reenvia`
+
+---
+
+## Q-006-1 · `claude-sonnet-5` — BLOQUEANTE antes de B3
+
+- [ ] **T043** ✋ **Decisión del dueño**: `claude-sonnet-5`, ¿2 / 10 / 2,50 / 0,20 (página oficial) o
+  3 / 15 / 3,75 / 0,30 (catálogo `865bba0`)? (spec §Preguntas abiertas.)
+  - **Si el catálogo de la plataforma cambia**, el dueño comunica el **commit nuevo** de
+    `backend/config/pricing.php`.
+  - **B3 no empieza** sin esta respuesta.
+- [ ] **T044** *(condicional: sólo si T043 cambia el catálogo)* Enmienda fechada de la spec:
+  - M4 rehecho sobre el commit nuevo;
+  - las notas de FR-014, FR-019 (limitación 3) y SC-009;
+  - Q-006-1 marcada como resuelta, con fecha.
+
+  Mensaje para el ✋ commit, que el dueño puede unir a T051:
+  `006 spec: Q-006-1 resuelta, M4 sobre el catalogo <commit>`
+
+---
+
+## Bloque B3 · Tarifas (`contracts/tarifas.md`, `plan.md` D-006-P6)
+
+- [ ] **T045** [P] En `internal/pricing/pricing_test.go`, una **tabla esperada escrita aparte**, con
+  comentario de procedencia (repositorio · fichero · commit de T043), y tres tests independientes:
+  - (15) `TestEspejo_RecuentoDeClaves`: 16 claves. **Cae**: hay 3.
+  - (16) `TestEspejo_CifrasClaveAClave`: cada clave esperada existe con sus **cuatro** cifras exactas.
+    **Cae**: faltan 13 claves y `claude-opus-4-6` difiere.
+  - (17) `TestEspejo_NingunaClaveSobra`. **Nace verde** (las 3 actuales están entre las 16) → m12.
+- [ ] **T046** [P] En el mismo fichero:
+  - (18) `TestCost` pasa a `claude-opus-4-6` a 5 / 25 / 6,25 / 0,50. **Cae**: la tabla dice 15/75.
+  - (19) `TestCost_Opus55AMano`: un evento de `claude-opus-5-5` con las **cuatro** partidas, contra el
+    cálculo a mano a 4 / 20 / 5 / 0,20. **Cae**: no hay fila.
+- [ ] **T047** `internal/pricing/pricing.go`: las 16 claves del catálogo de T043, y la **cabecera** de
+  `contracts/tarifas.md` (fuente, verificación, aprobación, catálogo replicado, casamiento exacto, las
+  tres limitaciones). **Verde**: (15), (16), (18) y (19).
+- [ ] **T048** **Revisión SC-011**: una casilla por elemento de la cabecera. Transcribir las siete
+  casillas aquí.
+- [ ] **T049** **Mutaciones m11–m13**:
+  - **m11**: `claude-opus-5-5` `CacheRead` 0.20 → 0.21. Censo: (16). Co-caída: (19), porque usa las
+    cuatro partidas.
+  - **m12**: añadir una clave `claude-inventado`. Censo: (15) y (17).
+  - **m13**: quitar `claude-haiku-3-5`, que no usa ningún otro test. Censo: (15) y (16).
+- [ ] **T050** Puertas del bloque.
+- [ ] **T051** ✋ **Commit** (dueño): `006 B3: tarifas espejo del catalogo de la plataforma (16 claves)`
+
+---
+
+## Bloque B4 · CLI (`contracts/cli.md`, `plan.md` D-006-P8, E-006-P3)
+
+> Todos los rojos son **de proceso**, contra el binario de prueba que ya compila `TestMain`, así que
+> caen por conducta sin necesidad de andamiaje. **Los canales se capturan por separado** (disciplina
+> 7).
+>
+> Para los casos enrolados contra un servidor de prueba, el hijo confía en el certificado por
+> `SSL_CERT_FILE`, con el montaje que ya usa `entornoDeAdhesion` en `cmd/permea/project_test.go`, y se
+> cuentan las peticiones con `bancoDeAdhesion.recibidas`. **Sin confianza TLS el servidor nunca vería
+> la petición y el 0 sería vacuo.**
+
+- [ ] **T052** [P] **Rojo** (20) `TestAyuda_LasCuatroFormasSonIdenticas` (`cmd/permea/ayuda_test.go`):
+  sin argumentos, `help`, `-h` y `--help` → stdout no vacío e **idéntico byte a byte**, stderr vacío,
+  exit 0. **Cae**: `-h` sale por stderr con el uso de Go, y `help` lleva banner por stderr.
+- [ ] **T053** [P] **Rojo** (21) `TestAyuda_ContenidoMinimo`, sólo sobre la forma `help`:
+  - `enroll`, `status`, `project join`, `--scan`, `--run`, `--daemon` y `--version`;
+  - la recomendación de stdin, en los dos sitios.
+
+  **Cae**: hoy sale por stderr y stdout está vacío.
+- [ ] **T054** [P] **Rojo** (22) `TestAyudaSubcomando_NoHaceNada`: las 8 invocaciones de
+  `contracts/cli.md` §Las ayudas de subcomando, con exit 0 y la ayuda por stdout. En dos montajes, y
+  cada aserción con `t.Errorf`:
+  - **(a) sandbox vacío**: el árbol queda idéntico antes y después;
+  - **(b) enrolado**, desde un árbol con raíz: el banco recibe **0** peticiones y el árbol no cambia.
+
+  **Cae**: `status -h` crea el directorio de datos y `project join -h` emite.
+- [ ] **T055** [P] **Rojo** (23) `TestDesconocido_SubcomandoNombradoYSalida1`: `permea enrol` → exit
+  1, stderr contiene `enrol`, stdout vacío. **Cae**: hoy exit 0.
+- [ ] **T056** [P] **Rojo** (24) `TestDesconocido_NoReproduceSecretos`: `pmea2.<centinela>`,
+  `pmeaj1.<centinela>` y `pmea1.<centinela>` → exit 1, y el centinela no aparece en ninguno de los dos
+  canales. **Cae** por el exit.
+- [ ] **T057** [P] (25) `TestTokenCentinela_NuncaSale`: un `config.json` de prueba con un token
+  centinela y todas las invocaciones de `contracts/cli.md` (las cuatro generales, las ocho de
+  subcomando, `status`, subcomando inexistente y opción desconocida). El centinela no aparece en
+  ningún canal. **Nace verde** (hoy no se imprime) → m18.
+- [ ] **T058** [P] **Rojo** (26) `TestOpcionDesconocida_StderrYSalida2` (E-006-P3): `--bogus`, y
+  `--scan` sin valor. Exit 2, stdout **vacío**, y stderr nombra la opción y contiene `permea help`.
+  **Cae** porque Go no remite a `permea help`. Transcribir también si hoy añade el uso por defecto.
+- [ ] **T059** Nuevo `cmd/permea/ayuda.go`: **la fuente única**, una tabla de subcomandos (nombre,
+  sinopsis, líneas) y de opciones. Compone la ayuda general y la de cada subcomando. El literal de
+  `printUsage` en `main.go` se sustituye por ella; su comentario de cabecera se traslada **por nombre**.
+- [ ] **T060** `cmd/permea/main.go`:
+  - **escalera**: sin argumentos, `help`, `-h`, `--help` y `-help` → ayuda por stdout, exit 0, **antes**
+    del parseo y del banner;
+  - **subcomando inexistente**: primer argumento que no empieza por `-` y no es conocido → error por
+    stderr que lo nombra, salvo los prefijos `pmea2.`, `pmeaj1.` y `pmea1.`, con exit 1;
+  - **parseo** con un `FlagSet` de `ContinueOnError` y salida descartada: `flag.ErrHelp` → ayuda por
+    stdout, exit 0; otro error → mensaje propio por stderr con la opción y `permea help`, exit 2
+    (`research.md` R8, enmienda E-006-P3).
+- [ ] **T061** Ayudas de subcomando, en la **primera** línea de cada camino:
+  - `runEnroll` (`enroll.go`), antes de inspeccionar stdin;
+  - `runStatus` (`status.go`), que pasa a recibir los argumentos (se ajusta su llamada en
+    `status_test.go`), antes de `config.DataDir()`;
+  - `runProject` para `project -h` y `projectJoin` para `project join -h` (`project.go`).
+
+  **Verde**: (20)–(26). `TestProject_ErroresDeUsoDeLaGramatica` sigue verde sin cambios.
+- [ ] **T062** **Mutaciones m14–m19**:
+  - **m14**: la invocación sin argumentos escribe por stderr. Censo: (20). (21) no cae, porque mira
+    sólo `help`.
+  - **m15**: en `runStatus`, la comprobación de `-h` detrás de `DataDir()`. Censo: (22) (a).
+  - **m16**: quitar el `-h` de `projectJoin`. Censo: (22) (b), por peticiones.
+  - **m17**: reproducir siempre lo tecleado en el error de subcomando. Censo: (24).
+  - **m18**: la ayuda de `status` carga la configuración e imprime `DeviceToken`. Censo: (25).
+    Co-caída: (22) (a), porque cargar la configuración crea el directorio en el sandbox vacío.
+  - **m19**: ante una opción desconocida, escribir también la ayuda por stdout. Censo: (26).
+- [ ] **T063** Puertas del bloque.
+- [ ] **T064** ✋ **Commit** (dueño):
+  `006 B4: ayuda unica por stdout, ayudas de subcomando sin efectos y errores de uso`
+
+---
+
+## Bloque B5 · README, CHANGELOG y comentarios (FR-025 a FR-029)
+
+- [ ] **T065** **Rojo** (V18): transcribir `grep -c bfgnet README.md .goreleaser.yaml .github/workflows/release.yml`
+  (> 0) y la ausencia de `CHANGELOG.md`.
+- [ ] **T066** `README.md`:
+  - **instalación**: `brew install --cask permea-dev/permea/permea`,
+    `scoop bucket add permea https://github.com/permea-dev/scoop-permea` e `install.sh` desde
+    `permea-dev/agent`. Comprobar cada uno con `gh api` **antes** de escribirlo;
+  - **primeros pasos para quien instala**: `echo "$ENROLL" | permea enroll -` → `permea status` →
+    `permea --run` o `--daemon`. **Antes** del tercer paso, el aviso de que la primera pasada envía
+    todo el historial que conserve Claude Code (D-006-10);
+  - los pasos de desarrollo (`make test`…) aparte;
+  - **fuera** la mención del «modo de ref» en §Configuración y rutas por SO;
+  - el límite de casamiento exacto de tarifas (FR-018);
+  - el formato nuevo de `--scan` y la ayuda.
+- [ ] **T067** Nuevo `CHANGELOG.md` con la entrada `0.3.0`:
+  - lo nuevo de 003, 004, 005 y 006;
+  - la ruptura aceptada de `project_ref` (004);
+  - que **las cifras bajan porque antes se contaba de más** (×2,13 en los datos medidos);
+  - la ayuda sin argumentos pasa de stderr a stdout (D-006-7);
+  - un subcomando inexistente ahora sale con 1, y una opción desconocida ya no imprime el uso.
+- [ ] **T068** [P] Comentarios con `bfgnet/…` en `.github/workflows/release.yml` y `.goreleaser.yaml`,
+  corregidos **sin tocar ninguna línea de configuración** (FR-029).
+- [ ] **T069** **Verde** (V18):
+  - los dos repositorios responden y `install.sh` da 200;
+  - `bfgnet` 0 en los tres ficheros;
+  - el diff de configuración (sin comentarios) vacío;
+  - las cuatro partes del CHANGELOG (SC-017) y el aviso del README antes de `-run` (SC-016).
+- [ ] **T070** Puertas del bloque.
+- [ ] **T071** ✋ **Commit** (dueño): `006 B5: README instalable, CHANGELOG 0.3.0 y comentarios de distribucion`
+
+---
+
+## Cierre — en tramos, UNO POR MENSAJE
+
+Cada tramo es un encargo propio y no empieza hasta que el anterior está cerrado.
+**Si un tramo falla, se para**: se corrige en el bloque que corresponda, con sus puertas y su commit,
+y se rehace desde el tramo C1.
+
+### Tramo C1 · Puertas locales
+
+- [ ] **T072** Sobre la rama, con todos los bloques commiteados, transcribir aquí la salida de:
+  - quickstart V1;
+  - `git diff 0311fa1 -- internal/event` vacío;
+  - el `grep` de `event.NewID`;
+  - el `grep` de la disciplina 8;
+  - la cabecera de tarifas cita el commit vigente del catálogo (T043);
+  - `grep -rn nolint --include=*.go .` → exactamente una.
+
+### Tramo C2 · Copia congelada y medidas V
+
+- [ ] **T073** Copia congelada y contador independiente (quickstart §La copia congelada y §El contador
+  independiente). Transcribir: fecha, nº de ficheros, facturables, sintéticas, sin identificador,
+  mensajes distintos y tokens una vez por mensaje. **Sólo recuentos** (disciplina 9).
+- [ ] **T074** Medidas sobre la copia, transcritas como recuento frente a valor esperado:
+  - V2 (SC-001);
+  - V3 (SC-002);
+  - V4 a y b (SC-003);
+  - V5 (SC-004);
+  - V7 (SC-006);
+  - V10 (SC-021);
+  - V12 (SC-010).
+- [ ] **T075** **V4-c** (E-006-P2): `--run` **sólo** en los dos sandboxes `env -i`, **sin enrolar** y
+  sobre la copia. Primero `permea status` → «no enrolado» en cada uno; si no, **se para**.
+  - **Esperado**: «sync omitido» en los dos, sales distintas, el **mismo** conjunto de `event_id` y
+    tantos como mensajes.
+  - Medir también la memoria máxima de cada `--run` con `/usr/bin/time -v` y contrastarla con T032.
+- [ ] **T076** Borrar la copia, los dos sandboxes y los temporales de `/tmp` de las medidas. Anotarlo.
+
+### Tramo C3 · Snapshot
+
+- [ ] **T077** `goreleaser check`, luego `goreleaser release --snapshot --clean`. Transcribir:
+  - la versión estampada (**no** `0.3.0`, `research.md` R10);
+  - los 5 archivos y `sha256sum -c` del fichero de checksums.
+
+  Localizar `permea_*_windows_amd64.zip` para W1. **No se publica nada.**
+- [ ] **T078** ✋ **Commit** (dueño) de las transcripciones C1–C3:
+  `006 cierre: puertas, medidas sobre la copia congelada y snapshot`
+
+### Tramo C4 · W1 — ensayo en Windows ANTES de la etiqueta
+
+- [ ] **T079** ✋ **El dueño prepara el secreto de enrolamiento** de la instalación de ensayo, desde la
+  plataforma, en `enroll.txt` en la máquina Windows (E-006-P6). Claude no lo ve ni lo transcribe.
+- [ ] **T080** ✋ **El dueño ejecuta W1** (quickstart §W1) con el zip de T077:
+  1. `--version`;
+  2. `enroll` por stdin;
+  3. `status`;
+  4. `--scan` sobre un log real de Windows.
+
+  Anota fecha, commit del snapshot y el resultado de cada paso. **Si alguno falla, no hay etiqueta**:
+  se corrige y se repite desde C1.
+
+### Tramo C5 · Cuerpo del PR
+
+- [ ] **T081** Transcribir aquí el resultado de W1. Para el paso 4, el recuento de mensajes de ese log
+  contado desde WSL. Redactar el cuerpo del PR en
+  `~/dev/permea-platform/tmp/agente-006-pr.md`:
+  - qué entra (B0–B5);
+  - las cifras de C2;
+  - el resultado de W1;
+  - las rupturas declaradas en el CHANGELOG;
+  - las enmiendas D-006-7…13 y E-006-P1…P6;
+  - la línea de atribución del repositorio.
+- [ ] **T082** ✋ **El dueño**: commit de la transcripción de W1
+  (`006 cierre: ensayo en Windows sobre el snapshot (W1)`), push de la rama y PR
+  `006-medicion-fiel` → `main` con ese cuerpo.
+
+### Tramo C6 · Fusión
+
+- [ ] **T083** ✋ **El dueño fusiona la PR con merge commit**, como #1 y #2.
+
+### Tramo C7 · Etiqueta
+
+- [ ] **T084** ✋ **El dueño**, en `main` actualizado y limpio:
+  `git tag -a v0.3.0 -m "v0.3.0: medicion fiel y publicable"` y `git push origin v0.3.0`.
+
+### Tramo C8 · Verificación de los tres canales
+
+- [ ] **T085** Sólo lectura (quickstart §P1):
+  - `gh run list` (el workflow de release en verde);
+  - `gh release view v0.3.0` (5 archivos y checksums);
+  - el `permea.json` del bucket y el cask en `0.3.0`;
+  - `install.sh` sirve la última release.
+
+  Transcribir. Si el tap o el bucket no se actualizaron, se mira primero `TAP_GITHUB_TOKEN`: renovado
+  el 2026-10-01 según el orquestador, sin comprobar por Claude.
+
+### Tramo C9 · W2 — ensayo final
+
+- [ ] **T086** ✋ **El dueño ejecuta W2** (quickstart §W2):
+  1. `scoop update`;
+  2. `--version` = `0.3.0`;
+  3. `enroll` por stdin;
+  4. `status`;
+  5. `-run`.
+
+  Después, el recuento de eventos en la plataforma para esa instalación y ventana.
+- [ ] **T087** Transcribir W2: eventos en la plataforma frente a mensajes distintos en los logs, para
+  esa ventana (SC-020). Cerrar el checklist del quickstart.
+- [ ] **T088** ✋ **Commit de cierre** (dueño; rama o `main`, a su criterio):
+  `006 cierre: ensayo final en Windows (W2) y checklist`
+
+---
+
+## Dependencies & Execution Order
+
+```text
+B0 ──► B1 ──► B2a ──► B2b ──► B2c ──► [T043 ✋ Q-006-1] ──► B3 ──► B4 ──► B5
+                                                                          │
+   C1 ──► C2 ──► C3 ──► C4 (W1 ✋) ──► C5 ──► C6 ✋ ──► C7 ✋ ──► C8 ──► C9 (W2 ✋)
+```
+
+- **B0 primero**: puerta del linter (D-006-P10).
+- **B1 antes que B2a**: Principio IV; los fixtures llevan identificadores antes de que el código los
+  exija.
+- **T043 bloquea B3** y nada más: B4 y B5 no dependen de tarifas. Si la respuesta tarda, **el orden se
+  mantiene** de todos modos; sólo B3 espera, y B4 y B5 pueden adelantarse por orden expreso del
+  orquestador.
+- **B4 después de B2c**: los dos tocan `cmd/permea/main.go`.
+- **B5 el último**: documenta la CLI y el CHANGELOG definitivos.
+- **Cierre**: un tramo por mensaje. **W1 bloquea la etiqueta.**
+
+---
+
+## Tabla de cobertura
+
+### Requisitos
+
+| FR | Tareas | | FR | Tareas |
+|---|---|---|---|---|
+| FR-001 | T025, T029–T031 | | FR-018 | T047, T066 |
+| FR-002 | T013 (1)(2), T019, T020 | | FR-019 | T047, T048 |
+| FR-003 | T011, T014, T020 | | FR-020 | T045, T049 |
+| FR-004 | T013 (2), T017, T019 | | FR-021 | T052, T053, T059, T060 |
+| FR-005 | T026, T030 | | FR-022 | T055, T056, T060 |
+| FR-006 | T013 (4), T017, T027, T030 | | FR-023 | T054, T061 |
+| FR-007 | T013 (3), T020 | | FR-024 | T057 |
+| FR-008 | T013 (1), T020, T022 | | FR-025 | T066, T069 |
+| FR-009 | T038, T040 | | FR-026 | T066, T069 |
+| FR-010 | T036, T037, T039 | | FR-027 | T066 |
+| FR-011 | T009 | | FR-028 | T067, T069 |
+| FR-012 | puertas de cada bloque, T072 | | FR-029 | T068, T069 |
+| FR-013 | T011, T014 | | FR-030 | T077, T082–T085 |
+| FR-014 | T043–T047 | | FR-031 | T001–T007, puertas, T072 |
+| FR-015 | T047, T048 | | FR-032 | T086, T087 |
+| FR-016 | T046, T047 | | FR-033 | T025, T029–T031, T033 |
+| FR-017 | T047 (sin cambio de semántica; `TestCost_UnknownModel` sigue) | | FR-034 | T079–T081 |
+
+### Criterios
+
+| SC | Tareas | | SC | Tareas |
+|---|---|---|---|---|
+| SC-001 | T036, T074 (V2) | | SC-012 | T052 |
+| SC-002 | T037, T074 (V3) | | SC-013 | T054 |
+| SC-003 | T013 (1), T017, T074 (V4 a/b), T075 (V4-c) | | SC-014 | T055, T056 |
+| SC-004 | T011, T014, T074 (V5) | | SC-015 | T057 |
+| SC-005 | puertas, T072 | | SC-016 | T066, T069 |
+| SC-006 | T013 (3), T074 (V7) | | SC-017 | T067, T069 |
+| SC-007 | T038, T040 | | SC-018 | T005, puertas, T072 |
+| SC-008 | T017, T026, T027 | | SC-019 | T085 |
+| SC-009 | T045, T049 | | SC-020 | T086, T087 |
+| SC-010 | T046, T074 (V12) | | SC-021 | T029, T033, T074 (V10) |
+| SC-011 | T048 | | SC-022 | T080, T081 |
+
+**34 / 34 requisitos y 22 / 22 criterios con tarea.**
+
+---
+
+## Recuento
+
+| Grupo | Tareas | De ellas ✋ |
+|---|:--:|:--:|
+| B0 | T001–T008 (8) | 1 |
+| B1 | T009–T016 (8) | 1 |
+| B2a | T017–T023 (7) | 1 |
+| B2b | T024–T035 (12) | 1 |
+| B2c | T036–T042 (7) | 1 |
+| Q-006-1 | T043–T044 (2) | 1 |
+| B3 | T045–T051 (7) | 1 |
+| B4 | T052–T064 (13) | 1 |
+| B5 | T065–T071 (7) | 1 |
+| Cierre C1–C9 | T072–T088 (17) | 8 (T078, T079, T080, T082, T083, T084, T086, T088) |
+| **Total** | **88** | **17** |
+
+**Mutaciones**: M-B0, M-B1, y m1–m19 del plan: **21**, cada una con censo y co-caídas declarados.
+**Rojos**: (1)–(26), de los cuales nacen verdes y se validan por mutación (14), (17) y (25), y el
+golden de T014.
+
+---
+
+## Lo que este plan de tareas NO hace
+
+- **No toca `internal/event`** (D-006-3). `event.NewID` se queda sin llamantes de producción
+  (`research.md` R1.5).
+- **No toca `internal/project/testdata/`**, salvo la nota fechada de su README (T010).
+- **No pone tests ni linter en la tubería de publicación** (D-006-6).
+- **No repara lo que la plataforma ya recibió** (spec §Fuera de alcance).
+- **No ejecuta `--run`, `--daemon` ni `enroll` fuera de T075**, que es el único caso autorizado
+  (E-006-P2): sandbox `env -i`, sin enrolar, sobre la copia.

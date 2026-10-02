@@ -26,7 +26,8 @@ Hay dos tensiones que se declaran y no se resuelven en silencio:
 - la edición de un fixture que 004 declaró congelado (R7);
 - la mitad de SC-003 que `--scan` no puede medir (quickstart V4).
 
-Ninguna obliga a parar. Las dos van a §Dudas.
+Ninguna obliga a parar. Las dos van a §Dudas. *(Resueltas el 2026-10-02 por E-006-P1 y E-006-P2:
+§Enmiendas del 2026-10-02.)*
 
 ---
 
@@ -216,7 +217,7 @@ Tamaños: **S** < 50 líneas de producción · **M** 50–150 · **L** > 150 (lo
 | **B2b · La pasada** | El conjunto de la pasada, los contadores y el resumen. Instanciada en `generate()` | `pasada.go` (nuevo), `claudecode.go`, `main.go` (`generate`, `runOnce`, `tick`) | Con un tipo vacío nil-seguro creado **primero**, para que compile: **(7)** un mensaje de 3 líneas en una pasada → 1 evento: ROJO; **(8)** consumo distinto → 1 evento con el de la primera + contador = 1: ROJO; **(9)** sin identificador → contador = 1: ROJO; **(10)** el resumen no contiene ningún centinela de identificador; **(11)** `generate()` en sandbox → la cola tiene 1 evento por mensaje: ROJO | Los 5 en verde. Con la pasada a nil, una línea repetida **se emite** (patrón `Resolutor`) | (m5) desactivar el conjunto → (7) y (11) ROJO · (m6) sumar en vez de quedarse con la primera → (8) ROJO · (m7) escribir el `event_id` en el resumen → (10) ROJO · (m8) `generate()` sin instanciar la pasada → (11) ROJO **y (7) verde**: prueba que (11) mira el camino real | FR-001, FR-005, FR-006 (contar), FR-033; SC-008, SC-021 (sandbox) | **M** (~90 prod, ~180 test) |
 | **B2c · Dry-run y actualización** | Pasada en `dryRun()`; línea `evento:` con las 4 partidas y el `event_id`; resumen. Actualizar sin reenviar | `main.go` (`dryRun`), `main_test.go` | **(12)** `--scan` sobre un fichero con un mensaje de 3 líneas → 1 `evento:` (proceso, `ExitCode` + recuento): ROJO; **(13)** la línea lleva las 4 partidas y `event_id=` de 32 hex: ROJO; **(14)** sandbox con `state.json` a mitad del log y un evento antiguo en cola → sólo se encola lo posterior, y el antiguo queda byte a byte | (12) y (13) en verde. (14) **nace verde** (no cambia nada del estado), y por eso necesita mutación | (m9) reiniciar el offset al actualizar → (14) ROJO · (m10) reescribir la cola al derivar → (14) ROJO | FR-009, FR-010; SC-001, SC-002 y SC-003b (V2–V4 sobre la copia), SC-007, SC-021 (V10) | **S** (~30 prod, ~120 test) |
 | **B3 · Tarifas** | Las 16 claves con cabecera; test espejo | `pricing.go`, `pricing_test.go` | **(15)** recuento = 16: ROJO (3); **(16)** las 64 cifras: ROJO; **(17)** ninguna sobra; **(18)** `TestCost` a 5/25/6,25/0,50: ROJO; **(19)** coste a mano de `claude-opus-5-5` | Los 5 en verde | (m11) alterar una cifra → (16) ROJO · (m12) añadir una clave sobrante → (17) ROJO y (15) ROJO · (m13) quitar una clave → (15) y (16) ROJO | FR-014 a FR-020; SC-009, SC-010 (con V12), SC-011 (revisión) | **S–M** (~90 prod con la cabecera, ~120 test) |
-| **B4 · CLI** | Fuente única de ayuda; escalera; `flag.Usage`; ayudas de subcomando; subcomando inexistente | `ayuda.go` (nuevo), `main.go`, `enroll.go`, `status.go`, `status_test.go`, `project.go`, `ayuda_test.go` (nuevo) | Por proceso, con los canales por separado: **(20)** las 4 ayudas generales idénticas, por stdout, con stderr vacío: ROJO; **(21)** contenido mínimo: ROJO (`-h` hoy no lista subcomandos); **(22)** las 8 ayudas de subcomando: 0 peticiones a `httptest` y el árbol del sandbox idéntico: ROJO (`status -h` crea el directorio; `project join -h` emite); **(23)** `enrol` → exit 1, nombrado: ROJO (hoy 0); **(24)** los 3 prefijos de secreto no se reproducen; **(25)** token centinela ausente en todo | Los 6 en verde | (m14) una de las 4 ayudas por stderr → (20) ROJO · (m15) mover la comprobación de `status -h` detrás de `DataDir()` → (22) ROJO · (m16) quitar el `-h` de `projectJoin` → (22) ROJO por peticiones · (m17) reproducir lo tecleado siempre → (24) ROJO · (m18) imprimir la configuración en la ayuda de `status` → (25) ROJO | FR-021 a FR-024; SC-012 a SC-015 | **M** (~140 prod, ~350 test) |
+| **B4 · CLI** | Fuente única de ayuda; escalera; `flag.Usage`; ayudas de subcomando; subcomando inexistente | `ayuda.go` (nuevo), `main.go`, `enroll.go`, `status.go`, `status_test.go`, `project.go`, `ayuda_test.go` (nuevo) | Por proceso, con los canales por separado: **(20)** las 4 ayudas generales idénticas, por stdout, con stderr vacío: ROJO; **(21)** contenido mínimo: ROJO (`-h` hoy no lista subcomandos); **(22)** las 8 ayudas de subcomando: 0 peticiones a `httptest` y el árbol del sandbox idéntico: ROJO (`status -h` crea el directorio; `project join -h` emite); **(23)** `enrol` → exit 1, nombrado: ROJO (hoy 0); **(24)** los 3 prefijos de secreto no se reproducen; **(25)** token centinela ausente en todo; **(26)** *(añadido el 2026-10-02, E-006-P3)* opción desconocida y opción sin valor: stdout vacío, stderr nombra la opción y remite a `permea help`, exit 2: ROJO (hoy Go no remite a `permea help` y añade su uso por defecto) | Los 7 en verde | (m14) una de las 4 ayudas por stderr → (20) ROJO · (m15) mover la comprobación de `status -h` detrás de `DataDir()` → (22) ROJO · (m16) quitar el `-h` de `projectJoin` → (22) ROJO por peticiones · (m17) reproducir lo tecleado siempre → (24) ROJO · (m18) imprimir la configuración en la ayuda de `status` → (25) ROJO · (m19) *(E-006-P3)* escribir la ayuda por stdout ante una opción desconocida → (26) ROJO | FR-021 a FR-024; SC-012 a SC-015; contrato de CLI §Opción desconocida | **M** (~140 prod, ~350 test) |
 | **B5 · README, CHANGELOG y comentarios** | Instalación con `permea-dev`; primeros pasos para quien instala, con el aviso del historial; fuera el «modo de ref»; límite de casamiento; CHANGELOG `0.3.0`; comentarios `bfgnet` | `README.md`, `CHANGELOG.md` (nuevo), `release.yml`, `.goreleaser.yaml` | V18 en rojo: `grep -c bfgnet` > 0, CHANGELOG ausente | V18 en verde: los repos responden, 0 `bfgnet`, diff de configuración vacío | No aplica (documentación); V18 es la comprobación mecánica | FR-025 a FR-029; SC-016, SC-017 | **M** en texto (~150 líneas), 0 de código |
 | **Cierre** | Puertas; Q-006-1; snapshot; **W1** (FR-034); PR y fusión; etiqueta anotada; **P1**; **W2** | — | — | quickstart, checklist de cierre | — | FR-030, FR-031, FR-032, FR-034; SC-018, SC-019, SC-020, SC-022 | operativo |
 
@@ -291,7 +292,7 @@ Ningún otro bloque lee una cifra de tarifa.
 | Riesgo | Mitigación |
 |---|---|
 | Una derivación sutilmente mal (orden de componentes, codificación, mayúsculas) duplica o funde mensajes **en producción, en silencio** | Vectores normativos calculados con una implementación **independiente** (`contracts/event-id.md`). Mutaciones m1, m2 y m4 |
-| Editar `claude_code_sample.jsonl` (entrada del baseline de 004) parece romper una regla de 004 | La regla protegía las 3 columnas y el recuento. `TestSC009_…` en verde tras la edición lo demuestra (R7). Declarado en §Dudas |
+| Editar `claude_code_sample.jsonl` (entrada del baseline de 004) parece romper una regla de 004 | La regla protegía las 3 columnas y el recuento. `TestSC009_…` en verde tras la edición lo demuestra (R7). Declarado en §Dudas. *(Decidido el 2026-10-02, E-006-P1: se edita, con `TestSC009_…` verde sin tocar sus aserciones y la anotación fechada en el README del fixture.)* |
 | Un mensaje repartido en dos ficheros: `--scan` (una pasada por fichero) lo contaría dos veces y SC-001 fallaría | M2: 0 casos medidos. `generate()` usa una pasada para todos los ficheros, así que la conducta real es correcta. Si V2 discrepa, primero se mira esto |
 | Un mensaje que cruza la actualización cuenta dos veces, una sola vez | Residuo declarado en la spec (caso límite). No se mitiga |
 | La memoria de la pasada en la primera ejecución sobre un historial grande | Estimada en 1–2 MB para 10 698 mensajes. Se mide en B2b. Clave de 16 bytes, no la cadena hex |
@@ -299,7 +300,7 @@ Ningún otro bloque lee una cifra de tarifa.
 | Windows: nada de 003–005 se ha ejecutado nunca allí (permisos y rename de `config.json`, rutas, TLS) | **W1 antes de la etiqueta** (FR-034). Si falla, no hay etiqueta |
 | El «0 avisos» depende de la versión del linter | El quickstart fija 2.12.2. Si se mide con otra, se anota |
 | El snapshot no lleva la versión `0.3.0` | Esperado (R10). SC-022 sólo exige «no `0.0.1-dev`»; W1 anota el commit |
-| `TAP_GITHUB_TOKEN` caducado o sin permisos | **Sin comprobar.** Si falla, la release se publica y el tap y el bucket no (contrato de 002). P1 verifica los tres canales |
+| `TAP_GITHUB_TOKEN` caducado o sin permisos | **Sin comprobar.** Si falla, la release se publica y el tap y el bucket no (contrato de 002). P1 verifica los tres canales. *(Enmendado 2026-10-02, E-006-P5: el dueño lo renovó el 2026-10-01. Procedencia: el orquestador; Claude no lo ha comprobado, y P1 sigue siendo la verificación.)* |
 | La plataforma verá caer el volumen por instalación (×2,13 en los datos medidos) | Lo anuncia el CHANGELOG. Un aviso del lado de la plataforma queda fuera de la spec |
 
 ---
@@ -311,7 +312,38 @@ Ningún otro bloque lee una cifra de tarifa.
   `contracts/cli.md`, `contracts/tarifas.md` y `quickstart.md`.
 - **Phase 2 del plan — Tasks**: `/speckit.tasks` sobre este plan. Una tarea por garantía (disciplina
   1), agrupadas por los bloques B0–B5 y el Cierre, con los rojos numerados (1)–(25) y las mutaciones
-  (m1)–(m18) de la tabla.
+  (m1)–(m18) de la tabla. *(Enmendado 2026-10-02, E-006-P3: más el rojo (26) y la mutación (m19).)*
+
+---
+
+## Enmiendas del 2026-10-02
+
+Decisiones del orquestador sobre las dudas del plan, tomadas el mismo día, después de commitear el plan
+(`cbee0cd`). Ningún número existente se reasigna; lo revocado se marca.
+
+- **E-006-P1 · El fixture se edita.** `internal/ingest/testdata/claude_code_sample.jsonl` recibe
+  `message.id` y `requestId` en B1. Condiciones:
+  - `TestSC009_RegresionCeroDelCaminoDeIngesta` sigue verde **sin tocar sus aserciones**;
+  - el README del fixture (`internal/project/testdata/README.md`, §Lo que estos fixtures NO son)
+    lo anota con fecha.
+
+  Toca: R7, riesgo 2, B1 (`tasks.md`).
+- **E-006-P2 · SC-003 se mide entero.** Se autoriza `--run` **sólo** en un sandbox aislado:
+  - `env -i`, con `HOME` y `XDG_CONFIG_HOME` temporales;
+  - **sin enrolar**: antes, `permea status` en ese mismo entorno debe decir «no enrolado»;
+  - sobre la copia congelada (`logs_root`).
+
+  Fuera de ese caso, `--run`, `--daemon` y `enroll` siguen prohibidos a Claude. Toca: quickstart V4,
+  Cierre (tramo de medidas).
+- **E-006-P3 · Opción desconocida.** Error por stderr que **nombra la opción** y remite a
+  `permea help`, exit 2 como hoy, **nada por stdout**. Los argumentos sobrantes tras las opciones
+  siguen como están. Toca: `contracts/cli.md` (§Opción desconocida, que revoca la línea anterior), R8,
+  B4 (rojo (26) y mutación m19), quickstart V14.
+- **E-006-P4 · El `nolint` razonado de SA1007 queda aceptado** (R9 #7). Sin cambio en el plan.
+- **E-006-P5 · `TAP_GITHUB_TOKEN` renovado por el dueño el 2026-10-01.** Procedencia: el orquestador.
+  Toca: §Riesgos.
+- **E-006-P6 · El secreto de enrolamiento de W1 lo prepara el dueño**: tarea ✋ suya en el Cierre.
+  Toca: quickstart W1, `tasks.md`.
 
 ---
 

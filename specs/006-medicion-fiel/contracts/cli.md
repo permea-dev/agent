@@ -30,8 +30,21 @@ siguen siendo **0 y 1** (D-005-4).
   - la vía **stdin** recomendada para `enroll` y para `project join` (003 `cli.md:21`, 005 `cli.md:60`).
 - **Una sola fuente**: la ayuda de cada subcomando es un fragmento de la general, compuesto de la misma
   tabla.
-- **Flag desconocido** (`permea --bogus`): fuera de la spec, y se conserva lo que hace Go. El error va
-  por **stderr**, con exit **2**, y la ayuda que lo acompaña sale ahora por stdout.
+- ~~**Flag desconocido** (`permea --bogus`): fuera de la spec, y se conserva lo que hace Go. El error va
+  por **stderr**, con exit **2**, y la ayuda que lo acompaña sale ahora por stdout.~~ **Revocado el
+  2026-10-02 por E-006-P3** (decisión del orquestador): ver §Opción desconocida.
+
+## Opción desconocida *(añadido el 2026-10-02, E-006-P3)*
+
+| Invocación | stdout | stderr | Exit |
+|---|---|---|---|
+| `permea --bogus` (opción que no existe) | **vacío** | un error que **nombra la opción** y remite a `permea help` | **2**, como hoy |
+| `permea --scan` sin valor (opción que exige argumento) | **vacío** | ídem, nombrando la opción | **2** |
+
+- **Nada por stdout**: ni la ayuda ni el uso por defecto de Go. Quien quiera la ayuda, la pide.
+- Los **argumentos sobrantes tras las opciones** (`permea --run extra`) siguen como hoy: se ignoran.
+- El texto exacto lo fija la tarea. El contrato fija el canal, el código, que se nombre la opción y la
+  remisión a `permea help`.
 
 ## Las ayudas de subcomando
 

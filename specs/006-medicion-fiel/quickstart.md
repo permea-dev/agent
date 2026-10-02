@@ -143,6 +143,39 @@ sort -u /tmp/ids-1.txt | wc -l                          # → == mensajes_distin
 > `--run` **en sandbox y sin endpoint** —no transmite nada: «sync omitido: sin endpoint configurado»—,
 > la comparación de las dos colas con sales distintas es la medida directa. **Va a §Dudas.**
 
+### V4-c · Dos colas con sales distintas *(añadido el 2026-10-02, E-006-P2: `--run` autorizado SÓLO así)*
+
+**Condiciones, todas a la vez**, o no se ejecuta:
+- `env -i`, con `HOME` y `XDG_CONFIG_HOME` temporales;
+- **sin enrolar**;
+- `logs_root` apuntando a la copia congelada.
+
+Fuera de este caso, `--run`, `--daemon` y `enroll` siguen prohibidos.
+
+```sh
+BIN="$(pwd)/bin/permea"            # make build; ruta ABSOLUTA, porque env -i vacía PATH
+for n in 1 2; do
+  S="$(mktemp -d)"; mkdir -p "$S/home/.config/permea"
+  printf '{"logs_root": "%s"}\n' "$COPIA" > "$S/home/.config/permea/config.json"
+  E="env -i HOME=$S/home XDG_CONFIG_HOME=$S/home/.config"
+  # 1 · PRECONDICIÓN: no enrolado. Si dice otra cosa, se PARA.
+  $E "$BIN" status | grep -qx 'no enrolado' || { echo "⛔ sandbox $n no dice «no enrolado»"; exit 1; }
+  # 2 · la pasada: sin endpoint no transmite («sync omitido: sin endpoint configurado»)
+  $E "$BIN" --run 2>"/tmp/run-$n.err"
+  grep -q 'sync omitido' "/tmp/run-$n.err" || { echo "⛔ sandbox $n intentó transmitir"; exit 1; }
+  python3 -c "import json,sys;[print(json.loads(l)['event_id']) for l in open(sys.argv[1])]" \
+    "$S/home/.config/permea/queue.jsonl" | sort > "/tmp/cola-$n.txt"
+  cat "$S/home/.config/permea/salt" | sha256sum >> /tmp/sales.txt   # sólo el hash, para ver que DIFIEREN
+done
+sort -u /tmp/sales.txt | wc -l           # → 2 (sales distintas)
+cmp /tmp/cola-1.txt /tmp/cola-2.txt && echo "mismo conjunto de event_id"
+sort -u /tmp/cola-1.txt | wc -l          # → == mensajes_distintos del contador
+```
+
+Lo que se mide son **recuentos y comparaciones**: ningún `event_id` se imprime a pantalla
+(disciplina 9). Al terminar se borran los dos sandboxes y `/tmp/cola-*`, `/tmp/run-*` y
+`/tmp/sales.txt`.
+
 ## V5 · Nada del proveedor en la salida (SC-004 · FR-003, FR-013)
 
 ```sh
@@ -234,6 +267,15 @@ cmp /tmp/o-vacio /tmp/o-help && cmp /tmp/o-help /tmp/o--h && cmp /tmp/o--h /tmp/
 cat /tmp/e-* | wc -c    # → 0
 ```
 
+**Opción desconocida** *(añadido el 2026-10-02, E-006-P3; `contracts/cli.md` §Opción desconocida)*:
+
+```sh
+for a in --bogus --scan; do permea-dev $a >/tmp/oo 2>/tmp/eo; echo "[$a] exit=$?"   # → 2
+  wc -c </tmp/oo                                       # → 0: nada por stdout
+  grep -c -- "${a#--}" /tmp/eo; grep -c 'permea help' /tmp/eo   # → ≥1 y ≥1
+done
+```
+
 ## V15 · Las ayudas de subcomando no hacen nada (SC-013 · FR-023)
 
 `go test ./cmd/permea -run 'AyudaSubcomando'`:
@@ -277,6 +319,10 @@ CHANGELOG: comprobar por separado los cuatro elementos de SC-017. README: el avi
 **Quién**: el dueño. **Con qué**: el `permea_*_windows_amd64.zip` de
 `goreleaser release --snapshot --clean`, que no publica nada. La versión del snapshot **no será
 `0.3.0`** (`research.md` R10).
+
+**Secreto de enrolamiento** *(añadido el 2026-10-02, E-006-P6)*: lo prepara **el dueño** desde la
+plataforma, para la instalación de ensayo, y lo deja en `enroll.txt` en la máquina Windows. Es tarea
+✋ suya. Claude no lo ve, no lo pide y no lo transcribe a ningún artefacto.
 
 | Paso | Comando (PowerShell) | Esperado | Anotado |
 |---|---|---|---|
