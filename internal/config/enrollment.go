@@ -79,7 +79,7 @@ func ParseEnrollmentString(s string) (endpoint, token, devID string, err error) 
 	// función LLEVA EL TOKEN DENTRO, así que el error tiene que ser genérico (FR-007/FR-013, SC-005).
 	// Es la única de las cuatro puertas donde descartar la causa es la conducta correcta — en `Adherir`
 	// se exige justo lo contrario. Por eso `JuzgarEndpoint` no formatea: cada llamante decide.
-	if errAnalisis, admisible := JuzgarEndpoint(p.Endpoint); errAnalisis != nil || !admisible {
+	if admisible, errAnalisis := JuzgarEndpoint(p.Endpoint); errAnalisis != nil || !admisible {
 		return "", "", "", fmt.Errorf("%w: el endpoint debe ser https", ErrEnrollmentString)
 	}
 	if p.Token == "" {

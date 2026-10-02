@@ -44,8 +44,14 @@ Lote de eventos de frontera (ver [boundary-event.md](./boundary-event.md)):
 - El backend **DEBE** deduplicar por `event_id`: un `event_id` ya almacenado se ignora y se
   responde `2xx`. Así, un reintento tras un `2xx` cuya respuesta se perdió **no** produce
   duplicado (SC-004: nº de eventos recibidos = nº de llamadas reales).
-- El `event_id` lo genera el agente con `crypto/rand` (`event.NewID`), estable por evento a lo
-  largo de reintentos.
+- ~~El `event_id` lo genera el agente con `crypto/rand` (`event.NewID`), estable por evento a lo
+  largo de reintentos.~~ **Redescrito por P-006 FR-011 (2026-10-02):** el `event_id` es
+  **determinista**. Se deriva por hash, sin sal ni ningún dato local, de los identificadores del
+  mensaje del proveedor (`message.id`, `requestId`), así que el mismo mensaje da el mismo `event_id`
+  en cualquier instalación y pasada. Sigue estable a lo largo de reintentos. La derivación, sus
+  vectores de prueba y la regla «una pasada, un evento por mensaje» están en
+  [`specs/006-medicion-fiel/contracts/event-id.md`](../../006-medicion-fiel/contracts/event-id.md).
+  **La forma del campo no cambia**: cadena hexadecimal de 32 caracteres.
 
 ## Garantías de no-pérdida (offline)
 

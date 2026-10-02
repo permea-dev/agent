@@ -145,7 +145,7 @@ func (c *Client) Send(events []event.Event) error {
 	// CONSERVA el centinela `ErrScheme` —de los dos dependen tests por `errors.Is`—, mientras que
 	// `ParseEnrollmentString` los descarta a propósito porque su argumento lleva el token dentro.
 	// **Se unificó el juicio, no la presentación.**
-	errAnalisis, admisible := config.JuzgarEndpoint(c.Endpoint)
+	admisible, errAnalisis := config.JuzgarEndpoint(c.Endpoint)
 	if errAnalisis != nil {
 		return fmt.Errorf("transport: endpoint inválido %q: %w", c.Endpoint, errAnalisis)
 	}
@@ -253,7 +253,7 @@ func (c *Client) Adherir(codigo, projectRef string) (denominacion string, err er
 	// La segunda puerta de la frontera usa EL MISMO juicio que la ingesta y da EL MISMO desenlace:
 	// centinela `ErrScheme` para el esquema, causa conservada con %w para el parseo (D-005-P2). Unificar la condición y divergir en el desenlace sería unificar el
 	// código y mantener la diferencia justo en lo que la persona lee cuando su config está rota.
-	errAnalisis, admisible := config.JuzgarEndpoint(c.Endpoint)
+	admisible, errAnalisis := config.JuzgarEndpoint(c.Endpoint)
 	if errAnalisis != nil {
 		return "", fmt.Errorf("transport: endpoint inválido %q: %w", c.Endpoint, errAnalisis)
 	}

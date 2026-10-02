@@ -10,12 +10,14 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/permea-dev/agent/internal/config"
@@ -39,17 +41,28 @@ func printVersion(w io.Writer) {
 }
 
 func main() {
+	// ═══ P-006 · LA AYUDA SE DECIDE ANTES QUE NADA ════════════════════════════════════════════
+	//
+	// Sin argumentos, `help`, `-h`, `--help` y `-help` dan la ayuda general por STDOUT, con salida 0,
+	// antes del parseo de opciones y antes del banner: pedir ayuda no ejecuta nada ni anuncia nada
+	// (`specs/006-medicion-fiel/contracts/cli.md` §La ayuda general). La fuente única del texto está
+	// en `ayuda.go`.
+	if len(os.Args) < 2 || esPeticionDeAyudaGeneral(os.Args[1]) {
+		escribirAyudaGeneral(os.Stdout)
+		return
+	}
+
 	// Subcomandos (P-003): se despachan ANTES del parseo de flags para no interferir con
 	// los flags de P-001/P-002 (--scan/--run/--daemon/--version), que se conservan intactos.
-	if len(os.Args) >= 2 && os.Args[1] == "enroll" {
+	if os.Args[1] == "enroll" {
 		if err := runEnroll(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
 		return
 	}
-	if len(os.Args) >= 2 && os.Args[1] == "status" {
-		if err := runStatus(os.Stdout); err != nil {
+	if os.Args[1] == "status" {
+		if err := runStatus(os.Args[2:], os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
@@ -58,15 +71,43 @@ func main() {
 	// P-005 T003 — `project` es el PRIMER subcomando con verbo. Va en esta misma escalera y **antes
 	// de `flag.Parse()`**, por la razón que el comentario de arriba ya declara: los flags de
 	// P-001/P-002 se conservan intactos. El segundo nivel lo resuelve `runProject`, no `main`.
-	if len(os.Args) >= 2 && os.Args[1] == "project" {
+	if os.Args[1] == "project" {
 		os.Exit(runProjectOS(os.Args[2:]))
 	}
 
-	scan := flag.String("scan", "", "ruta a un JSONL de Claude Code para dry-run (imprime eventos, no envía)")
-	run := flag.Bool("run", false, "una pasada: escanea, encola en queue.jsonl y drena al backend (US1 + US2)")
-	daemon := flag.Bool("daemon", false, "bucle continuo: cada sync_interval genera y transmite (US2)")
-	showVersion := flag.Bool("version", false, "imprime la versión en stdout y termina")
-	flag.Parse()
+	// P-006 FR-022 · SUBCOMANDO INEXISTENTE. Un primer argumento que no es opción ni subcomando es un
+	// error de uso, con el mismo código que `project <verbo desconocido>`. Se nombra lo tecleado,
+	// salvo que tenga forma de secreto: entonces NUNCA se reproduce (FR-024).
+	if !strings.HasPrefix(os.Args[1], "-") {
+		if pareceSecreto(os.Args[1]) {
+			fmt.Fprintln(os.Stderr, "error: subcomando desconocido (no se reproduce: tiene forma de secreto). "+
+				"Subcomandos: enroll, status, project. Ayuda: permea help")
+		} else {
+			fmt.Fprintf(os.Stderr, "error: subcomando desconocido %q. Subcomandos: enroll, status, project. "+
+				"Ayuda: permea help\n", os.Args[1])
+		}
+		os.Exit(codigoFallo)
+	}
+
+	// P-006 · LAS OPCIONES SE PARSEAN CON `ContinueOnError` Y SALIDA DESCARTADA. Con el `FlagSet`
+	// por defecto (`ExitOnError`), Go escribe su propio mensaje y su propio uso y sale él mismo. Así
+	// se controlan canal y texto (contrato §Opción desconocida): `-h` combinado con otras opciones da
+	// la ayuda por stdout con salida 0, y una opción desconocida o sin valor, un mensaje propio por
+	// stderr con salida 2 y NADA por stdout.
+	opciones := flag.NewFlagSet("permea", flag.ContinueOnError)
+	opciones.SetOutput(io.Discard)
+	scan := opciones.String("scan", "", "ruta a un JSONL de Claude Code para dry-run (imprime eventos, no envía)")
+	run := opciones.Bool("run", false, "una pasada: escanea, encola en queue.jsonl y drena al backend (US1 + US2)")
+	daemon := opciones.Bool("daemon", false, "bucle continuo: cada sync_interval genera y transmite (US2)")
+	showVersion := opciones.Bool("version", false, "imprime la versión en stdout y termina")
+	if err := opciones.Parse(os.Args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			escribirAyudaGeneral(os.Stdout)
+			return
+		}
+		fmt.Fprintln(os.Stderr, mensajeDeOpcionInvalida(err))
+		os.Exit(2)
+	}
 
 	// --version se atiende ANTES de cualquier otra salida: stdout queda con exactamente la
 	// versión y nada más (sin el banner de stderr), para verificación e integración.
@@ -94,47 +135,29 @@ func main() {
 			os.Exit(1)
 		}
 	default:
-		printUsage(os.Stderr)
+		// Opciones válidas que no piden ningún modo (p. ej. `--run=false`): se conserva lo de siempre,
+		// la ayuda por stderr con salida 0, ahora desde la fuente única.
+		escribirAyudaGeneral(os.Stderr)
 	}
 }
 
-// printUsage escribe una ayuda breve: subcomandos (`enroll`, `status`, `project join`) y flags.
-// NUNCA vuelca la configuración ni el device_token (P-003 FR-007): solo describe el uso.
-//
-// ⛔ **ES UN LITERAL MANTENIDO A MANO, Y POR ESO ESTÁ ESCRITO QUE HAY QUE VENIR AQUÍ.** Ningún
-// mecanismo lo deriva de la gramática real: un subcomando nuevo **no aparece solo**. Y
-// `005/contracts/cli.md` §La gramática lo hace requisito —«la ayuda del binario DEBE listar
-// `project join` junto a `enroll` y `status`»— porque **un comando que no aparece en la ayuda no
-// existe para quien lo busca**.
-//
-// La vía stdin se documenta como **recomendada** en los dos que llevan un secreto en el argumento
-// —`enroll` y `project join`—, por la misma razón: por argumento, el valor **queda en el historial
-// del intérprete de órdenes y a la vista de quien pueda enumerar procesos**
-// (`005/contracts/cli.md` §Entrada).
-func printUsage(w io.Writer) {
-	_, _ = fmt.Fprint(w, `uso: permea <subcomando | flag>
-
-Subcomandos:
-  enroll [<enrollment-string>]  empareja el agente con su backend: verifica el token y lo guarda.
-                                Recomendado: pásalo por stdin para no dejar el secreto en el
-                                historial del shell, p. ej.:  echo "$ENROLL" | permea enroll -
-  status                        informa si el agente está enrolado y contra qué backend (nunca el token).
-  project join [<código>]       une esta instalación a un Proyecto, para que su consumo —el ya
-                                medido incluido— cuente bajo él. Se ejecuta DENTRO del árbol de
-                                trabajo que se quiere agrupar.
-                                El código lo acuña quien administra la organización, desde el panel.
-                                Recomendado: pásalo por stdin — por argumento queda en el historial
-                                del intérprete de órdenes, p. ej.:
-                                echo "$CODIGO" | permea project join -
-                                Repetirlo no tiene ninguna consecuencia: unirse dos veces es
-                                indistinguible de unirse una.
-
-Flags (ingesta, P-001/P-002):
-  --scan <fichero>  dry-run: imprime eventos de un JSONL, sin tocar estado ni cola.
-  --run             una pasada: escanea, encola y drena al backend.
-  --daemon          bucle continuo: cada sync_interval genera y transmite.
-  --version         imprime la versión y termina.
-`)
+// mensajeDeOpcionInvalida traduce el error de `FlagSet.Parse` a un mensaje propio que NOMBRA la
+// opción y remite a `permea help` (contrato §Opción desconocida). Si lo tecleado tiene forma de
+// secreto, no se reproduce (P-006 FR-024).
+func mensajeDeOpcionInvalida(err error) string {
+	texto := err.Error()
+	if pareceSecreto(texto) {
+		return "error: opción no válida (no se reproduce: tiene forma de secreto). Ayuda: permea help"
+	}
+	const desconocida, sinValor = "flag provided but not defined: ", "flag needs an argument: "
+	switch {
+	case strings.HasPrefix(texto, desconocida):
+		return "error: opción desconocida: " + strings.TrimPrefix(texto, desconocida) + ". Ayuda: permea help"
+	case strings.HasPrefix(texto, sinValor):
+		return "error: la opción " + strings.TrimPrefix(texto, sinValor) + " necesita un valor. Ayuda: permea help"
+	default:
+		return "error: opción no válida: " + texto + ". Ayuda: permea help"
+	}
 }
 
 // agent agrupa el contexto resuelto una sola vez (directorio de datos, config, salt e
@@ -207,20 +230,23 @@ func newIngestContext(agentVersion string, cfg config.Config, salt, machineID st
 // Claude Code, lee solo las líneas nuevas por offset, construye el Event de frontera y lo
 // ENCOLA de forma durable. El estado se persiste DESPUÉS de encolar (durabilidad, R4): si
 // hay caída entre medias, a lo sumo se re-encola (at-least-once), nunca se pierde.
-func (a *agent) generate() (int, error) {
+//
+// Devuelve también la PASADA (P-006), para que quien llama escriba su resumen: cuántas líneas
+// facturables se leyeron, cuántos eventos salieron y cuántas se descartaron y por qué.
+func (a *agent) generate() (int, *ingest.Pasada, error) {
 	root, err := config.ClaudeCodeLogsRoot(a.cfg)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	logs, err := state.FindLogs(root)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	statePath := filepath.Join(a.dir, "state.json")
 	st, err := state.Load(statePath)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	// P-004 T032 · LA CACHÉ VIVE AQUÍ, Y POR ESO SU ÁMBITO ES LA PASADA. Se instancia dentro
@@ -231,6 +257,11 @@ func (a *agent) generate() (int, error) {
 	// una por ciclo.
 	ictx := a.ictx
 	ictx.Resolutor = project.NuevoResolutor()
+	// P-006 FR-001/FR-033 · LA PASADA, POR EL MISMO MOTIVO Y EN EL MISMO SITIO. Un mensaje cuyas
+	// líneas se lean en esta llamada produce UN evento. Una por llamada: en `--daemon`, una por ciclo,
+	// y entre ciclos no hay memoria (los repetidos los descarta la plataforma por `event_id`).
+	pasada := ingest.NuevaPasada()
+	ictx.Pasada = pasada
 
 	total := 0
 	for _, logPath := range logs {
@@ -250,14 +281,14 @@ func (a *agent) generate() (int, error) {
 			return nil
 		})
 		if err != nil {
-			return total, err
+			return total, pasada, err
 		}
 	}
 
 	if err := st.Save(statePath); err != nil {
-		return total, err
+		return total, pasada, err
 	}
-	return total, nil
+	return total, pasada, nil
 }
 
 // sync drena la cola pendiente hacia el backend por HTTPS (US2, T030). Sin endpoint
@@ -279,11 +310,12 @@ func runOnce() error {
 	if err != nil {
 		return err
 	}
-	n, err := a.generate()
+	n, pasada, err := a.generate()
 	if err != nil {
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos encolados en %s\n", n, transport.QueuePath(a.dir))
+	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -333,10 +365,17 @@ func runDaemon() error {
 // tick es una iteración del daemon: generar + drenar. Devuelve error solo cuando el sync
 // debe detenerse (auth); los fallos transitorios se registran y no abortan el bucle.
 func (a *agent) tick() error {
-	if n, err := a.generate(); err != nil {
+	if n, pasada, err := a.generate(); err != nil {
 		fmt.Fprintln(os.Stderr, "generación:", err)
-	} else if n > 0 {
-		fmt.Fprintf(os.Stderr, "%d eventos encolados\n", n)
+	} else {
+		if n > 0 {
+			fmt.Fprintf(os.Stderr, "%d eventos encolados\n", n)
+		}
+		// P-006: el resumen, sólo si la pasada leyó algo. Un resumen vacío cada ciclo es ruido, y el
+		// ruido enseña a ignorar los avisos.
+		if pasada.Recuentos().Facturables > 0 {
+			fmt.Fprintln(os.Stderr, pasada.Resumen())
+		}
 	}
 
 	if a.cfg.Endpoint == "" {
@@ -357,6 +396,13 @@ func (a *agent) tick() error {
 }
 
 // dryRun imprime los eventos de frontera de un JSONL sin tocar estado ni cola.
+//
+// P-006 FR-010: aplica las MISMAS reglas que la emisión —una pasada por fichero, así que un mensaje
+// de varias líneas es UN evento; `<synthetic>` y las líneas sin identificadores no salen—, e imprime
+// por evento las cuatro partidas de tokens y el `event_id`. Es el instrumento con el que se mide sobre
+// una copia de los logs sin transmitir nada. El `event_id` no depende de la sal y es un hash:
+// imprimirlo en local no revela nada que no salga ya por la frontera. Los identificadores del
+// proveedor NUNCA se imprimen.
 func dryRun(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -364,7 +410,8 @@ func dryRun(path string) error {
 	}
 	defer func() { _ = f.Close() }() // solo lectura: el error de Close no afecta a datos
 
-	ctx := ingest.Context{Salt: "dry-run-salt", MachineID: "local", DevID: "dev-local", OrgID: "org-local", AgentVersion: version}
+	pasada := ingest.NuevaPasada()
+	ctx := ingest.Context{Salt: "dry-run-salt", MachineID: "local", DevID: "dev-local", OrgID: "org-local", AgentVersion: version, Pasada: pasada}
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
 	n := 0
@@ -382,12 +429,14 @@ func dryRun(path string) error {
 		if len(ref) > 8 {
 			ref = ref[:8] + "…"
 		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cost=$%.4f cost_avail=%t project_ref=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.CostUSD, ev.CostAvailable, ref)
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
+			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
 	}
 	if err := sc.Err(); err != nil {
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", n)
+	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
 	return nil
 }

@@ -54,6 +54,34 @@ var denylist = []string{
 	"subdir-canario-3z5", // fragmento del SUBDIRECTORIO de lanzamiento
 	"sess-CANARIA-7k2",   // identificador de sesión del fixture dedicado
 	"CANARIO_PROMPT_QqQ", // contenido de prompt del fixture dedicado
+
+	// ═══ P-006 FR-013 · LOS IDENTIFICADORES DEL PROVEEDOR ════════════════════════════════
+	//
+	// Desde P-006 el lector decodifica `message.id` y `requestId` para DERIVAR el `event_id`
+	// (`specs/006-medicion-fiel/contracts/event-id.md`), y P-006 FR-003 exige que NUNCA crucen en
+	// claro, ni en el `event_id` ni en ningún otro campo. Son valores nuevos que circulan por el
+	// proceso, así que cada uno lleva su testigo, como los dos centinelas de ruta de P-004.
+	//
+	// Van los de LOS DOS fixtures: los centinelas de `boundary_sample.jsonl` (TresCaminos) y los
+	// sintéticos de `claude_code_sample.jsonl` (NoDenylistLeaks). Todos son SINTÉTICOS: ningún
+	// identificador de un log real entra en el repositorio (disciplina 9 de P-006).
+	"msg_CENTINELAID00000000001", // message.id · boundary_sample.jsonl
+	"req_CENTINELAID00000000001", // requestId  · boundary_sample.jsonl
+	"msg_CENTINELAID00000000002",
+	"req_CENTINELAID00000000002",
+	"msg_FIXTUREREF00000000000001", // message.id · claude_code_sample.jsonl
+	"req_FIXTUREREF00000000000001", // requestId  · claude_code_sample.jsonl
+	"msg_FIXTUREREF00000000000002",
+	"req_FIXTUREREF00000000000002",
+
+	// ═══ P-006 T090 · LOS NÚCLEOS — «NI ENTERO NI COMO FRAGMENTO RECONOCIBLE» (FR-013) ══════
+	//
+	// Las entradas de arriba sólo cazan un identificador ENTERO. Una fuga TRUNCADA —un prefijo
+	// recortado, el identificador sin `msg_`— pasaría delante de todas ellas. Los núcleos de los
+	// centinelas la cazan, y no pueden aparecer por azar en una salida hexadecimal: tienen letras
+	// fuera de `[0-9a-f]`.
+	"CENTINELAID", // núcleo de los centinelas de boundary_sample.jsonl
+	"FIXTUREREF",  // núcleo de los sintéticos de claude_code_sample.jsonl
 }
 
 // TestBoundary_NoDenylistLeaks es el test que define el producto: ninguna
@@ -245,7 +273,7 @@ func exigirSinFugas(t *testing.T, camino, contenido string) {
 func TestBoundary_UnknownFutureFieldDoesNotLeak(t *testing.T) {
 	// Registro de asistente facturable con un campo futuro inédito que transporta
 	// contenido sensible, además de message.content y argumentos de herramienta.
-	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"sess-PRIVATE-9f3a","cwd":"/home/basilio/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5},"content":[{"type":"text","text":"LEAK_CONTENT_AAA"}],"brand_new_2027_field":"LEAK_UNKNOWN_BBB"},"another_unknown":"LEAK_TOPLEVEL_CCC"}`)
+	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"sess-PRIVATE-9f3a","cwd":"/home/basilio/x","requestId":"req_TESTLITERAL0000000000001","message":{"id":"msg_TESTLITERAL0000000000001","model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5},"content":[{"type":"text","text":"LEAK_CONTENT_AAA"}],"brand_new_2027_field":"LEAK_UNKNOWN_BBB"},"another_unknown":"LEAK_TOPLEVEL_CCC"}`)
 
 	ev, err := FromClaudeCodeLine(line, Context{Salt: "s", MachineID: "m", DevID: "d", OrgID: "o", AgentVersion: "t"})
 	if err != nil {
@@ -273,7 +301,7 @@ func TestBoundary_UnknownFutureFieldDoesNotLeak(t *testing.T) {
 // serializado incluye el campo y distingue "coste no disponible" de "coste 0".
 func TestBoundary_CostAvailable(t *testing.T) {
 	// Modelo conocido -> cost_available=true, coste > 0.
-	known := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":1000,"output_tokens":1000}}}`)
+	known := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","requestId":"req_TESTLITERAL0000000000002","message":{"id":"msg_TESTLITERAL0000000000002","model":"claude-opus-4-6","usage":{"input_tokens":1000,"output_tokens":1000}}}`)
 	ev, err := FromClaudeCodeLine(known, Context{Salt: "s"})
 	if err != nil || ev == nil {
 		t.Fatalf("evento esperado: ev=%v err=%v", ev, err)
@@ -290,7 +318,7 @@ func TestBoundary_CostAvailable(t *testing.T) {
 	}
 
 	// Modelo desconocido -> cost_available=false, cost_usd=0, tokens contabilizados.
-	unknown := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","message":{"model":"modelo-futuro-x","usage":{"input_tokens":500,"output_tokens":200}}}`)
+	unknown := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","requestId":"req_TESTLITERAL0000000000003","message":{"id":"msg_TESTLITERAL0000000000003","model":"modelo-futuro-x","usage":{"input_tokens":500,"output_tokens":200}}}`)
 	ev2, err := FromClaudeCodeLine(unknown, Context{Salt: "s"})
 	if err != nil || ev2 == nil {
 		t.Fatalf("evento esperado: ev=%v err=%v", ev2, err)
@@ -308,7 +336,7 @@ func TestBoundary_CostAvailable(t *testing.T) {
 
 // TestBoundary_KeepsMetrics confirma que lo permitido SÍ cruza correctamente.
 func TestBoundary_KeepsMetrics(t *testing.T) {
-	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x/y","message":{"model":"claude-opus-4-6","usage":{"input_tokens":1200,"output_tokens":800,"cache_creation_input_tokens":300,"cache_read_input_tokens":5000}}}`)
+	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x/y","requestId":"req_TESTLITERAL0000000000004","message":{"id":"msg_TESTLITERAL0000000000004","model":"claude-opus-4-6","usage":{"input_tokens":1200,"output_tokens":800,"cache_creation_input_tokens":300,"cache_read_input_tokens":5000}}}`)
 	ev, err := FromClaudeCodeLine(line, Context{Salt: "s"})
 	if err != nil || ev == nil {
 		t.Fatalf("evento esperado, got ev=%v err=%v", ev, err)

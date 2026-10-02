@@ -97,7 +97,7 @@ func (c Config) Validate() error {
 		return nil
 	}
 	// P-005 T005: juicio unificado en `JuzgarEndpoint`; los DOS mensajes son de esta puerta.
-	errAnalisis, admisible := JuzgarEndpoint(c.Endpoint)
+	admisible, errAnalisis := JuzgarEndpoint(c.Endpoint)
 	if errAnalisis != nil {
 		return fmt.Errorf("endpoint inválido %q: %w", c.Endpoint, errAnalisis)
 	}

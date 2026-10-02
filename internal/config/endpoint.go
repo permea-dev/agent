@@ -80,12 +80,19 @@ const esquemaAdmisible = "https"
 // **No formatea ningún mensaje y no decide nada.** No sabe si el llamante quiere fundir los dos
 // hechos o separarlos, ni si puede reproducir el argumento —`enrollment.go` NO puede—. Devuelve el
 // juicio; la presentación es de quien llama. **Se unifica el juicio, no la presentación.**
-func JuzgarEndpoint(endpoint string) (errAnalisis error, admisible bool) {
+//
+// ═══ EL ORDEN DE LOS RESULTADOS: EL ERROR AL FINAL (P-006 B0) ═════════════════════════════
+//
+// Hasta P-006 devolvía `(errAnalisis, admisible)`. Se invirtió a `(admisible, errAnalisis)` para
+// seguir la convención de Go —el error, último—, que es lo que exige la regla `error-return` de
+// `revive` en `.golangci.yml`. **Sólo cambia la posición**: los dos hechos, su significado y quién
+// envuelve la causa siguen exactamente como arriba.
+func JuzgarEndpoint(endpoint string) (admisible bool, errAnalisis error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		// No analizable: el segundo hecho **no se puede juzgar**, y decir `true` sería afirmar algo
 		// que no se ha comprobado. Los llamantes que funden los dos hechos dependen de esto.
-		return err, false
+		return false, err
 	}
-	return nil, u.Scheme == esquemaAdmisible
+	return u.Scheme == esquemaAdmisible, nil
 }

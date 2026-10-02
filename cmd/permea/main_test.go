@@ -14,8 +14,11 @@ import (
 	"time"
 
 	"github.com/permea-dev/agent/internal/config"
+	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/ingest"
+	"github.com/permea-dev/agent/internal/state"
 	"github.com/permea-dev/agent/internal/testutil"
+	"github.com/permea-dev/agent/internal/transport"
 )
 
 // TestVersionFlag verifica el contrato de `--version` (contracts/artifacts.md): imprime
@@ -47,7 +50,7 @@ func TestAgentVersion_ReachesEvent(t *testing.T) {
 	}
 
 	// Una línea de asistente facturable -> el Event resultante debe llevar la versión.
-	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}`)
+	line := []byte(`{"type":"assistant","timestamp":"2026-06-20T10:15:30Z","sessionId":"s","cwd":"/x","requestId":"req_TESTLITERAL0000000000005","message":{"id":"msg_TESTLITERAL0000000000005","model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}`)
 	ev, err := ingest.FromClaudeCodeLine(line, ictx)
 	if err != nil {
 		t.Fatalf("FromClaudeCodeLine: %v", err)
@@ -294,7 +297,7 @@ func TestRetirada_LasExcepcionesDeD0045(t *testing.T) {
 	t.Run(`--scan con "plain" presente → procesa sin parar`, func(t *testing.T) {
 		dataDir := entornoDePrueba(t, "plain")
 		fixture := filepath.Join(dataDir, "muestra.jsonl")
-		linea := `{"type":"assistant","timestamp":"2026-08-09T10:00:00Z","sessionId":"s","cwd":"/tmp/x","message":{"model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}` + "\n"
+		linea := `{"type":"assistant","timestamp":"2026-08-09T10:00:00Z","sessionId":"s","cwd":"/tmp/x","requestId":"req_TESTLITERAL0000000000006","message":{"id":"msg_TESTLITERAL0000000000006","model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}` + "\n"
 		if err := os.WriteFile(fixture, []byte(linea), 0o600); err != nil {
 			t.Fatalf("escribir fixture: %v", err)
 		}
@@ -411,4 +414,174 @@ func TestRetirada_ElErrorQueGanaEsElDeLaClave(t *testing.T) {
 			"que gana debe seguir siendo el de la CLAVE RETIRADA. El usuario tiene que saber qué le\n"+
 			"paró; un error cualquiera cumple el código de salida y falla el propósito.\nstderr:\n%s", stderr)
 	}
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// P-006 B2b · (11) · `generate()` instancia la pasada: un mensaje de tres líneas, UN evento en cola
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// TestPasada_GenerateEncolaUnoPorMensaje comprueba el CAMINO REAL de `--run`/`--daemon`. Que la pasada
+// deduplique en `internal/ingest` no basta si `generate()` no la instancia: este test es el que lo
+// mira (P-006 FR-033, SC-021). En sandbox (disciplina 6) y con identificadores sintéticos (disciplina 9).
+func TestPasada_GenerateEncolaUnoPorMensaje(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	logs := t.TempDir()
+	linea := `{"type":"assistant","timestamp":"2026-10-02T12:00:00Z","sessionId":"s","cwd":"/tmp/x","requestId":"req_GENERATE00000000000000001","message":{"id":"msg_GENERATE00000000000000001","model":"claude-opus-4-6","usage":{"input_tokens":100,"output_tokens":40}}}` + "\n"
+	if err := os.WriteFile(filepath.Join(logs, "sesion.jsonl"), []byte(linea+linea+linea), 0o600); err != nil {
+		t.Fatalf("escribir el log de prueba: %v", err)
+	}
+
+	cfg := config.Config{LogsRoot: logs}
+	a := &agent{dir: dataDir, cfg: cfg, ictx: newIngestContext("test", cfg, "sal-de-prueba", "maquina-de-prueba")}
+	if _, _, err := a.generate(); err != nil {
+		t.Fatalf("precondición: generate() falló: %v", err)
+	}
+
+	cola, err := transport.Load(dataDir)
+	if err != nil {
+		t.Fatalf("precondición: no se pudo leer la cola: %v", err)
+	}
+	if len(cola) != 1 {
+		t.Errorf("P-006 FR-033: un mensaje de tres líneas dejó %d eventos en la cola; se esperaba 1", len(cola))
+	}
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────
+// P-006 B2c · el dry-run aplica las mismas reglas (FR-010), y actualizar no reenvía (FR-009)
+// ───────────────────────────────────────────────────────────────────────────────────────
+
+// lineaSintetica es una línea facturable de prueba con identificadores SINTÉTICOS (disciplina 9).
+func lineaSintetica(sufijo string, entrada, salida, escritura, lectura int) string {
+	return fmt.Sprintf(`{"type":"assistant","timestamp":"2026-10-02T12:00:00Z","sessionId":"s","cwd":"/tmp/x","requestId":"req_SCAN%020s","message":{"id":"msg_SCAN%020s","model":"claude-opus-4-6","usage":{"input_tokens":%d,"output_tokens":%d,"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d}}}`,
+		sufijo, sufijo, entrada, salida, escritura, lectura) + "\n"
+}
+
+// lineasEvento devuelve las líneas `evento:` de la salida del dry-run.
+func lineasEvento(stdout string) []string {
+	var out []string
+	for _, l := range strings.Split(stdout, "\n") {
+		if strings.HasPrefix(l, "evento:") {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// (12) · P-006 FR-010, SC-001 — `--scan` sobre un mensaje de tres líneas imprime UN evento.
+func TestScan_UnEventoPorMensaje(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	fichero := filepath.Join(t.TempDir(), "tres-lineas.jsonl")
+	l := lineaSintetica("1", 100, 40, 7, 3)
+	if err := os.WriteFile(fichero, []byte(l+l+l), 0o600); err != nil {
+		t.Fatalf("escribir el fichero de prueba: %v", err)
+	}
+
+	codigo, stdout, _, _ := ejecutar(t, 20*time.Second, "--scan", fichero)
+	if codigo != 0 {
+		t.Fatalf("precondición: `--scan` salió con %d", codigo)
+	}
+	if n := len(lineasEvento(stdout)); n != 1 {
+		t.Errorf("P-006 FR-010: `--scan` imprimió %d líneas `evento:` para un mensaje de tres líneas; se esperaba 1", n)
+	}
+}
+
+// (13) · P-006 FR-010 — la línea `evento:` lleva las CUATRO partidas (`in=`, `out=`, `cw=`, `cr=`) y el
+// `event_id=` de 32 hex. Son los nombres que usan las medidas V3 y V4 del quickstart.
+func TestScan_LineaConCuatroPartidasYEventID(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	fichero := filepath.Join(t.TempDir(), "una-linea.jsonl")
+	if err := os.WriteFile(fichero, []byte(lineaSintetica("2", 100, 40, 7, 3)), 0o600); err != nil {
+		t.Fatalf("escribir el fichero de prueba: %v", err)
+	}
+
+	codigo, stdout, _, _ := ejecutar(t, 20*time.Second, "--scan", fichero)
+	eventos := lineasEvento(stdout)
+	if codigo != 0 || len(eventos) != 1 {
+		t.Fatalf("precondición: `--scan` debe salir con 0 e imprimir un evento (código %d, eventos %d)", codigo, len(eventos))
+	}
+	linea := eventos[0]
+
+	t.Run("cuatro_partidas", func(t *testing.T) {
+		for _, campo := range []string{" in=100 ", " out=40 ", " cw=7 ", " cr=3 "} {
+			if !strings.Contains(linea+" ", campo) {
+				t.Errorf("la línea no lleva %q: %q", strings.TrimSpace(campo), linea)
+			}
+		}
+	})
+	t.Run("event_id_32_hex", func(t *testing.T) {
+		i := strings.Index(linea, "event_id=")
+		if i < 0 {
+			t.Fatalf("la línea no lleva `event_id=`: %q", linea)
+		}
+		id := strings.Fields(linea[i+len("event_id="):])[0]
+		if len(id) != 32 || strings.Trim(id, "0123456789abcdef") != "" {
+			t.Errorf("event_id %q no es 32 hex en minúsculas", id)
+		}
+	})
+}
+
+// (14) · P-006 FR-009, SC-007 — una instalación ANTERIOR deja estado a mitad de un log y un evento con
+// `event_id` aleatorio en la cola. Una pasada de esta versión encola SÓLO lo posterior al offset, y no
+// toca la línea que ya estaba: ni la reescribe ni la vuelve a derivar. Sandbox (disciplina 6).
+func TestActualizar_NoReenviaNiReescribeLaCola(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	logs := t.TempDir()
+	logPath := filepath.Join(logs, "sesion.jsonl")
+	primera := lineaSintetica("A", 111, 1, 0, 0) // ya leída por la versión anterior
+	segunda := lineaSintetica("B", 222, 2, 0, 0) // posterior al offset guardado
+	if err := os.WriteFile(logPath, []byte(primera+segunda), 0o600); err != nil {
+		t.Fatalf("escribir el log: %v", err)
+	}
+	info, err := os.Stat(logPath)
+	if err != nil {
+		t.Fatalf("stat del log: %v", err)
+	}
+
+	// Estado como lo dejaría la versión anterior: leído hasta el final de la PRIMERA línea.
+	st := state.New()
+	st.Files[logPath] = state.FileState{Path: logPath, Size: info.Size(), ModTime: info.ModTime().Unix(), Offset: int64(len(primera))}
+	if err := st.Save(filepath.Join(dataDir, "state.json")); err != nil {
+		t.Fatalf("guardar el estado previo: %v", err)
+	}
+	// Un evento ya encolado por la versión anterior, con su `event_id` aleatorio.
+	const idAntiguo = "00112233445566778899aabbccddeeff"
+	antiguo, err := json.Marshal(event.Event{SchemaVersion: event.SchemaVersion, AgentVersion: "0.2.1", EventID: idAntiguo, Tool: "claude_code", Model: "claude-opus-4-6", TokensInput: 111, TokensOutput: 1})
+	if err != nil {
+		t.Fatalf("serializar el evento antiguo: %v", err)
+	}
+	lineaAntigua := string(antiguo) + "\n"
+	if err := os.WriteFile(transport.QueuePath(dataDir), []byte(lineaAntigua), 0o600); err != nil {
+		t.Fatalf("sembrar la cola: %v", err)
+	}
+
+	cfg := config.Config{LogsRoot: logs}
+	a := &agent{dir: dataDir, cfg: cfg, ictx: newIngestContext("test", cfg, "sal-de-prueba", "maquina-de-prueba")}
+	if _, _, err := a.generate(); err != nil {
+		t.Fatalf("precondición: generate() falló: %v", err)
+	}
+	cola, err := os.ReadFile(transport.QueuePath(dataDir))
+	if err != nil {
+		t.Fatalf("precondición: leer la cola: %v", err)
+	}
+
+	t.Run("la_cola_previa_byte_a_byte", func(t *testing.T) {
+		if !strings.HasPrefix(string(cola), lineaAntigua) {
+			t.Errorf("P-006 FR-009: la línea que ya estaba en la cola cambió o desapareció.\n  antes: %q\n  cola: %q", lineaAntigua, cola)
+		}
+	})
+	t.Run("solo_lo_posterior_al_offset", func(t *testing.T) {
+		evs, err := transport.Load(dataDir)
+		if err != nil {
+			t.Fatalf("leer la cola: %v", err)
+		}
+		var nuevos []event.Event
+		for _, ev := range evs {
+			if ev.EventID != idAntiguo {
+				nuevos = append(nuevos, ev)
+			}
+		}
+		if len(nuevos) != 1 || nuevos[0].TokensInput != 222 {
+			t.Errorf("P-006 FR-009: la pasada encoló %d eventos nuevos (%+v); se esperaba sólo el de la línea posterior al offset (222 tokens de entrada)", len(nuevos), nuevos)
+		}
+	})
 }

@@ -191,7 +191,7 @@ func TestAdherir_ConservaLaCausaDelParseo(t *testing.T) {
 	_ = testutil.Sandbox(t)
 
 	// La causa de referencia, obtenida de la misma fuente que debería conservarse.
-	_, errDirecto := url.Parse(endpointNoAnalizableAdhesion)
+	_, errDirecto := url.Parse(endpointNoAnalizableAdhesion) //nolint:staticcheck // SA1007: la URL inválida es el SUJETO del test — la causa de url.Parse que Adherir debe conservar (P-006 E-006-P4)
 	var causaDirecta *url.Error
 	if !errors.As(errDirecto, &causaDirecta) {
 		t.Fatalf("premisa rota: url.Parse(%q) no devolvió un *url.Error, sino %T",
@@ -264,7 +264,7 @@ func TestAdherir_ConservaLaCausaDelParseo(t *testing.T) {
 // **literal**, y devuelve un Client que confía en su certificado. Nada de red real (disciplina 6).
 func backendAdhesion(t *testing.T, estado int, cuerpo string) *Client {
 	t.Helper()
-	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(estado)
 		_, _ = w.Write([]byte(cuerpo))

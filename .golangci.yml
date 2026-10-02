@@ -28,3 +28,10 @@ linters:
 formatters:
   enable:
     - gofmt
+
+# Sin tope de avisos. Por defecto golangci-lint no enseña más de 3 avisos con el mismo texto
+# (max-same-issues) ni más de 50 por linter, y así un recuento de 15 se lee como 7. La puerta de
+# la constitución es `golangci-lint run` a secas: si el instrumento esconde, no sirve de puerta.
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

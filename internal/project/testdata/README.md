@@ -42,3 +42,12 @@ T001** como conjunto de referencia de `baseline-sc004.tsv`. Ese fichero **no se 
 feature**: ampliarlo cambiaría el conjunto de la línea base y rompería la comparación de neutralidad
 de T007 y la regresión-cero de V8 por la razón equivocada — parecería que cambió la derivación cuando
 lo que cambió fue la entrada.
+
+> **Editado el 2026-10-02 (P-006, enmienda E-006-P1).** `claude_code_sample.jsonl` recibió
+> `message.id` y `requestId` **sintéticos** (`msg_FIXTUREREF…` / `req_FIXTUREREF…`) en sus dos
+> líneas `assistant`. Desde P-006 el `event_id` se deriva de esos dos campos, y una línea sin ninguno
+> no se emite (P-006 FR-006): sin ellos, el fixture dejaría de producir eventos. **Ninguna de las tres
+> columnas de `baseline-sc004.tsv` los lee** (`project_ref`, `session_ref` y `machine_ref` salen de
+> `cwd`, `sessionId` y la máquina), y el recuento sigue en 2. Lo demuestra
+> `TestSC009_RegresionCeroDelCaminoDeIngesta`, verde **sin tocar sus aserciones**. El baseline no se
+> modificó.

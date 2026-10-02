@@ -20,14 +20,14 @@ const endpointNoAnalizable = "https://ejemplo\x7f.test/ingest"
 // TestJuzgarEndpoint_HechoAnalisis cubre SOLO el primer hecho.
 func TestJuzgarEndpoint_HechoAnalisis(t *testing.T) {
 	t.Run("no analizable devuelve la causa", func(t *testing.T) {
-		errAnalisis, _ := JuzgarEndpoint(endpointNoAnalizable)
+		_, errAnalisis := JuzgarEndpoint(endpointNoAnalizable)
 		if errAnalisis == nil {
 			t.Fatalf("JuzgarEndpoint(%q): errAnalisis = nil, se esperaba la causa de url.Parse", endpointNoAnalizable)
 		}
 	})
 
 	t.Run("analizable no devuelve causa", func(t *testing.T) {
-		errAnalisis, _ := JuzgarEndpoint("https://api.permea.example/api/v1/ingest")
+		_, errAnalisis := JuzgarEndpoint("https://api.permea.example/api/v1/ingest")
 		if errAnalisis != nil {
 			t.Fatalf("JuzgarEndpoint(url válida): errAnalisis = %v, se esperaba nil", errAnalisis)
 		}
@@ -36,7 +36,7 @@ func TestJuzgarEndpoint_HechoAnalisis(t *testing.T) {
 	// La causa se devuelve TAL CUAL, sin envolver: es lo que permite que `config.go` y `Send` la
 	// metan en su propio `%w` y conserven sus mensajes (condición de parada de T005).
 	t.Run("la causa es la de url.Parse, sin envolver", func(t *testing.T) {
-		errAnalisis, _ := JuzgarEndpoint(endpointNoAnalizable)
+		_, errAnalisis := JuzgarEndpoint(endpointNoAnalizable)
 		if errAnalisis == nil || !strings.Contains(errAnalisis.Error(), "parse") {
 			t.Fatalf("errAnalisis = %v; se esperaba la causa cruda de url.Parse", errAnalisis)
 		}
@@ -60,7 +60,7 @@ func TestJuzgarEndpoint_HechoEsquema(t *testing.T) {
 
 	for _, c := range casos {
 		t.Run(c.nombre, func(t *testing.T) {
-			errAnalisis, admisible := JuzgarEndpoint(c.endpoint)
+			admisible, errAnalisis := JuzgarEndpoint(c.endpoint)
 			if errAnalisis != nil {
 				t.Fatalf("%q no era analizable (%v): este test solo juzga el esquema", c.endpoint, errAnalisis)
 			}
@@ -75,7 +75,7 @@ func TestJuzgarEndpoint_HechoEsquema(t *testing.T) {
 // primero falla, el segundo NO puede decir «admisible». Los llamantes que FUNDEN los dos —
 // `enrollment.go`— dependen de esto para que su desenlace único siga siendo correcto.
 func TestJuzgarEndpoint_NoAnalizableNoAfirmaEsquema(t *testing.T) {
-	errAnalisis, admisible := JuzgarEndpoint(endpointNoAnalizable)
+	admisible, errAnalisis := JuzgarEndpoint(endpointNoAnalizable)
 	if errAnalisis == nil {
 		t.Fatalf("el caso base falló: %q debería no ser analizable", endpointNoAnalizable)
 	}
