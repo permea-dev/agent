@@ -204,7 +204,7 @@ la frontera.
 
 | Pieza | Decisión |
 |---|---|
-| Tabla | El mismo literal Go, ahora con 16 claves. **Cabecera** con fuente, verificación, aprobación, la referencia `permea-dev/permea-platform · backend/config/pricing.php · e50d0a5` y las **dos** limitaciones de FR-019. *(Enmendado 2026-10-02, Q-006-1 resuelta: decía `865bba0` y «las tres»; la de `claude-sonnet-5` desaparece.)* |
+| Tabla | El mismo literal Go, ahora con 16 claves. **Cabecera** con fuente, verificación, aprobación, la referencia `permea-dev/permea-platform · backend/config/pricing.php · e50d0a5`, el casamiento exacto (FR-018) y las **dos** limitaciones de FR-019. *(Enmendado 2026-10-02, coherencia con FR-018: se añade el casamiento entre los elementos de la cabecera.)* *(Enmendado 2026-10-02, Q-006-1 resuelta: decía `865bba0` y «las tres»; la de `claude-sonnet-5` desaparece.)* |
 | Vigilancia | `pricing_test.go` con una **tabla esperada escrita aparte**, literal y clave a clave, con su propio comentario de procedencia. Tres aserciones independientes: (1) **recuento de claves = 16**; (2) cada clave esperada existe con sus **cuatro** cifras exactas; (3) **ninguna clave sobra**. Más el caso de coste a mano para `claude-opus-5-5` |
 | Sin depender del otro repo | El test **no lee** `pricing.php`. Comparar contra el otro repositorio es una validación manual del quickstart (`git -C ../permea-platform show <commit>:backend/config/pricing.php`) |
 

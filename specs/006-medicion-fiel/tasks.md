@@ -686,34 +686,130 @@ no hay `registro-*.md` en este repositorio).
 
 ## Bloque B3 · Tarifas (`contracts/tarifas.md`, `plan.md` D-006-P6)
 
-- [ ] **T045** [P] En `internal/pricing/pricing_test.go`, una **tabla esperada escrita aparte**, con
+- [x] **T045** [P] En `internal/pricing/pricing_test.go`, una **tabla esperada escrita aparte**, con
   comentario de procedencia (repositorio · fichero · commit de T043 — **`e50d0a5`**, Q-006-1 resuelta el
   2026-10-02), y tres tests independientes:
   - (15) `TestEspejo_RecuentoDeClaves`: 16 claves. **Cae**: hay 3.
   - (16) `TestEspejo_CifrasClaveAClave`: cada clave esperada existe con sus **cuatro** cifras exactas.
     **Cae**: faltan 13 claves y `claude-opus-4-6` difiere.
   - (17) `TestEspejo_NingunaClaveSobra`. **Nace verde** (las 3 actuales están entre las 16) → m12.
-- [ ] **T046** [P] En el mismo fichero:
+  > **Paso 0 (2026-10-02), antes de escribir nada.** `grep` de `cost_usd|CostUSD|cost_avail|CostAvailable|pricing.`
+  > en `.go`, `.json`, `.jsonl` y `.golden`. **Sólo (18) cambia de resultado.** Los demás tests que
+  > tocan coste (`TestBoundary_CostAvailable`, `TestBoundary_KeepsMetrics`) exigen `true` y > 0
+  > para `claude-opus-4-6`, o `false` y 0 para un modelo desconocido, y eso no cambia; el literal de
+  > `event_test.go` no sale de la tabla. No hay goldens ni fixtures con cifras de coste.
+  >
+  > **🔴 Medido**: la tabla esperada se generó por script desde
+  > `git show e50d0a5:backend/config/pricing.php`, no desde `pricing.go`.
+  > - (15) `pricing_test.go:67`: «la tabla tiene 3 claves; el catálogo replicado tiene 16».
+  > - (16): 14 subtests en rojo, 13 por «falta la clave …» (`:84`) y `claude-opus-4-6` por «entrada = 15,
+  >   want 5 …» (`:88`–`:97`). `claude-haiku-4-5` y `claude-sonnet-4-6` nacen verdes → m-h45 y m-s46.
+  > - (17) nace verde → m12.
+- [x] **T046** [P] En el mismo fichero:
   - (18) `TestCost` pasa a `claude-opus-4-6` a 5 / 25 / 6,25 / 0,50. **Cae**: la tabla dice 15/75.
   - (19) `TestCost_Opus55AMano`: un evento de `claude-opus-5-5` con las **cuatro** partidas, contra el
     cálculo a mano a 4 / 20 / 5 / 0,20. **Cae**: no hay fila.
-- [ ] **T047** `internal/pricing/pricing.go`: las 16 claves del catálogo de T043, y la **cabecera** de
+  > **🔴 Medido**: (18) `pricing_test.go:21`, «coste fuera de ±1%: got 110.25 want 36.75». (19)
+  > `:117`, «claude-opus-5-5 debe tener fila (ok=true)». El vector de (19) es el del orquestador:
+  > 300 000 / 40 000 / 100 000 / 1 500 000 → literal `2.80`, con la suma en un comentario y la
+  > comparación ±1 % de `TestCost`. `Cost` lo admite tal cual: no redondea.
+  > *(Enmendado 2026-10-02, remate de B3: el vector anterior —300 000 / 40 000 / 100 000 / 1 500 000 →
+  > `2.80`, ±1 %— no veía una tarifa desviada en un céntimo (m11 no lo tumbó) ni un coste redondeado a
+  > céntimos. **(19) pasa a tokens irregulares 123 457 / 7 891 / 45 679 / 987 653 → literal
+  > `1.0775736`** (0,493828 + 0,157820 + 0,228395 + 0,1975306, calculado por el orquestador), con
+  > **diferencia absoluta ≤ 1e-9**. Es el único test que distingue las cuatro partidas. (18) no se toca:
+  > su ±1 % viene de SC-001 de 001. **Nace verde** con la tabla de T047: `Cost` devuelve exactamente
+  > `1.0775736`, con diferencia 0.)*
+- [x] **T047** `internal/pricing/pricing.go`: las 16 claves del catálogo de T043, y la **cabecera** de
   `contracts/tarifas.md` (fuente, verificación, aprobación, catálogo replicado, casamiento exacto, las
   ~~tres~~ **dos** limitaciones). **Verde**: (15), (16), (18) y (19). *(Enmendado 2026-10-02, Q-006-1
   resuelta: catálogo `e50d0a5`; la limitación de Sonnet 5 desaparece.)*
-- [ ] **T048** **Revisión SC-011**: una casilla por elemento de la cabecera. Transcribir las siete
+  > **Verde**: las 16 claves de `e50d0a5` (filas generadas por el mismo script) y la cabecera con los
+  > siete elementos. (15), (16), (18) y (19) verdes; `TestCost_UnknownModel` sigue verde (FR-017).
+  > Suite: **355 pass** (335 + 4 tests y 16 subtests), 0 fail.
+- [x] **T048** **Revisión SC-011**: una casilla por elemento de la cabecera. Transcribir las siete
   casillas aquí. *(Enmendado 2026-10-02, Q-006-1 resuelta: recalculado a partir de SC-011 enmendado
   —fuente, fecha de verificación, aprobación, versión replicada del catálogo y las dos limitaciones de
   FR-019— son ~~**seis**~~ casillas, no siete.)* *(Enmendado 2026-10-02, coherencia con FR-018: SC-011
   añade el casamiento, así que son **siete** casillas: fuente · verificación · aprobación · catálogo
   replicado · casamiento · limitación 1 (caché de 5 minutos) · limitación 2 (modo rápido). El «seis»
   de la nota anterior queda corregido.)*
-- [ ] **T049** **Mutaciones m11–m13**:
+  > **Revisión, 2026-10-02**: las siete casillas, contra la cabecera de `Table` en `pricing.go`
+  > (líneas del 2026-10-02):
+  > - ☑ **fuente**, l. 20: `Fuente: https://platform.claude.com/docs/en/about-claude/pricing`;
+  > - ☑ **verificación**, l. 21: `2026-08-07 (catálogo); filas claude-opus-5-5 y claude-sonnet-5, 2026-10-02`;
+  > - ☑ **aprobación**, l. 22: `Basilio, 2026-08-07 (catálogo); filas … 2026-10-02`;
+  > - ☑ **catálogo replicado**, l. 23: `permea-dev/permea-platform · backend/config/pricing.php · e50d0a5`;
+  > - ☑ **casamiento**, l. 24–26: «exacto … no se normalizan sufijos de fecha, prefijos ni mayúsculas
+  >   (P-006 FR-018)»;
+  > - ☑ **limitación 1**, l. 27–28: escritura de caché a 5 minutos, la de 1 hora quedaría infravalorada;
+  > - ☑ **limitación 2**, l. 29: «modo rápido» no distinguido, quedaría infravalorado.
+- [x] **T049** **Mutaciones m11–m13**:
   - **m11**: `claude-opus-5-5` `CacheRead` 0.20 → 0.21. Censo: (16). Co-caída: (19), porque usa las
     cuatro partidas.
   - **m12**: añadir una clave `claude-inventado`. Censo: (15) y (17).
   - **m13**: quitar `claude-haiku-3-5`, que no usa ningún otro test. Censo: (15) y (16).
-- [ ] **T050** Puertas del bloque.
+  > **Censos DECLARADOS el 2026-10-02, antes de mutar**, nombrando subtests. Un test con un subtest
+  > caído cae también como padre. Todo lo no nombrado, verde.
+  > - **m11** · `claude-opus-5-5` `CacheRead` 0.20 → 0.21. Cae `TestEspejo_CifrasClaveAClave/claude-opus-5-5`.
+  >   **⚠️ Discrepancia con el enunciado: (19) NO caerá.** Con 0,21, (19) da 1,20 + 0,80 + 0,50 + 0,315
+  >   = 2,815 USD, un 0,54 % sobre 2,80, **dentro** de la tolerancia de ±1 % que (19) copia de
+  >   `TestCost`, tal como mandaba el encargo. Se declara lo que se prevé y no la co-caída del
+  >   enunciado, que la tolerancia hace imposible.
+  > - **m12** · añadir `claude-inventado`. Caen `TestEspejo_RecuentoDeClaves` y
+  >   `TestEspejo_NingunaClaveSobra`.
+  > - **m13** · quitar `claude-haiku-3-5`. Caen `TestEspejo_RecuentoDeClaves` y
+  >   `TestEspejo_CifrasClaveAClave/claude-haiku-3-5`.
+  >
+  > **Dos más, por la disciplina 3**: (16)/`claude-sonnet-4-6` y (16)/`claude-haiku-4-5` nacieron
+  > verdes (ya estaban en la tabla con sus cifras) y ninguna de m11–m13 los tumba.
+  > - **m-s46** · `claude-sonnet-4-6` `Input` 3.00 → 3.01. Cae `TestEspejo_CifrasClaveAClave/claude-sonnet-4-6`.
+  > - **m-h45** · `claude-haiku-4-5` `Input` 1.00 → 1.01. Cae `TestEspejo_CifrasClaveAClave/claude-haiku-4-5`.
+  >
+  > **Ejecutadas las 5.** Cada una cayó **exactamente** según el censo declarado y se revirtió por
+  > edición inversa (md5 de `pricing.go` `c8239bfe4338458dd1df149bb51135b7`, idéntico):
+  > - **m11**: (16)/`claude-opus-5-5` («lectura de caché = 0.21, want 0.2»). **(19) quedó verde, como se
+  >   había previsto.**
+  > - **m12**: (15) («17 claves») y (17) («"claude-inventado" está en la tabla y no en el catálogo»).
+  > - **m13**: (15) («15 claves») y (16)/`claude-haiku-3-5` («falta la clave»). Se expresó como sustituir
+  >   las líneas de haiku-4-5 y haiku-3-5 por la de haiku-4-5, para que la reversión fuera unívoca.
+  > - **m-s46**: (16)/`claude-sonnet-4-6` («entrada = 3.01, want 3»).
+  > - **m-h45**: (16)/`claude-haiku-4-5` («entrada = 1.01, want 1»).
+  >
+  > **Remate de B3 (2026-10-02) · censos DECLARADOS antes de mutar**, con el (19) nuevo. Previsión del
+  > orquestador contrastada con análisis propio: `Cost` sólo lo llama `FromClaudeCodeLine`. Los tests
+  > que miran una cifra de coste son (18), (19), `TestBoundary_CostAvailable` (coste > 0) y
+  > `TestBoundary_KeepsMetrics` (coste > 0). Valores calculados con la misma aritmética `float64`.
+  > **El censo propio coincide con el del orquestador en las tres.**
+  > - **m11 (repetida)** · `claude-opus-5-5` `CacheRead` 0.20 → 0.21. Caen
+  >   `TestEspejo_CifrasClaveAClave/claude-opus-5-5` **y `TestCost_Opus55AMano`** (daría 1,08745013, a
+  >   9,9e-3 > 1e-9). Censo restaurado: la co-caída (19) del enunciado vuelve a ser posible.
+  > - **m14** · en `Cost`, cruzar las tarifas de caché (`cacheCreate` con `r.CacheRead`, `cacheRead` con
+  >   `r.CacheWrite`). Cae sólo `TestCost_Opus55AMano` (daría 5,5990488). (18) queda verde porque sus
+  >   cuatro partidas llevan los mismos tokens, y los `TestBoundary_*` siguen con coste > 0.
+  > - **m15** · en `Cost`, redondear a céntimos (`math.Round(x*100)/100`). Cae sólo
+  >   `TestCost_Opus55AMano` (daría 1,08). (18) da 36,75 exacto, y los `TestBoundary_*` dan 0,03 > 0:
+  >   verdes.
+  >
+  > **Ejecutadas (remate de B3).** Las tres cayeron **exactamente** según el censo declarado, y
+  > `pricing.go` volvió a `c8239bfe4338458dd1df149bb51135b7` tras cada una; `vet` limpio con todas:
+  > - **m11**: (16)/`claude-opus-5-5` («lectura de caché = 0.21, want 0.2») y (19) («coste = 1.0874501300,
+  >   want 1.0775736000 (diferencia absoluta 0.00988 > 1e-9)»);
+  > - **m14**: sólo (19) («coste = 5.5990488000 …»). (18) verde;
+  > - **m15**: sólo (19) («coste = 1.0800000000 … (diferencia absoluta 0.00243 > 1e-9)»). (18) y los
+  >   `TestBoundary_*` verdes.
+- [x] **T050** Puertas del bloque.
+  > **Puertas, 2026-10-02**:
+  > - `gofmt` vacío;
+  > - `vet` limpio;
+  > - lint **0**;
+  > - `go test -count=1 ./...` **9/9 ok, 355 pass, 0 fail**;
+  > - `internal/event` sin diff;
+  > - Windows y darwin compilan;
+  > - `make run` sale con 0. El evento de `claude-opus-4-6` del fixture cuesta ahora $0.0304, antes
+  >   $0.0911;
+  > - `event.NewID` sin llamantes;
+  > - disciplina 8, sin resultados.
 - [ ] **T051** ✋ **Commit** (dueño): `006 B3: tarifas espejo del catalogo de la plataforma (16 claves)`
 
 ---
