@@ -85,3 +85,111 @@ func TestCasoLimite_SinIdentificadorNoSeEmite(t *testing.T) {
 		t.Errorf("P-006 FR-006: una línea sin message.id ni requestId NO debe producir evento; se produjo event_id=%q", ev.EventID)
 	}
 }
+
+// lineaCon arma una línea facturable con los identificadores dados; uno vacío se OMITE de la línea,
+// no se escribe vacío, que es como llega un campo ausente del log.
+func lineaCon(messageID, requestID string) []byte {
+	req := ""
+	if requestID != "" {
+		req = `"requestId":"` + requestID + `",`
+	}
+	id := ""
+	if messageID != "" {
+		id = `"id":"` + messageID + `",`
+	}
+	return []byte(`{"type":"assistant","timestamp":"2026-10-02T12:00:00Z","sessionId":"s","cwd":"/x",` + req +
+		`"message":{` + id + `"model":"claude-opus-4-6","usage":{"input_tokens":10,"output_tokens":5}}}`)
+}
+
+// eventIDDe devuelve el event_id que produce la línea. Que haya evento es PRECONDICIÓN (t.Fatalf).
+func eventIDDe(t *testing.T, linea []byte) string {
+	t.Helper()
+	ev, err := FromClaudeCodeLine(linea, Context{Salt: "s"})
+	if err != nil || ev == nil {
+		t.Fatalf("precondición: la línea debe producir un evento (ev=%v, err=%v)", ev, err)
+	}
+	return ev.EventID
+}
+
+// esHex32 dice si s es exactamente la forma del contrato: 32 caracteres [0-9a-f].
+func esHex32(s string) bool {
+	if len(s) != 32 {
+		return false
+	}
+	for _, c := range s {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// (5) · P-006 FR-004, FR-006, SC-008 (b) — las tres formas (par, sólo `message.id`, sólo `requestId`)
+// dan event_id estables, de 32 hex y DISTINTOS entre sí, incluido el caso en que el MISMO valor llega
+// como `message.id` solo y como `requestId` solo: sólo el tipo del dominio los separa
+// (`contracts/event-id.md`, §Derivación).
+func TestCasoLimite_UnSoloIdentificador(t *testing.T) {
+	const m, r = "msg_000000000000000000000001", "req_000000000000000000000001"
+	formas := map[string][]byte{
+		"par":             lineaCon(m, r),
+		"solo_message_id": lineaCon(m, ""),
+		"solo_request_id": lineaCon("", r),
+	}
+
+	t.Run("estable", func(t *testing.T) {
+		for nombre, linea := range formas {
+			if a, b := eventIDDe(t, linea), eventIDDe(t, linea); a != b {
+				t.Errorf("forma %s: la misma línea dio dos event_id distintos: %s y %s", nombre, a, b)
+			}
+		}
+	})
+	t.Run("tres_formas_distintas", func(t *testing.T) {
+		vistos := map[string]string{}
+		for nombre, linea := range formas {
+			id := eventIDDe(t, linea)
+			if otra, ya := vistos[id]; ya {
+				t.Errorf("las formas %s y %s dieron el mismo event_id %s", otra, nombre, id)
+			}
+			vistos[id] = nombre
+		}
+	})
+	t.Run("mismo_valor_en_las_dos_formas_solas", func(t *testing.T) {
+		const v = "msg_000000000000000000000001"
+		if a, b := eventIDDe(t, lineaCon(v, "")), eventIDDe(t, lineaCon("", v)); a == b {
+			t.Errorf("el mismo valor como message.id solo y como requestId solo dio el mismo event_id %s", a)
+		}
+	})
+	t.Run("forma_32_hex", func(t *testing.T) {
+		for nombre, linea := range formas {
+			if id := eventIDDe(t, linea); !esHex32(id) {
+				t.Errorf("forma %s: event_id %q no es 32 hex en minúsculas", nombre, id)
+			}
+		}
+	})
+}
+
+// (6) · P-006 FR-002, FR-006 — los vectores normativos de una sola forma y los de la ambigüedad sin
+// prefijo de longitud (`contracts/event-id.md`, §Vectores de prueba). Los de la ambigüedad se alcanzan
+// por la API pública usando como `message.id`/`requestId` los dos componentes del contrato.
+func TestEventID_VectoresDeUnaSolaFormaYAmbiguedad(t *testing.T) {
+	casos := []struct {
+		nombre, messageID, requestID, quiere string
+	}{
+		{"solo_message_id", "msg_000000000000000000000001", "", "1692269369e3bb2b418279566f4b093f"},
+		{"solo_request_id", "", "req_000000000000000000000001", "5ab5f8575791456e5d951eb35bf36370"},
+		{"ambiguedad_a_bc", "a", "bc", "6e7e350c923581ba78d5c81e0897ed53"},
+		{"ambiguedad_ab_c", "ab", "c", "918d6e4cd99d09b918802196669fe50e"},
+	}
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			if got := eventIDDe(t, lineaCon(c.messageID, c.requestID)); got != c.quiere {
+				t.Errorf("event_id = %q, want %q", got, c.quiere)
+			}
+		})
+	}
+	t.Run("ambiguedad_distintos", func(t *testing.T) {
+		if a, b := eventIDDe(t, lineaCon("a", "bc")), eventIDDe(t, lineaCon("ab", "c")); a == b {
+			t.Errorf(`("a","bc") y ("ab","c") dieron el mismo event_id %s: falta el prefijo de longitud`, a)
+		}
+	})
+}

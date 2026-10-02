@@ -73,6 +73,15 @@ var denylist = []string{
 	"req_FIXTUREREF00000000000001", // requestId  · claude_code_sample.jsonl
 	"msg_FIXTUREREF00000000000002",
 	"req_FIXTUREREF00000000000002",
+
+	// ═══ P-006 T090 · LOS NÚCLEOS — «NI ENTERO NI COMO FRAGMENTO RECONOCIBLE» (FR-013) ══════
+	//
+	// Las entradas de arriba sólo cazan un identificador ENTERO. Una fuga TRUNCADA —un prefijo
+	// recortado, el identificador sin `msg_`— pasaría delante de todas ellas. Los núcleos de los
+	// centinelas la cazan, y no pueden aparecer por azar en una salida hexadecimal: tienen letras
+	// fuera de `[0-9a-f]`.
+	"CENTINELAID", // núcleo de los centinelas de boundary_sample.jsonl
+	"FIXTUREREF",  // núcleo de los sintéticos de claude_code_sample.jsonl
 }
 
 // TestBoundary_NoDenylistLeaks es el test que define el producto: ninguna

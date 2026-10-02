@@ -22,12 +22,20 @@ import (
 // se ignoran por construcción (encoding/json descarta lo no declarado). Solo se
 // admiten métricas y metadatos derivados de la allowlist de contracts/boundary-event.md.
 // El golden test (boundary_test.go) y TestEvent_OnlyAllowlistKeys fallan si esto se viola.
+//
+// P-006 · LOS DOS IDENTIFICADORES DEL PROVEEDOR (`message.id` y `requestId`): son metadatos
+// técnicos, no contenido, y se admiten SÓLO para derivar el `event_id` de la allowlist
+// (`derivarEventID`, specs/006-medicion-fiel/contracts/event-id.md). NUNCA se copian a ningún
+// campo del evento, ni enteros ni en fragmento (P-006 FR-003): la denylist del golden lleva sus
+// centinelas y sus núcleos.
 type rawRecord struct {
 	Type      string    `json:"type"`
 	Timestamp time.Time `json:"timestamp"`
 	SessionID string    `json:"sessionId"`
 	Cwd       string    `json:"cwd"`
+	RequestID string    `json:"requestId"`
 	Message   struct {
+		ID    string `json:"id"`
 		Model string `json:"model"`
 		Usage struct {
 			InputTokens         int `json:"input_tokens"`
@@ -54,19 +62,26 @@ type Context struct {
 	Resolutor *project.Resolutor
 }
 
+// modeloSintetico es el modelo con el que Claude Code marca los mensajes que genera él mismo, sin
+// llamada al modelo. No son consumo y NUNCA producen evento (P-006 FR-007).
+const modeloSintetico = "<synthetic>"
+
 // FromClaudeCodeLine convierte una línea JSONL en un Event de frontera.
-// Devuelve (nil, nil) si la línea no es una llamada facturable.
+// Devuelve (nil, nil) si la línea no es una llamada facturable, si es `<synthetic>`, o si no trae
+// ninguno de los dos identificadores del mensaje (P-006 FR-006): sin ellos no hay `event_id` estable,
+// y uno aleatorio volvería a contar el mismo mensaje varias veces.
 func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 	var r rawRecord
 	if err := json.Unmarshal(line, &r); err != nil {
 		return nil, err
 	}
-	if r.Type != "assistant" || r.Message.Model == "" {
+	if r.Type != "assistant" || r.Message.Model == "" || r.Message.Model == modeloSintetico {
 		return nil, nil
 	}
-	id, err := event.NewID()
-	if err != nil {
-		return nil, err
+	// P-006 FR-002/FR-008: el `event_id` se DERIVA del mensaje; ya no se acuña uno aleatorio.
+	id, ok := derivarEventID(r.Message.ID, r.RequestID)
+	if !ok {
+		return nil, nil
 	}
 	u := r.Message.Usage
 	cost, costAvailable := pricing.Cost(r.Message.Model, u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens)

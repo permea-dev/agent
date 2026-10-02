@@ -333,23 +333,63 @@ no hay `registro-*.md` en este repositorio).
 
 ## Bloque B2a · La derivación (`contracts/event-id.md`, `plan.md` D-006-P1/P2)
 
-- [ ] **T017** [P] **Rojo** (5) `TestCasoLimite_UnSoloIdentificador` en `internal/ingest/eventid_test.go`.
+- [x] **T090** *(nueva, 2026-10-02, añadido del orquestador; va la PRIMERA del bloque)* FR-013 dice
+  «ni entero ni como fragmento reconocible», y la `denylist` de `internal/ingest/boundary_test.go`
+  sólo busca los identificadores enteros. Añadir los **núcleos** de los centinelas, `CENTINELAID` y
+  `FIXTUREREF`, que no pueden aparecer por azar en una salida hexadecimal. **Acreditarlo con una
+  mutación declarada antes de mutar**: filtrar un identificador **truncado** a un campo del evento
+  debe caer; con la denylist anterior no caería.
+  > **Censo DECLARADO el 2026-10-02, antes de mutar.**
+  > - **Mutación**: decodificar `message.id` en `rawRecord` y poner en `SessionRef` el identificador
+  >   **truncado** `id[4:15]`, con guarda de longitud para no panicar (`msg_CENTINELAID…` →
+  >   `CENTINELAID`; `msg_FIXTUREREF…` → `FIXTUREREF0`). Ninguno de los tests afectados usa `t.Run`.
+  > - **Con la denylist nueva caen** `TestBoundary_TresCaminosHaciaElExterior` (los 3 caminos, por
+  >   el núcleo `CENTINELAID`) y `TestBoundary_NoDenylistLeaks` (por el núcleo `FIXTUREREF`).
+  >   Co-caída: `TestSC009_RegresionCeroDelCaminoDeIngesta`, porque cambia `session_ref`. Los 4 rojos
+  >   de B1 siguen en rojo. Nada más.
+  > - **Contraprueba con la denylist anterior** (núcleos quitados por edición inversa, con la mutación
+  >   puesta): `TresCaminos` y `NoDenylistLeaks` **pasan**, y sólo quedan `TestSC009` y los 4 rojos de
+  >   B1. Es la prueba de que sin núcleos no caería.
+  >
+  > **Ejecutada el 2026-10-02.** Núcleos `CENTINELAID` y `FIXTUREREF` en la denylist; `internal/ingest`
+  > sólo con los 4 rojos de B1.
+  > - **Con la mutación y la denylist nueva**, cayeron exactamente los declarados:
+  >   `NoDenylistLeaks` (`boundary_test.go:120`, «el evento contiene "FIXTUREREF"»), `TresCaminos`
+  >   (`:180` camino 1, `:193` camino 2 y `:216` camino 3, «contiene "CENTINELAID"») y la co-caída
+  >   `TestSC009`, más los 4 rojos previos.
+  > - **Contraprueba**: núcleos quitados por edición inversa, con md5 igual a la denylist de B1. Con
+  >   la mutación puesta, `TresCaminos` y `NoDenylistLeaks` **pasaron**, y sólo quedaron `TestSC009` y
+  >   los 4 rojos. Sin núcleos, la fuga truncada no cae.
+  > - **Reversión**: núcleos repuestos (md5 de `boundary_test.go` igual al de después de T090,
+  >   `29a190ca64fd6d9beaba2224b3d2ad6c`) y mutación revertida (md5 de `claudecode.go`
+  >   `ad24460e2e8e3a11ac2dc3a415057fb1`, sin diff).
+- [x] **T017** [P] **Rojo** (5) `TestCasoLimite_UnSoloIdentificador` en `internal/ingest/eventid_test.go`.
   Las tres formas (par, sólo `message.id`, sólo `requestId`) dan `event_id` **distintos entre sí**,
   estables y de 32 hex. Incluye **el mismo valor** usado como `message.id` solo y como `requestId`
   solo, que debe dar dos `event_id` distintos (ver m1). **Cae** por aleatoriedad. SC-008 (b).
-- [ ] **T018** [P] **Rojo** (6) `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad`, en el mismo fichero:
+  > **🔴 Medido**: cae sólo el subtest `estable` (`eventid_test.go:142`, «forma par: la misma línea
+  > dio dos event_id distintos», y lo mismo para `solo_message_id` y `solo_request_id`).
+  > `tres_formas_distintas`, `mismo_valor_en_las_dos_formas_solas` y `forma_32_hex` nacen verdes y los
+  > validan m1, m-formas y m-hex.
+- [x] **T018** [P] **Rojo** (6) `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad`, en el mismo fichero:
   - los vectores de «sólo `message.id`» y «sólo `requestId`» de `contracts/event-id.md`;
   - los dos de la ambigüedad sin prefijo de longitud.
 
   Para que el vector de ambigüedad sea alcanzable por la API pública, se usa como `message.id`/`requestId`
   el par de componentes del contrato. **Cae** por aleatoriedad.
-- [ ] **T019** Nuevo `internal/ingest/eventid.go`: la derivación del contrato, sin exportar:
+  > **🔴 Medido**: caen `solo_message_id`, `solo_request_id`, `ambiguedad_a_bc` y `ambiguedad_ab_c`
+  > (`eventid_test.go:186`, «event_id = <aleatorio>, want <vector>»). `ambiguedad_distintos` nace
+  > verde y lo valida m2.
+- [x] **T019** Nuevo `internal/ingest/eventid.go`: la derivación del contrato, sin exportar:
   - dominio `permea/event_id/v1` + `claude_code` + tipo;
   - componentes con prefijo de longitud `uint32` big-endian;
   - SHA-256 truncado a 16 bytes, hex en minúsculas.
 
   **Superficie nueva**: la función, mirada por T013 (1)(2), T017 y T018.
-- [ ] **T020** En `internal/ingest/claudecode.go`:
+  > **Hecho.** `derivarEventID` / `hashEventID` en `internal/ingest/eventid.go`, sin exportar. La
+  > guarda de longitud usa `math.MaxInt32` para que compile también con `int` de 32 bits
+  > (`GOARCH=386 go build ./internal/ingest` compila). `gosec` no marca nada.
+- [x] **T020** En `internal/ingest/claudecode.go`:
   - `rawRecord` decodifica `message.id` y `requestId`. El comentario de la guarda de frontera se
     actualiza **por nombre**: son metadatos técnicos, nunca salen en claro, y sólo derivan el
     `event_id` (spec §Verificación de la frontera);
@@ -358,14 +398,62 @@ no hay `registro-*.md` en este repositorio).
   - el `event_id` sale de T019, y **`event.NewID` deja de llamarse**.
 
   **Verde**: (1)–(6). El golden y `TestSC009` siguen verdes.
-- [ ] **T021** **Mutaciones m1–m4** (protocolo; cada una con su censo, todo lo demás verde):
+  > **Verde**: (1)–(6) en verde, y **los vectores del contrato salen a la primera**, sin tocar ni la
+  > implementación ni el vector. Suite: **312 pass** (297 + los 4 de B1 + los 2 nuevos, con 9
+  > subtests), 0 fail. Golden y `TestSC009` verdes. `event.NewID` sin llamantes de producción.
+- [x] **T021** **Mutaciones m1–m4** (protocolo; cada una con su censo, todo lo demás verde):
   - **m1**: quitar el tipo del dominio. Censo: (2), (5) y (6). (5) cae por el caso del mismo valor en
     las dos formas solas.
   - **m2**: quitar el prefijo de longitud. Censo: (2) y (6). (5) **no** cae: las formas siguen
     separadas por el tipo.
   - **m3**: volver a emitir `<synthetic>`. Censo: (3).
   - **m4**: meter `ctx.Salt` en el hash. Censo: (1), (2) y (6).
-- [ ] **T022** Puertas del bloque (incluido el `grep` de `event.NewID`).
+  > **Censos DECLARADOS el 2026-10-02, antes de mutar**, nombrando subtests. Un test que contiene
+  > un subtest caído cae también como padre, y no se repite en cada línea. Todo lo no nombrado,
+  > verde.
+  > - **m1** · `hashEventID` ignora el tipo. Caen `TestEventID_VectorDelPar`,
+  >   `TestCasoLimite_UnSoloIdentificador/mismo_valor_en_las_dos_formas_solas` y
+  >   `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad/{solo_message_id, solo_request_id,
+  >   ambiguedad_a_bc, ambiguedad_ab_c}`.
+  > - **m2** · sin prefijo de longitud. Caen `TestEventID_VectorDelPar` y
+  >   `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad/{solo_message_id, solo_request_id,
+  >   ambiguedad_a_bc, ambiguedad_ab_c, ambiguedad_distintos}`. (5) entero verde.
+  > - **m3** · `<synthetic>` vuelve a emitirse. Cae `TestSintetica_NoSeEmite`.
+  > - **m4** · el `event_id` se rehace con `ctx.Salt` (`hashEventID(tipoPar, id, ctx.Salt)`). Caen
+  >   `TestEventID_LaMismaLineaDaElMismoIDEnDosInstalaciones`, `TestEventID_VectorDelPar` y
+  >   `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad/{solo_message_id, solo_request_id,
+  >   ambiguedad_a_bc, ambiguedad_ab_c}`. (5) verde, porque usa una sola sal.
+  >
+  > **Dos mutaciones más, añadidas por la disciplina 3**: (5)/`tres_formas_distintas` y
+  > (5)/`forma_32_hex` nacieron verdes, y ninguna de m1–m4 las tumba.
+  > - **m-hex** · truncar a 15 bytes (30 hex). Caen `TestEventID_VectorDelPar`,
+  >   `TestCasoLimite_UnSoloIdentificador/forma_32_hex` y
+  >   `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad/{solo_message_id, solo_request_id,
+  >   ambiguedad_a_bc, ambiguedad_ab_c}`.
+  > - **m-formas** · el par se deriva sólo de `message.id` (`hashEventID(tipoSoloMessageID, messageID)`).
+  >   Caen `TestEventID_VectorDelPar`, `TestCasoLimite_UnSoloIdentificador/tres_formas_distintas` y
+  >   `TestEventID_VectoresDeUnaSolaFormaYAmbiguedad/{ambiguedad_a_bc, ambiguedad_ab_c}`.
+  > **Ejecutadas las 6.** Cada una cayó **exactamente** según su censo, contando los padres, y se
+  > revirtió por edición inversa con md5 idéntico (`eventid.go` `4ba99d404f547a0d557172ed1f78378b`,
+  > `claudecode.go` `0613145e83d6a21cb58b9ce357325a44`):
+  > - **m1**: `VectorDelPar`, (5)/`mismo_valor_en_las_dos_formas_solas`, y (6) con sus 4 vectores;
+  > - **m2**: `VectorDelPar`, y (6) con sus 4 vectores más `ambiguedad_distintos` («falta el prefijo de
+  >   longitud»);
+  > - **m3**: `TestSintetica_NoSeEmite`;
+  > - **m4**: (1), `VectorDelPar`, y (6) con sus 4 vectores;
+  > - **m-hex**: `VectorDelPar`, (5)/`forma_32_hex` y (6) con sus 4 vectores;
+  > - **m-formas**: `VectorDelPar`, (5)/`tres_formas_distintas` y (6)/`ambiguedad_a_bc` y
+  >   `ambiguedad_ab_c`.
+- [x] **T022** Puertas del bloque (incluido el `grep` de `event.NewID`).
+  > **Puertas, 2026-10-02**:
+  > - `gofmt -l .` vacío;
+  > - `go vet ./...` limpio;
+  > - `golangci-lint run` **0**;
+  > - `go test -count=1 ./...` **9/9 ok, 312 pass, 0 fail**;
+  > - `git diff 0311fa1 -- internal/event` vacío;
+  > - Windows y darwin compilan;
+  > - `grep event.NewID` fuera de `internal/event`: vacío;
+  > - disciplina 8, sin resultados.
 - [ ] **T023** ✋ **Commit** (dueño):
   `006 B2a: event_id determinista por hash con dominio y sin sal; synthetic y lineas sin ids no se emiten`
 
