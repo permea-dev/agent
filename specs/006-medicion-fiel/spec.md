@@ -6,8 +6,8 @@
 
 **Status**: Draft
 
-**Amended**: 2026-10-02 — enmiendas D-006-7 a D-006-13 y pregunta abierta Q-006-1; nota E-006-P7 sobre
-el recuento del linter en D-006-13
+**Amended**: 2026-10-02 — enmiendas D-006-7 a D-006-13 y pregunta abierta Q-006-1 (**resuelta el
+2026-10-02**: M4 sobre el catálogo `e50d0a5`); nota E-006-P7 sobre el recuento del linter en D-006-13
 (§Decisiones › Enmiendas del 2026-10-02). Los números ya asignados no se renumeran;
 lo revocado se marca, no se borra.
 
@@ -103,11 +103,14 @@ Por modelo, como mensajes / líneas: `claude-opus-5` 7 318 / 15 221 · `claude-o
 | Modelo de datos (001) | «`event.NewID()` (crypto/rand) · Único; clave de deduplicación» (`specs/001-agente-inicial/data-model.md:19`) |
 | Plataforma (referencia, no contrato del agente) | Columna `string('event_id')`, NOT NULL (`permea-platform/backend/database/migrations/2026_07_04_000003_create_metric_events_table.php:22`). Validación: requerido, no vacío, string (`backend/app/Ingest/EventAllowlist.php:78`). Unicidad por `(org_id, event_id)` con `ON CONFLICT DO NOTHING` (`…000004_add_unique_org_event_to_metric_events.php:16`, `IngestBatchService.php:92`). Longitud de la columna: la del `string` de Laravel; **no comprobada en la base de datos** |
 
-**M4 · Catálogo de la plataforma** (`permea-platform/backend/config/pricing.php` en `main` = `865bba0`).
+**M4 · Catálogo de la plataforma** (`permea-platform/backend/config/pricing.php` en `main` = **`e50d0a5`**).
+*(Enmendado 2026-10-02, Q-006-1 resuelta: antes `865bba0`. Entre los dos commits sólo cambia la fila de
+`claude-sonnet-5` y su comentario; las citas de línea de este apartado se rehicieron contra `e50d0a5`.)*
 Cabecera: `FUENTE: https://platform.claude.com/docs/en/about-claude/pricing` · `VERIFICADA: 2026-08-07 ·
 APROBADA POR: Basilio, 2026-08-07` (`:8-9`). La fila de `claude-opus-5-5` se verificó y aprobó el
-2026-10-02 (comentario sobre `:117`). USD por millón de tokens; la escritura de caché va a la tarifa de
-5 minutos.
+2026-10-02 (comentario sobre `:117`). La fila de `claude-sonnet-5` se verificó en la fuente y se
+corrigió el 2026-10-02 (comentario `:191-194`): «2.00/10.00 YA es el precio estándar, y la subida prevista
+a 3.00/15.00 no se produjo». USD por millón de tokens; la escritura de caché va a la tarifa de 5 minutos.
 
 | Clave | input | output | cache_write | cache_read | Agente hoy |
 |---|---|---|---|---|---|
@@ -121,18 +124,24 @@ APROBADA POR: Basilio, 2026-08-07` (`:8-9`). La fila de `claude-opus-5-5` se ver
 | `claude-opus-4-5` | 5.00 | 25.00 | 6.25 | 0.50 | — |
 | `claude-opus-4-1` | 15.00 | 75.00 | 18.75 | 1.50 | — |
 | `claude-opus-4` | 15.00 | 75.00 | 18.75 | 1.50 | — |
-| `claude-sonnet-5` ⚠️ Q-006-1 | 3.00 | 15.00 | 3.75 | 0.30 | — |
+| `claude-sonnet-5` | 2.00 | 10.00 | 2.50 | 0.20 | — |
 | `claude-sonnet-4-6` | 3.00 | 15.00 | 3.75 | 0.30 | 3 / 15 / 3,75 / 0,3 ✅ |
 | `claude-sonnet-4-5` | 3.00 | 15.00 | 3.75 | 0.30 | — |
 | `claude-sonnet-4` | 3.00 | 15.00 | 3.75 | 0.30 | — |
 | `claude-haiku-4-5` | 1.00 | 5.00 | 1.25 | 0.10 | 1 / 5 / 1,25 / 0,1 ✅ |
 | `claude-haiku-3-5` | 0.80 | 4.00 | 1.00 | 0.08 | — |
 
-**16 claves.** Las tres del agente están entre ellas. `excluded` está vacío (`:271`). Limitaciones que
-el catálogo declara:
+*(Enmendado 2026-10-02, Q-006-1 resuelta: la fila de `claude-sonnet-5` decía 3.00 / 15.00 / 3.75 /
+0.30 en `865bba0`.)*
+
+**16 claves.** Las tres del agente están entre ellas. `excluded` está vacío (`:269`). Limitaciones que
+el catálogo declara, **dos**:
 - escritura de caché de 1 hora no distinguida (`:16-24`);
-- «modo rápido» de Opus 5.5 a 8.00 / 40.00 no distinguido (`:114-116`);
-- `claude-sonnet-5` a precio estándar, con el introductorio de 2.00 / 10.00 vigente hasta el 2026-08-31 (`:190-196`).
+- «modo rápido» de Opus 5.5 a 8.00 / 40.00 no distinguido (`:114-116`).
+
+*(Enmendado 2026-10-02, Q-006-1 resuelta: había una tercera, «`claude-sonnet-5` a precio estándar, con el
+introductorio de 2.00 / 10.00 vigente hasta el 2026-08-31», en `865bba0:190-196`. `e50d0a5` ya no la
+declara, porque 2.00 / 10.00 es el precio estándar.)*
 
 **Otros puntos de partida** (del descubrimiento):
 - la ayuda (`report-agente.md` §10);
@@ -404,7 +413,9 @@ versión está publicada** y el dueño la ha ensayado en Windows **dos veces**:
   (M4): las mismas 16 claves y las mismas cuatro cifras por clave. Es decisión del dueño (D-006-4): una
   sola verdad de precios, replicada, no dos verdades que se parezcan. *(Nota 2026-10-02, Q-006-1: la
   fila de `claude-sonnet-5` está pendiente de decisión del dueño. Si el catálogo de la plataforma
-  cambia, este requisito replica **el commit nuevo**, y M4 se rehace sobre él.)*
+  cambia, este requisito replica **el commit nuevo**, y M4 se rehace sobre él.)* *(Enmendado
+  2026-10-02, Q-006-1 resuelta: el dueño decidió 2.00 / 10.00 / 2.50 / 0.20, la plataforma lo corrigió
+  en `e50d0a5`, y este requisito replica **`e50d0a5`**.)*
 - **P-006 FR-015**: La tabla **DEBE** llevar en su cabecera la **fuente** (la misma URL que el
   catálogo), la **fecha** de verificación, la **aprobación** (quién y cuándo) y **qué versión del
   catálogo replica** (repositorio, fichero y commit).
@@ -418,9 +429,10 @@ versión está publicada** y el dueño la ha ensayado en Windows **dos veces**:
 - **P-006 FR-019**: La cabecera **DEBE** declarar las limitaciones que hereda del catálogo:
   - la escritura de caché va a la tarifa de **5 minutos**, y una de 1 hora quedaría infravalorada;
   - el **«modo rápido»** no se distingue, y quedaría infravalorado;
-  - `claude-sonnet-5` va a **precio estándar**, y los eventos anteriores al 2026-09-01 quedarían
+  - ~~`claude-sonnet-5` va a **precio estándar**, y los eventos anteriores al 2026-09-01 quedarían
     sobrevalorados. *(Depende de Q-006-1: si el catálogo cambia esa fila, esta limitación se revisa
-    con él.)*
+    con él.)*~~ *(Retirada el 2026-10-02, Q-006-1 resuelta: `e50d0a5` ya no la declara, porque 2.00 /
+    10.00 es el precio estándar. **Quedan dos limitaciones.**)*
 - **P-006 FR-020**: La tabla **DEBE** quedar **vigilada clave a clave**: añadir, quitar o cambiar
   cualquier clave o cualquier cifra **DEBE** poner rojo al menos un test.
 
@@ -580,16 +592,20 @@ no el valor esperado en otra copia.
 #### Tarifas
 
 - **P-006 SC-009**: **Espejo exacto.** La tabla empaquetada tiene **16/16** claves y **64/64** cifras
-  iguales a `pricing.php@865bba0`, comprobado fila a fila (M4). **Falsable**: alterada cualquier cifra
+  iguales a `pricing.php@e50d0a5`, comprobado fila a fila (M4). **Falsable**: alterada cualquier cifra
   o quitada cualquier clave, al menos un test se pone rojo (FR-020). *(Nota 2026-10-02, Q-006-1: si el
-  catálogo cambia, el commit de referencia y los recuentos se toman del nuevo.)*
+  catálogo cambia, el commit de referencia y los recuentos se toman del nuevo.)* *(Enmendado
+  2026-10-02, Q-006-1 resuelta: la referencia pasa de `865bba0` a `e50d0a5`. Los recuentos siguen en
+  16/16 y 64/64.)*
 - **P-006 SC-010**: **Coste disponible para lo que se usa.** Sobre la copia congelada, el **100 %** de
   los eventos de modelos con fila sale con `cost_available=true`. En la fecha de la spec son
   `claude-opus-5-5`, `claude-opus-5` y `claude-sonnet-5`, y hoy salen al **0 %**. El coste de un evento
   de referencia de cada uno coincide con el cálculo a mano a la tarifa de M4.
 - **P-006 SC-011**: **La cabecera está completa.** Contiene la fuente, la fecha de verificación, la
-  aprobación, la versión replicada del catálogo y las tres limitaciones de FR-019. Lo comprueba la
-  revisión, con una casilla por elemento.
+  aprobación, la versión replicada del catálogo, **el casamiento exacto (FR-018)** y las **dos**
+  limitaciones de FR-019: **siete** elementos. Lo comprueba la revisión, con una casilla por elemento.
+  *(Enmendado 2026-10-02, Q-006-1 resuelta: decía «las tres».)* *(Enmendado 2026-10-02, coherencia con
+  FR-018: se añade el casamiento; son siete elementos.)*
 
 #### La ayuda y los errores de uso
 
@@ -723,7 +739,7 @@ dice qué toca. Ningún número existente se ha reasignado.
 ## Preguntas abiertas
 
 - **Q-006-1 · `claude-sonnet-5`: ¿2 / 10 o 3 / 15?** (registrada el 2026-10-02; **pendiente de decisión
-  del dueño**).
+  del dueño**). **✅ RESUELTA el 2026-10-02**, ver el cierre al final de esta entrada.
   - **La página oficial de precios** muestra 2 / 10 / 2,50 / 0,20 (captura del dueño, 2026-10-02).
   - **El catálogo de la plataforma** (`865bba0`) dice 3 / 15 / 3,75 / 0,30, que su cabecera presenta como
     precio estándar vigente desde el 2026-09-01 (`pricing.php:190-196`).
@@ -732,6 +748,16 @@ dice qué toca. Ningún número existente se ha reasignado.
   replica el commit nuevo, M4 se rehace sobre él, SC-009 toma de él su referencia y la tercera
   limitación de FR-019 se revisa. Afecta también a SC-010, porque `claude-sonnet-5` es uno de los tres
   modelos en uso (M2: 3 mensajes).
+
+  > **RESUELTA (2026-10-02, decisión del dueño, T043).** `claude-sonnet-5` = **2.00 / 10.00 / 2.50 /
+  > 0.20**.
+  > - **Fuente**: la nota oficial de la página de precios. Dice que 2 / 10 ya es el precio estándar y
+  >   que la subida a 3 / 15 no se producirá (captura del dueño, 2026-10-02).
+  > - **La plataforma lo corrigió** en `permea-platform@e50d0a5` (PR #78), y el catálogo de referencia
+  >   del agente pasa de `865bba0` a `e50d0a5`.
+  > - **Consecuencias, todas enmendadas el mismo día**: M4 rehecho sobre `e50d0a5`; FR-014 replica
+  >   `e50d0a5`; FR-019 pierde la tercera limitación; SC-009 cita `e50d0a5`; SC-011 cuenta dos
+  >   limitaciones.
 
 ---
 

@@ -196,14 +196,15 @@ la frontera.
 
 - La tabla: `internal/pricing/pricing.go:14-18`, un literal Go de 3 claves, sin fuente ni fecha (`:1-2`).
 - Su único test de valor fija la cifra errónea: `pricing_test.go:9-19`, `claude-opus-4-6` a 15/75.
-- El catálogo de referencia: `permea-platform/backend/config/pricing.php@865bba0`, con 16 claves (M4 de
-  la spec).
+- El catálogo de referencia: `permea-platform/backend/config/pricing.php@e50d0a5`, con 16 claves (M4 de
+  la spec). *(Enmendado 2026-10-02, Q-006-1 resuelta: antes `865bba0`, también con 16 claves; entre los dos sólo cambia la
+  fila de `claude-sonnet-5`.)*
 
 ### R6.2 · Decisión
 
 | Pieza | Decisión |
 |---|---|
-| Tabla | El mismo literal Go, ahora con 16 claves. **Cabecera** con fuente, verificación, aprobación, la referencia `permea-dev/platform · backend/config/pricing.php · 865bba0` y las tres limitaciones de FR-019 |
+| Tabla | El mismo literal Go, ahora con 16 claves. **Cabecera** con fuente, verificación, aprobación, la referencia `permea-dev/permea-platform · backend/config/pricing.php · e50d0a5` y las **dos** limitaciones de FR-019. *(Enmendado 2026-10-02, Q-006-1 resuelta: decía `865bba0` y «las tres»; la de `claude-sonnet-5` desaparece.)* |
 | Vigilancia | `pricing_test.go` con una **tabla esperada escrita aparte**, literal y clave a clave, con su propio comentario de procedencia. Tres aserciones independientes: (1) **recuento de claves = 16**; (2) cada clave esperada existe con sus **cuatro** cifras exactas; (3) **ninguna clave sobra**. Más el caso de coste a mano para `claude-opus-5-5` |
 | Sin depender del otro repo | El test **no lee** `pricing.php`. Comparar contra el otro repositorio es una validación manual del quickstart (`git -C ../permea-platform show <commit>:backend/config/pricing.php`) |
 
@@ -213,6 +214,10 @@ repositorio y de un parser de PHP, para 16 filas que cambian pocas veces. La dup
 silencio**.
 
 ### R6.3 · Q-006-1 (`claude-sonnet-5`) sin rehacer el plan
+
+> **Resuelta el 2026-10-02, antes de B3.** El dueño decidió 2.00 / 10.00 / 2.50 / 0.20 y la plataforma lo
+> corrigió en `e50d0a5`. Se aplicó el camino «decide antes de B3»: la spec se enmendó, B3 replica
+> `e50d0a5`, y el punto 4 de abajo queda en **retirar** la tercera limitación.
 
 El cambio de una fila toca exactamente **cinco sitios**, todos dentro de B3 o de la spec:
 1. la fila en `pricing.go`;

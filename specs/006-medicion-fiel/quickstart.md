@@ -235,9 +235,10 @@ grep -o 'event_id=[0-9a-f]*' /tmp/scan-006.txt | sort | uniq -d | wc -l   # → 
 ```sh
 go test ./internal/pricing -v   # 16 claves, 64 cifras, ninguna de más
 # Comparación ENTRE REPOSITORIOS, manual (el test no lee el otro repo):
-git -C ~/dev/permea-platform show 865bba0:backend/config/pricing.php \
+git -C ~/dev/permea-platform show e50d0a5:backend/config/pricing.php \
   | grep -E "^\s*'(claude-[a-z0-9-]+|input|output|cache_write|cache_read)'" | sed 's/[ ,]//g'
-# y comparar fila a fila con internal/pricing/pricing.go. Si Q-006-1 cambió el commit, usar el nuevo.
+# y comparar fila a fila con internal/pricing/pricing.go. (Enmendado 2026-10-02, Q-006-1 resuelta:
+# el commit de referencia es e50d0a5; antes, 865bba0.)
 ```
 
 **Falsable**: alterar una cifra de `pricing.go` → `go test ./internal/pricing` en rojo, y revertir por
@@ -249,13 +250,14 @@ edición inversa (disciplina 3).
 grep '^evento:' /tmp/scan-006.txt | grep -E 'model=claude-(opus-5-5|opus-5|sonnet-5) ' | grep -c 'cost_avail=false'   # → 0
 ```
 
-Y un evento de referencia por modelo, a mano, con las cifras de M4 (o del commit nuevo si Q-006-1 lo
-cambió).
+Y un evento de referencia por modelo, a mano, con las cifras de M4 sobre `e50d0a5` (Q-006-1 resuelta el
+2026-10-02: `claude-sonnet-5` a 2.00 / 10.00 / 2.50 / 0.20).
 
 ## V13 · La cabecera está completa (SC-011 · FR-015, FR-019)
 
 Revisión con una casilla por elemento de `contracts/tarifas.md` §La cabecera: fuente · verificación ·
-aprobación · catálogo replicado · casamiento · 3 limitaciones.
+aprobación · catálogo replicado · casamiento · ~~3~~ **2** limitaciones. *(Enmendado 2026-10-02, Q-006-1 resuelta: la de Sonnet 5
+desaparece.)*
 
 ## V14 · La ayuda general (SC-012 · FR-021)
 
@@ -360,7 +362,8 @@ distintos de sus logs en esa ventana, contados como en el contador independiente
 ## Checklist de cierre
 
 - [ ] V1–V18 en verde, con sus salidas anotadas en `tasks.md`.
-- [ ] Q-006-1 decidida, y la cabecera de tarifas cita el commit vigente del catálogo.
+- [ ] Q-006-1 decidida (**sí, el 2026-10-02**), y la cabecera de tarifas cita el commit vigente del
+  catálogo (`e50d0a5`).
 - [ ] W1 (ensayo antes de la etiqueta) anotado, sin fallos.
 - [ ] P1: release publicada y canales en `0.3.0`.
 - [ ] W2 (ensayo final) anotado.

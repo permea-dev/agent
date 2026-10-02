@@ -656,25 +656,39 @@ no hay `registro-*.md` en este repositorio).
 
 ## Q-006-1 · `claude-sonnet-5` — BLOQUEANTE antes de B3
 
-- [ ] **T043** ✋ **Decisión del dueño**: `claude-sonnet-5`, ¿2 / 10 / 2,50 / 0,20 (página oficial) o
-  3 / 15 / 3,75 / 0,30 (catálogo `865bba0`)? (spec §Preguntas abiertas.)
+- [x] **T043** ✋ **Decisión del dueño**: `claude-sonnet-5`, ¿2 / 10 / 2,50 / 0,20 (página oficial) o
+  3 / 15 / 3,75 / 0,30 (catálogo de entonces *(Enmendado 2026-10-02, Q-006-1 resuelta: era `865bba0`; ahora `e50d0a5`)*)?
+  (spec §Preguntas abiertas.)
   - **Si el catálogo de la plataforma cambia**, el dueño comunica el **commit nuevo** de
     `backend/config/pricing.php`.
   - **B3 no empieza** sin esta respuesta.
-- [ ] **T044** *(condicional: sólo si T043 cambia el catálogo)* Enmienda fechada de la spec:
+  > **Decidido el 2026-10-02 (dueño)**: `claude-sonnet-5` = **2.00 / 10.00 / 2.50 / 0.20**. La nota oficial
+  > dice que 2 / 10 ya es el precio estándar y que la subida a 3 / 15 no se producirá. La plataforma lo
+  > corrigió en **`permea-platform@e50d0a5`** (PR #78), que es el catálogo de referencia nuevo
+  > (`git -C ~/dev/permea-platform rev-parse --short origin/main` = `e50d0a5`).
+- [x] **T044** *(condicional: sólo si T043 cambia el catálogo)* Enmienda fechada de la spec:
   - M4 rehecho sobre el commit nuevo;
   - las notas de FR-014, FR-019 (limitación 3) y SC-009;
   - Q-006-1 marcada como resuelta, con fecha.
 
   Mensaje para el ✋ commit, que el dueño puede unir a T051:
   `006 spec: Q-006-1 resuelta, M4 sobre el catalogo <commit>`
+  > **Hecho el 2026-10-02.** Enmiendas fechadas («Enmendado 2026-10-02, Q-006-1 resuelta: …»):
+  > - en la spec: M4 sobre `e50d0a5`, con la fila de Sonnet 5 a 2.00 / 10.00 / 2.50 / 0.20, las citas de
+  >   línea rehechas y dos limitaciones; FR-014 replica `e50d0a5`; FR-019 pierde la tercera
+  >   limitación; SC-009 cita `e50d0a5`; SC-011 cuenta dos limitaciones; Q-006-1 queda RESUELTA;
+  > - en T045, T047, T048 y T072 de este fichero;
+  > - en el barrido de `plan.md`, `research.md`, `quickstart.md` y `contracts/tarifas.md`.
+  >
+  > Mensaje propuesto: `006 spec: Q-006-1 resuelta, M4 sobre el catalogo e50d0a5`
 
 ---
 
 ## Bloque B3 · Tarifas (`contracts/tarifas.md`, `plan.md` D-006-P6)
 
 - [ ] **T045** [P] En `internal/pricing/pricing_test.go`, una **tabla esperada escrita aparte**, con
-  comentario de procedencia (repositorio · fichero · commit de T043), y tres tests independientes:
+  comentario de procedencia (repositorio · fichero · commit de T043 — **`e50d0a5`**, Q-006-1 resuelta el
+  2026-10-02), y tres tests independientes:
   - (15) `TestEspejo_RecuentoDeClaves`: 16 claves. **Cae**: hay 3.
   - (16) `TestEspejo_CifrasClaveAClave`: cada clave esperada existe con sus **cuatro** cifras exactas.
     **Cae**: faltan 13 claves y `claude-opus-4-6` difiere.
@@ -685,9 +699,15 @@ no hay `registro-*.md` en este repositorio).
     cálculo a mano a 4 / 20 / 5 / 0,20. **Cae**: no hay fila.
 - [ ] **T047** `internal/pricing/pricing.go`: las 16 claves del catálogo de T043, y la **cabecera** de
   `contracts/tarifas.md` (fuente, verificación, aprobación, catálogo replicado, casamiento exacto, las
-  tres limitaciones). **Verde**: (15), (16), (18) y (19).
+  ~~tres~~ **dos** limitaciones). **Verde**: (15), (16), (18) y (19). *(Enmendado 2026-10-02, Q-006-1
+  resuelta: catálogo `e50d0a5`; la limitación de Sonnet 5 desaparece.)*
 - [ ] **T048** **Revisión SC-011**: una casilla por elemento de la cabecera. Transcribir las siete
-  casillas aquí.
+  casillas aquí. *(Enmendado 2026-10-02, Q-006-1 resuelta: recalculado a partir de SC-011 enmendado
+  —fuente, fecha de verificación, aprobación, versión replicada del catálogo y las dos limitaciones de
+  FR-019— son ~~**seis**~~ casillas, no siete.)* *(Enmendado 2026-10-02, coherencia con FR-018: SC-011
+  añade el casamiento, así que son **siete** casillas: fuente · verificación · aprobación · catálogo
+  replicado · casamiento · limitación 1 (caché de 5 minutos) · limitación 2 (modo rápido). El «seis»
+  de la nota anterior queda corregido.)*
 - [ ] **T049** **Mutaciones m11–m13**:
   - **m11**: `claude-opus-5-5` `CacheRead` 0.20 → 0.21. Censo: (16). Co-caída: (19), porque usa las
     cuatro partidas.
@@ -815,7 +835,8 @@ y se rehace desde el tramo C1.
   - `git diff 0311fa1 -- internal/event` vacío;
   - el `grep` de `event.NewID`;
   - el `grep` de la disciplina 8;
-  - la cabecera de tarifas cita el commit vigente del catálogo (T043);
+  - la cabecera de tarifas cita el commit vigente del catálogo (T043): **`e50d0a5`** *(enmendado
+    2026-10-02, Q-006-1 resuelta)*;
   - `grep -rn nolint --include=*.go .` → exactamente una.
 
 ### Tramo C2 · Copia congelada y medidas V
