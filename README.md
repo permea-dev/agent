@@ -23,30 +23,66 @@ etiqueta de la release.
 
 **macOS** — Homebrew cask (tap propio):
 
-    brew install --cask bfgnet/permea/permea
+    brew install --cask permea-dev/permea/permea
 
 **macOS y Linux** — script de instalación (canal **principal en Linux**; el cask de Homebrew
 es solo macOS):
 
     curl -fsSL https://raw.githubusercontent.com/permea-dev/agent/main/install.sh | sh
-    # opcional: PERMEA_VERSION=v1.4.0 PREFIX="$HOME/.local/bin" sh install.sh
+    # opcional: PERMEA_VERSION=v0.3.0 PREFIX="$HOME/.local/bin" sh install.sh
 
 **Windows** — Scoop (bucket propio):
 
-    scoop bucket add permea https://github.com/bfgnet/scoop-permea
+    scoop bucket add permea https://github.com/permea-dev/scoop-permea
     scoop install permea
 
-Verifica la instalación con `permea --version`. Detalle de canales e integridad en
+**Actualizar**, por canal:
+
+    brew upgrade --cask permea          # macOS, Homebrew
+    scoop update; scoop update permea   # Windows, Scoop (primero el bucket, luego permea)
+    curl -fsSL https://raw.githubusercontent.com/permea-dev/agent/main/install.sh | sh
+                                        # script: relanzarlo instala la última release encima
+                                        # (con el mismo PREFIX, si indicaste uno)
+
+Verifica la instalación con `permea --version`. Las versiones publicadas están en
+<https://github.com/permea-dev/agent/releases>. Detalle de canales e integridad en
 [`specs/002-distribucion/contracts/install-contract.md`](specs/002-distribucion/contracts/install-contract.md).
-Compilar desde fuente: ver [Portabilidad](#portabilidad).
+Compilar desde fuente: ver [Desarrollo](#desarrollo).
+
+## Primeros pasos
+
+Los mismos tres pasos que muestra `permea help`:
+
+**1. `permea enroll`** — conecta este ordenador con tu organización. Tres formas:
+
+- Pega el comando que te da la aplicación al añadir un agente.
+- Recomendado, por stdin, para que el secreto no quede en el historial del shell (bash/zsh):
+
+      echo "$ENROLL" | permea enroll -
+
+- Recomendado, por stdin (PowerShell): en la aplicación, copia **sólo el código** con «Copiar», y:
+
+      Get-Clipboard | permea enroll -
+
+**2. `permea status`** — comprueba que ha quedado conectado. Nunca muestra el token.
+
+**3. Medir y enviar.**
+
+> ⚠️ **La primera pasada envía todo el historial que conserve Claude Code**, no sólo lo que uses a
+> partir de ahora. Las siguientes envían sólo lo nuevo.
+
+    permea --run       # mide y envía una vez
+    permea --daemon    # o lo deja en marcha: mide y envía cada cierto tiempo
+
+Ayuda en cualquier momento: `permea help`, y la de cada subcomando con `permea <subcomando> -h`.
 
 ## Comandos
 
 Tres subcomandos, y el orden en que aparecen es el orden en que se usan:
 
     permea enroll [<enrollment-string>]   empareja la instalación con su backend
-    permea project join [<código>]        une este árbol de trabajo a un Proyecto
     permea status                         informa si la instalación está enrolada, y contra qué
+    permea project join [<código>]        une este árbol de trabajo a un Proyecto
 
 Los tres exigen **HTTPS**, sin exención ni modo de desarrollo: es la misma frontera que la
 emisión de eventos.
@@ -64,6 +100,13 @@ rechazado **no escribe nada**: el estado queda idéntico al de no haberlo intent
 > argumento**, el valor queda en el **historial del intérprete de órdenes** y a la vista de quien
 > pueda enumerar procesos. El comando no controla eso; lo que sí garantiza es que **existe una vía
 > que no obliga a ponerlo en la línea de órdenes**. Por stdin **nunca se hace eco**.
+
+### `permea status` — diagnóstico local
+
+    permea status
+
+Dice si la instalación está enrolada y contra qué backend. Es **local**: no contacta con nadie.
+**Nunca imprime el token**, a lo sumo un indicador de presencia.
 
 ### `permea project join` — unir este árbol de trabajo a un Proyecto
 
@@ -94,24 +137,18 @@ servidor**, sobre lo que ya llegó.
 - La operación es **de un solo intento**: transmite y espera. Nunca queda en la cola de envío
   diferido, ni siquiera con el servidor inalcanzable.
 
-### `permea status` — diagnóstico local
-
-    permea status
-
-Dice si la instalación está enrolada y contra qué backend. Es **local**: no contacta con nadie.
-**Nunca imprime el token**, a lo sumo un indicador de presencia.
-
-## Primeros pasos
-    make test    # test de frontera en verde (empezar por aquí)
-    make run     # dry-run: imprime eventos desde el fixture, sin transmitir
-    make build   # binario en bin/permea
-
 ## Modos de ejecución
 
-    permea --scan <fichero.jsonl>   # dry-run: imprime eventos de un JSONL, sin tocar estado ni cola
-    permea --run                    # una pasada: escanea, encola y drena al backend (US1 + US2)
+    permea --scan <fichero.jsonl>   # prueba en seco: un evento por mensaje, sin tocar estado ni cola
+    permea --run                    # una pasada: escanea, encola y drena al backend
     permea --daemon                 # bucle continuo: cada sync_interval genera y transmite
 
+- **Un evento por mensaje.** Claude Code escribe varias líneas por mensaje con el mismo consumo; el
+  agente emite **uno** por mensaje, con un `event_id` derivado del propio mensaje (el mismo en
+  cualquier pasada o instalación), y la plataforma descarta los repetidos. Las líneas `<synthetic>`
+  no se emiten. Al final de cada pasada, un resumen por stderr con **sólo recuentos**.
+- **`--scan`** imprime por evento las cuatro partidas de tokens (`in=`, `out=`, `cw=`, `cr=`), el
+  coste y el `event_id`.
 - **`--run`** hace una pasada: descubre los logs de Claude Code, lee solo lo nuevo por
   offset (idempotente), encola de forma durable en `queue.jsonl` y, si hay `endpoint`
   configurado, drena la cola por HTTPS autenticado.
@@ -120,6 +157,20 @@ Dice si la instalación está enrolada y contra qué backend. Es **local**: no c
   de autenticación (401/403) detiene el sync por configuración errónea. `Ctrl-C` para parar.
 - Sin `endpoint` configurado, la medición local funciona igual: los eventos quedan en la
   cola y nada se transmite.
+
+## Coste y tarifas
+
+El coste se calcula **en local**, en **USD**, con una tabla empaquetada en el binario
+(`internal/pricing`): **16 modelos**, espejo exacto del catálogo de tarifas de la plataforma
+(`permea-dev/permea-platform` · `backend/config/pricing.php` · `e50d0a5`).
+
+- **Casamiento exacto**: la tarifa se busca por el identificador de modelo tal como llega en el log.
+  No se normalizan sufijos de fecha, prefijos ni mayúsculas. Un modelo sin fila sale con
+  `cost_available=false` y coste 0, y sus tokens se cuentan igual.
+- **Limitación 1**: la escritura de caché va a la tarifa de **5 minutos**; una escritura de caché de
+  1 hora quedaría infravalorada (el log no la distingue).
+- **Limitación 2**: el **«modo rápido»** no se distingue; un evento en modo rápido quedaría
+  infravalorado.
 
 ## Configuración y rutas por SO
 
@@ -132,13 +183,22 @@ primer arranque), resuelto vía `os.UserConfigDir` — nunca se hardcodean rutas
 | macOS | `~/Library/Application Support/permea` |
 | Windows | `%AppData%\permea` |
 
-Ahí se guardan `config.json` (endpoint, token, identidad, `sync_interval`, modo de ref),
+Ahí se guardan `config.json` (endpoint, token, identidad, `sync_interval`),
 `state.json` (offset de escaneo), `queue.jsonl` (cola offline) y `salt` (secreto local,
 `0600`, nunca transmitido). Los logs de Claude Code se resuelven en `~/.claude/projects`
 por SO, con override opcional `logs_root` en la config. Escrituras siempre atómicas
 (temporal + `os.Rename`).
 
-## Portabilidad
+## Desarrollo
+
+Para quien trabaja en el código del agente (no hace falta para usarlo):
+
+    make test    # suite completa; empieza por el test de frontera
+    make run     # dry-run: imprime los eventos del fixture, sin transmitir
+    make build   # binario en bin/permea
+    make lint    # golangci-lint (puerta de calidad: 0 avisos)
+
+### Portabilidad
 Binario estático único, **sin CGO ni dependencias externas** (solo stdlib). Compila para
 Linux, macOS y Windows:
 
@@ -149,7 +209,7 @@ Linux, macOS y Windows:
 La versión del binario (`agent_version` en el evento) se inyecta con
 `-ldflags "-X main.version=<versión>"`.
 
-## Estructura
+### Estructura
     cmd/permea        punto de entrada (subcomandos enroll/status/project join + modos scan/run/daemon)
     internal/event    LA FRONTERA (struct cerrado del evento)
     internal/ingest   lectores por herramienta (claude_code) + tests de frontera
@@ -157,5 +217,3 @@ La versión del binario (`agent_version` en el evento) se inyecta con
     internal/state    escaneo incremental idempotente
     internal/transport cliente HTTPS + cola offline + entrega exactamente-una-vez
     internal/config   configuración local, rutas por SO, salt e identidades
-
-Renombrar el módulo en `go.mod` (`github.com/permea-dev/agent`) al repo real.

@@ -138,6 +138,30 @@ func TestEnroll_Stdin_And_SC011(t *testing.T) {
 	if err := enroll(nil, strings.NewReader(es), true, &out2, verifyVia(srv)); err != nil {
 		t.Fatalf("enroll por stdin (sin argumento, pipe) falló: %v", err)
 	}
+
+	// (c) CRLF: PowerShell termina en \r\n lo que canaliza (`Get-Clipboard | permea enroll -`, la
+	// variante del README). Mismo resultado que con \n. La primera aserción es la que vigila el
+	// recorte: la decodificación base64 ignora \r y \n, así que la segunda sola no lo distinguiría.
+	t.Run("crlf de PowerShell, igual que lf", func(t *testing.T) {
+		for _, fin := range []string{"\n", "\r\n"} {
+			got, err := readEnrollmentInput([]string{"-"}, strings.NewReader(es+fin), true)
+			if err != nil || got != es {
+				t.Fatalf("stdin terminado en %q: no devuelve el enrollment string exacto (len %d, quiero %d; err=%v)",
+					fin, len(got), len(es), err)
+			}
+		}
+		var out3 bytes.Buffer
+		if err := enroll([]string{"-"}, strings.NewReader(es+"\r\n"), true, &out3, verifyVia(srv)); err != nil {
+			t.Fatalf("enroll por stdin con \\r\\n falló: %v", err)
+		}
+		cfg, err := config.Load(filepath.Join(cfgDir, "permea", "config.json"))
+		if err != nil || cfg.DeviceToken != token {
+			t.Fatalf("stdin con \\r\\n no persistió el token: err=%v", err)
+		}
+		if strings.Contains(out3.String(), token) || strings.Contains(out3.String(), es) {
+			t.Errorf("la vía stdin con \\r\\n filtra el secreto en la salida")
+		}
+	})
 }
 
 // T009 (guard TTY) — sin argumento y stdin NO-pipe (TTY interactiva) → error de uso,

@@ -1051,9 +1051,11 @@ no hay `registro-*.md` en este repositorio).
 
 ## Bloque B5 · README, CHANGELOG y comentarios (FR-025 a FR-029)
 
-- [ ] **T065** **Rojo** (V18): transcribir `grep -c bfgnet README.md .goreleaser.yaml .github/workflows/release.yml`
+- [x] **T065** **Rojo** (V18): transcribir `grep -c bfgnet README.md .goreleaser.yaml .github/workflows/release.yml`
   (> 0) y la ausencia de `CHANGELOG.md`.
-- [ ] **T066** `README.md`:
+  > **Hecho el 2026-10-02.** `README.md:2`, `.goreleaser.yaml:1`, `.github/workflows/release.yml:1`
+  > (> 0 en los tres); `CHANGELOG.md` no existía. Rojo de V18 transcrito.
+- [x] **T066** `README.md`:
   - **instalación**: `brew install --cask permea-dev/permea/permea`,
     `scoop bucket add permea https://github.com/permea-dev/scoop-permea` e `install.sh` desde
     `permea-dev/agent`. Comprobar cada uno con `gh api` **antes** de escribirlo;
@@ -1064,20 +1066,95 @@ no hay `registro-*.md` en este repositorio).
   - **fuera** la mención del «modo de ref» en §Configuración y rutas por SO;
   - el límite de casamiento exacto de tarifas (FR-018);
   - el formato nuevo de `--scan` y la ayuda.
-- [ ] **T067** Nuevo `CHANGELOG.md` con la entrada `0.3.0`:
+  > **Hecho el 2026-10-02.** Cada dirección se comprobó **antes** de escribirla, con `curl` anónimo
+  > (sin credenciales, por orden del encargo, en lugar de `gh api`): los dos repositorios, el cask, el
+  > manifiesto de Scoop, `install.sh` y la página de releases, **200** los seis. Primeros pasos coherentes
+  > con `permea help`: enroll en tres formas (pegar el comando de la aplicación; `echo "$ENROLL" | permea
+  > enroll -`; PowerShell con `Get-Clipboard | permea enroll -`, admisible porque `readEnrollmentInput`
+  > recorta con `strings.TrimSpace` y por tanto quita `\r\n` —el test `TestEnroll_Stdin_And_SC011`
+  > cubre `\n`, no `\r\n`—), `permea status`, y el aviso de D-006-10 **antes** de `permea --run` /
+  > `--daemon`. Fuera «modo de ref»; casamiento exacto (FR-018), las dos limitaciones (caché de 1 h,
+  > modo rápido) y el coste en USD; `--scan` y la ayuda; §Desarrollo aparte. `bfgnet`: 0.
+- [x] **T067** Nuevo `CHANGELOG.md` con la entrada `0.3.0`:
   - lo nuevo de 003, 004, 005 y 006;
   - la ruptura aceptada de `project_ref` (004);
   - que **las cifras bajan porque antes se contaba de más** (×2,13 en los datos medidos);
   - la ayuda sin argumentos pasa de stderr a stdout (D-006-7);
   - un subcomando inexistente ahora sale con 1, y una opción desconocida ya no imprime el uso.
-- [ ] **T068** [P] Comentarios con `bfgnet/…` en `.github/workflows/release.yml` y `.goreleaser.yaml`,
+  > **Hecho el 2026-10-02.** `## 0.3.0 — PENDIENTE`, con §Nuevo (003, 004, 005 y 006, cada punto con
+  > su cita de spec), §Las cifras bajan (×2,13) y §Cambios que rompen (`project_ref`, modo en claro
+  > retirado, canal y forma de la ayuda: sin argumentos por stdout, subcomando inexistente exit 1,
+  > opción desconocida exit 2 sin uso). Añadida en el tramo C5 la comprobación
+  > `grep -c PENDIENTE CHANGELOG.md` → 0 antes de fusionar.
+- [x] **T068** [P] Comentarios con `bfgnet/…` en `.github/workflows/release.yml` y `.goreleaser.yaml`,
   corregidos **sin tocar ninguna línea de configuración** (FR-029).
-- [ ] **T069** **Verde** (V18):
+  > **Hecho el 2026-10-02.** Una línea de comentario en cada fichero (`bfgnet/` → `permea-dev/`). Diff
+  > sin comentarios: `git diff -U0 … | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vE '^[+-]\s*#'`
+  > → **0** líneas. `goreleaser check` (v2.16.0): 1 fichero validado.
+- [x] **T069** **Verde** (V18):
   - los dos repositorios responden y `install.sh` da 200;
   - `bfgnet` 0 en los tres ficheros;
   - el diff de configuración (sin comentarios) vacío;
   - las cuatro partes del CHANGELOG (SC-017) y el aviso del README antes de `-run` (SC-016).
-- [ ] **T070** Puertas del bloque.
+  > **Hecho el 2026-10-02.** Seis direcciones, **200**; `bfgnet` 0/0/0; diff de configuración sin
+  > comentarios, 0 líneas; CHANGELOG con lo nuevo de 003/004/005/006, la ruptura de `project_ref`,
+  > «las cifras bajan… ×2,13» y el cambio de canal de la ayuda (SC-017); en §Primeros pasos del README
+  > el aviso precede a `permea --run`, y el orden es enroll → status → `--run` (SC-016).
+- [x] **T093** *(Añadida el 2026-10-02, remate de B5.)* Restos del README, dos frases del CHANGELOG y un
+  test de CRLF:
+  1. `README.md`:
+     - el ejemplo `PERMEA_VERSION` pasa a `v0.3.0`;
+     - nuevo «Actualizar», una línea por canal: `brew upgrade --cask permea`, `scoop update` +
+       `scoop update permea`, y relanzar `install.sh`;
+     - §Comandos en el orden de `permea help` (`enroll`, `status`, `project join`), en la lista y en
+       las subsecciones;
+     - fuera `(US1 + US2)` y la línea de renombrar el módulo;
+     - barrido de códigos internos.
+  2. `CHANGELOG.md`: fuera «el producto no estaba en producción»; en «Las cifras bajan», lo enviado
+     no se corrige ni se reenvía (FR-009).
+  3. Subtest `TestEnroll_Stdin_And_SC011/crlf_de_PowerShell,_igual_que_lf`: el *enrollment string* de
+     prueba seguido de `\r\n` da el mismo resultado que con `\n`. Nace verde.
+
+  **Mutación declarada antes de mutar — m-crlf**: en `readEnrollmentInput` (`cmd/permea/enroll.go`),
+  las dos apariciones de `strings.TrimSpace(x)` pasan a `strings.TrimSuffix(x, "\n")`.
+
+  **Censo**: cae **sólo** `TestEnroll_Stdin_And_SC011/crlf_de_PowerShell,_igual_que_lf`, y su test
+  padre `TestEnroll_Stdin_And_SC011` por arrastre. Cae por su **primera aserción**: `readEnrollmentInput`
+  devuelve la cadena con `\r` final.
+
+  Análisis propio:
+  - **Las aserciones de `enroll()` del caso NO caerían solas.** `base64.RawURLEncoding` ignora
+    `\r` y `\n` (comprobado aparte), así que `es+"\r"` se decodifica igual y persiste el mismo
+    token. Por eso el caso compara también la salida de `readEnrollmentInput`.
+  - **Ningún otro test depende del recorte**:
+    - el caso (a) usa un único `\n` final, que `TrimSuffix` también quita;
+    - el (b) no lleva blancos;
+    - los de argumento (`enroll_test.go`, `enroll_reject_test.go`, `main_test.go`) no llevan blancos;
+    - el único subproceso con stdin es `project join`, que tiene su propio lector en `project.go`;
+    - las ayudas `enroll -h` no llegan a leer.
+  > **Hecho el 2026-10-02.**
+  > - **README**: hechos los seis puntos. `install.sh` sin `PERMEA_VERSION` resuelve la última release
+  >   y copia el binario encima, así que relanzarlo actualiza; la nota pide repetir el mismo `PREFIX` si
+  >   se indicó uno. `go.mod` ya declara `github.com/permea-dev/agent`. El barrido sólo encontró
+  >   `(US1 + US2)`, ya fuera.
+  > - **CHANGELOG**: hechas las dos frases. FR-009 respalda «no se reenvía», y §Fuera de alcance, «no se
+  >   corrige». Se añade que la cola de la 0.2.1 se envía tal cual, que es literal de FR-009.
+  > - **m-crlf**: 430 pasan y 2 caen, los dos declarados: el subtest, por su primera aserción
+  >   (`len 121, quiero 120`), y su padre por arrastre. Reversión por edición inversa: md5 de `enroll.go`
+  >   `5af2d0c2f87ed4fb1c95297fda28e4b5` antes y después, y sin diff. Tests: **432** (431 + 1 subtest).
+- [x] **T070** Puertas del bloque.
+  > **Hecho el 2026-10-02.** `gofmt -l .` vacío; `go vet` sin hallazgos; `golangci-lint run` 0 issues;
+  > `go test -count=1 ./...` **431** pasan, 0 fallan, 9/9 paquetes ok (sin cambios); `internal/event`
+  > sin diff; disciplina 8 y `event.NewID` fuera de `internal/event`, vacíos; Windows y darwin compilan;
+  > `make run` rc 0 (2 eventos, dry-run); `goreleaser check` rc 0. Ningún `.go` modificado en B5.
+  > **Repetidas tras T093 (2026-10-02)**, todas en verde:
+  > - `gofmt -l .` vacío, `go vet` sin hallazgos, `golangci-lint run` 0 issues;
+  > - `go test -count=1 ./...`: **432** pasan y 0 fallan, 9/9 paquetes;
+  > - `internal/event` sin diff; disciplina 8 y `event.NewID`, vacíos;
+  > - Windows y darwin compilan; `make run` rc 0; `goreleaser check` rc 0;
+  > - T069 repetida: `bfgnet` 0/0/0 y diff de configuración sin comentarios, 0 líneas.
+  >
+  > Único `.go` tocado: `cmd/permea/enroll_test.go`. Ningún cambio en producción.
 - [ ] **T071** ✋ **Commit** (dueño): `006 B5: README instalable, CHANGELOG 0.3.0 y comentarios de distribucion`
 
 ---
@@ -1143,6 +1220,10 @@ y se rehace desde el tramo C1.
   se corrige y se repite desde C1.
 
 ### Tramo C5 · Cuerpo del PR
+
+> *(Añadido el 2026-10-02 en B5.)* **Antes de fusionar**: la entrada `## 0.3.0 — PENDIENTE` de
+> `CHANGELOG.md` lleva la fecha de la etiqueta, y `grep -c PENDIENTE CHANGELOG.md` → **0**. Si no da 0,
+> no se fusiona.
 
 - [ ] **T081** Transcribir aquí el resultado de W1. Para el paso 4, el recuento de mensajes de ese log
   contado desde WSL. Redactar el cuerpo del PR en

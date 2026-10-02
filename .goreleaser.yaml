@@ -52,7 +52,7 @@ checksum:
   algorithm: sha256
 
 # Homebrew: GoReleaser v2 distribuye binarios de CLI como CASKS (brews está deprecado).
-# Publica en el tap propio bfgnet/homebrew-permea (macOS amd64/arm64).
+# Publica en el tap propio permea-dev/homebrew-permea (macOS amd64/arm64).
 homebrew_casks:
   - name: permea
     ids:

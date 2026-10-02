@@ -34,5 +34,5 @@ jobs:
           # Publica la release en este repo (assets + checksums).
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # PAT con scope repo: necesario para commitear la fórmula y el manifiesto en los
-          # repos externos bfgnet/homebrew-permea y bfgnet/scoop-permea.
+          # repos externos permea-dev/homebrew-permea y permea-dev/scoop-permea.
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
