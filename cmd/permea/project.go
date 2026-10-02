@@ -89,6 +89,11 @@ func runProjectOS(args []string) int {
 // Devuelve el código de salida en vez de llamar a `os.Exit`: es lo que permite probarlo en proceso,
 // sin arrancar un binario hijo. `main` es quien sale.
 func runProject(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr io.Writer, adherir ejecutorDeAdhesion) int {
+	// P-006 FR-023: `project -h` da la ayuda de `project` (lista `join`) y no hace nada más.
+	if esPeticionDeAyudaDeSubcomando(args) {
+		escribirAyudaDe(stdout, "project")
+		return codigoExito
+	}
 	if len(args) == 0 {
 		_, _ = fmt.Fprintln(stderr, "error: falta el verbo. Verbos disponibles: join")
 		return codigoFallo
@@ -124,6 +129,12 @@ func runProject(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr
 // **si puede hacerse**: preguntar lo segundo sin saber lo primero es responder a una pregunta que
 // nadie ha terminado de formular. Es también el orden que sigue `enroll`.
 func projectJoin(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr io.Writer, adherir ejecutorDeAdhesion) int {
+	// P-006 FR-023: la ayuda va PRIMERO, antes de leer el código. Sin esto, `-h` se tomaba por un
+	// código de adhesión y, con un agente enrolado dentro de un árbol, llegaba a EMITIR la petición.
+	if esPeticionDeAyudaDeSubcomando(args) {
+		escribirAyudaDe(stdout, "project join")
+		return codigoExito
+	}
 	codigo, err := leerCodigoDeAdhesion(args, stdin, stdinEsPipe)
 	if err != nil {
 		_, _ = fmt.Fprintln(stderr, "error:", err)

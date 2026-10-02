@@ -784,10 +784,10 @@ no hay `registro-*.md` en este repositorio).
   > - **m11 (repetida)** · `claude-opus-5-5` `CacheRead` 0.20 → 0.21. Caen
   >   `TestEspejo_CifrasClaveAClave/claude-opus-5-5` **y `TestCost_Opus55AMano`** (daría 1,08745013, a
   >   9,9e-3 > 1e-9). Censo restaurado: la co-caída (19) del enunciado vuelve a ser posible.
-  > - **m14** · en `Cost`, cruzar las tarifas de caché (`cacheCreate` con `r.CacheRead`, `cacheRead` con
+  > - **m-cruce** · en `Cost`, cruzar las tarifas de caché (`cacheCreate` con `r.CacheRead`, `cacheRead` con
   >   `r.CacheWrite`). Cae sólo `TestCost_Opus55AMano` (daría 5,5990488). (18) queda verde porque sus
   >   cuatro partidas llevan los mismos tokens, y los `TestBoundary_*` siguen con coste > 0.
-  > - **m15** · en `Cost`, redondear a céntimos (`math.Round(x*100)/100`). Cae sólo
+  > - **m-centimos** · en `Cost`, redondear a céntimos (`math.Round(x*100)/100`). Cae sólo
   >   `TestCost_Opus55AMano` (daría 1,08). (18) da 36,75 exacto, y los `TestBoundary_*` dan 0,03 > 0:
   >   verdes.
   >
@@ -795,9 +795,13 @@ no hay `registro-*.md` en este repositorio).
   > `pricing.go` volvió a `c8239bfe4338458dd1df149bb51135b7` tras cada una; `vet` limpio con todas:
   > - **m11**: (16)/`claude-opus-5-5` («lectura de caché = 0.21, want 0.2») y (19) («coste = 1.0874501300,
   >   want 1.0775736000 (diferencia absoluta 0.00988 > 1e-9)»);
-  > - **m14**: sólo (19) («coste = 5.5990488000 …»). (18) verde;
-  > - **m15**: sólo (19) («coste = 1.0800000000 … (diferencia absoluta 0.00243 > 1e-9)»). (18) y los
+  > - **m-cruce**: sólo (19) («coste = 5.5990488000 …»). (18) verde;
+  > - **m-centimos**: sólo (19) («coste = 1.0800000000 … (diferencia absoluta 0.00243 > 1e-9)»). (18) y los
   >   `TestBoundary_*` verdes.
+  >
+  > *(Enmendado 2026-10-02: renombradas; m14 y m15 son de B4. Las dos mutaciones de `Cost` de este remate
+  > se llamaban «m14» y «m15»; ahora son **m-cruce** (tarifas de caché cruzadas) y **m-centimos** (redondeo
+  > a céntimos).)*
 - [x] **T050** Puertas del bloque.
   > **Puertas, 2026-10-02**:
   > - `gofmt` vacío;
@@ -825,37 +829,74 @@ no hay `registro-*.md` en este repositorio).
 > cuentan las peticiones con `bancoDeAdhesion.recibidas`. **Sin confianza TLS el servidor nunca vería
 > la petición y el 0 sería vacuo.**
 
-- [ ] **T052** [P] **Rojo** (20) `TestAyuda_LasCuatroFormasSonIdenticas` (`cmd/permea/ayuda_test.go`):
+- [x] **T052** [P] **Rojo** (20) `TestAyuda_LasCuatroFormasSonIdenticas` (`cmd/permea/ayuda_test.go`):
   sin argumentos, `help`, `-h` y `--help` → stdout no vacío e **idéntico byte a byte**, stderr vacío,
   exit 0. **Cae**: `-h` sale por stderr con el uso de Go, y `help` lleva banner por stderr.
-- [ ] **T053** [P] **Rojo** (21) `TestAyuda_ContenidoMinimo`, sólo sobre la forma `help`:
+  > **Paso 0b (2026-10-02), antes de escribir nada.** `grep` en `*_test.go` de ayuda/uso por stderr,
+  > `printUsage`, banner, exit de la invocación sin argumentos / de un argumento desconocido / de una
+  > opción desconocida, y `runStatus`. El único test existente que cambia es la llamada a `runStatus`
+  > de `status_test.go` (2 sitios), que ya preveía T061. Ningún otro fija la conducta vieja.
+  >
+  > **🔴 Medido** (5 formas: el contrato añade `-help` a las cuatro de la spec). `-h`/`--help`/`-help`
+  > (`ayuda_test.go:90`): «stderr debe estar VACÍO; trae "Usage of …permea-test:\n  -daemon…"», y
+  > `:93` «stdout vacío». `help` y `sin_argumentos`: stderr con «Permea 0.0.1-dev\nuso: permea
+  > <subcomando | flag>…». `identicas` (`:100`): «la ayuda de `help` está vacía».
+- [x] **T053** [P] **Rojo** (21) `TestAyuda_ContenidoMinimo`, sólo sobre la forma `help`:
   - `enroll`, `status`, `project join`, `--scan`, `--run`, `--daemon` y `--version`;
   - la recomendación de stdin, en los dos sitios.
 
   **Cae**: hoy sale por stderr y stdout está vacío.
-- [ ] **T054** [P] **Rojo** (22) `TestAyudaSubcomando_NoHaceNada`: las 8 invocaciones de
+  > **🔴 Medido**: los 9 subtests (`enroll`, `status`, `project_join`, las 4 opciones y las 2 vías
+  > stdin) caen por «la ayuda (stdout de `permea help`) no contiene …» (`:131`): hoy sale por stderr.
+- [x] **T054** [P] **Rojo** (22) `TestAyudaSubcomando_NoHaceNada`: las 8 invocaciones de
   `contracts/cli.md` §Las ayudas de subcomando, con exit 0 y la ayuda por stdout. En dos montajes, y
   cada aserción con `t.Errorf`:
   - **(a) sandbox vacío**: el árbol queda idéntico antes y después;
   - **(b) enrolado**, desde un árbol con raíz: el banco recibe **0** peticiones y el árbol no cambia.
 
   **Cae**: `status -h` crea el directorio de datos y `project join -h` emite.
-- [ ] **T055** [P] **Rojo** (23) `TestDesconocido_SubcomandoNombradoYSalida1`: `permea enrol` → exit
+  > **🔴 Medido, 16/16**, tras una corrección previa al verde. **Primera versión ciega para `status`**:
+  > `testutil.Sandbox` crea el directorio de datos por adelantado y `status` imprime su estado por
+  > stdout con exit 0, así que `vacio/status_*` y `enrolado/status_*` pasaban. Corregido antes del
+  > verde: en (a) se borra el directorio vacío que deja el sandbox, y se exige que stdout empiece por
+  > `uso: permea <subcomando>`. Razones medidas:
+  > - `vacio/status_-h`: «stdout debe ser la ayuda … trae "no enrolado"» y «APARECIÓ .config/permea»;
+  > - `vacio/enroll_-h`: «ExitCode() = 1» y «enrollment string inválido: prefijo no reconocido»;
+  > - `vacio/project_-h`: «verbo desconocido "-h"»;
+  > - `vacio/project_join_-h`: «no está enrolada» y «APARECIÓ .config/permea»;
+  > - `enrolado/project_join_-h`: «trae "unido al Proyecto \"RecetApp\""», «APARECIÓ
+  >   .config/permea/salt» y **«emitió 1 peticiones al banco»**. Era el defecto real: pedir ayuda emitía.
+  >
+  > Confianza TLS por `SSL_CERT_FILE` (montaje de `entornoDeAdhesion`); m16 demuestra que el
+  > contador ve la petición.
+- [x] **T055** [P] **Rojo** (23) `TestDesconocido_SubcomandoNombradoYSalida1`: `permea enrol` → exit
   1, stderr contiene `enrol`, stdout vacío. **Cae**: hoy exit 0.
-- [ ] **T056** [P] **Rojo** (24) `TestDesconocido_NoReproduceSecretos`: `pmea2.<centinela>`,
+  > **🔴 Medido**: `:204` «ExitCode() = 0, se esperaba 1» y `:207` «stderr debe nombrar el subcomando
+  > desconocido ("enrol"); trae "Permea 0.0.1-dev\nuso: …"».
+- [x] **T056** [P] **Rojo** (24) `TestDesconocido_NoReproduceSecretos`: `pmea2.<centinela>`,
   `pmeaj1.<centinela>` y `pmea1.<centinela>` → exit 1, y el centinela no aparece en ninguno de los dos
   canales. **Cae** por el exit.
-- [ ] **T057** [P] (25) `TestTokenCentinela_NuncaSale`: un `config.json` de prueba con un token
+  > **🔴 Medido**: los 3 prefijos, `:223` «ExitCode() = 0, se esperaba 1». El centinela no se reproducía
+  > ya (la ayuda no hace eco); lo acredita m17.
+- [x] **T057** [P] (25) `TestTokenCentinela_NuncaSale`: un `config.json` de prueba con un token
   centinela y todas las invocaciones de `contracts/cli.md` (las cuatro generales, las ocho de
   subcomando, `status`, subcomando inexistente y opción desconocida). El centinela no aparece en
   ningún canal. **Nace verde** (hoy no se imprime) → m18.
-- [ ] **T058** [P] **Rojo** (26) `TestOpcionDesconocida_StderrYSalida2` (E-006-P3): `--bogus`, y
+  > **Nace verde**: 17 subtests (5 ayudas generales, `status`, `enrol`, `--bogus`, `--scan` y las 8 de
+  > subcomando). Lo acreditan m18, m-token-ayuda, m-token-errores y m-token-status.
+- [x] **T058** [P] **Rojo** (26) `TestOpcionDesconocida_StderrYSalida2` (E-006-P3): `--bogus`, y
   `--scan` sin valor. Exit 2, stdout **vacío**, y stderr nombra la opción y contiene `permea help`.
   **Cae** porque Go no remite a `permea help`. Transcribir también si hoy añade el uso por defecto.
-- [ ] **T059** Nuevo `cmd/permea/ayuda.go`: **la fuente única**, una tabla de subcomandos (nombre,
+  > **🔴 Medido**: `desconocida` y `sin_valor` caen sólo por `:281` «stderr debe remitir a `permea help`;
+  > trae "flag provided but not defined: -bogus\nUsage of …"» (y «flag needs an argument: -scan …»). Hoy
+  > Go **sí añade su uso por defecto, por stderr**. stdout ya estaba vacío y el exit ya era 2.
+- [x] **T059** Nuevo `cmd/permea/ayuda.go`: **la fuente única**, una tabla de subcomandos (nombre,
   sinopsis, líneas) y de opciones. Compone la ayuda general y la de cada subcomando. El literal de
   `printUsage` en `main.go` se sustituye por ella; su comentario de cabecera se traslada **por nombre**.
-- [ ] **T060** `cmd/permea/main.go`:
+  > **Hecho.** `cmd/permea/ayuda.go`: tablas `filasDeSubcomandos` y `filasDeOpciones`; la ayuda general
+  > y la de cada subcomando se componen de ellas, con la misma sangría (fragmento literal). El literal
+  > `printUsage` se retira de `main.go`; su razón se traslada por nombre a la cabecera de `ayuda.go`.
+- [x] **T060** `cmd/permea/main.go`:
   - **escalera**: sin argumentos, `help`, `-h`, `--help` y `-help` → ayuda por stdout, exit 0, **antes**
     del parseo y del banner;
   - **subcomando inexistente**: primer argumento que no empieza por `-` y no es conocido → error por
@@ -863,14 +904,27 @@ no hay `registro-*.md` en este repositorio).
   - **parseo** con un `FlagSet` de `ContinueOnError` y salida descartada: `flag.ErrHelp` → ayuda por
     stdout, exit 0; otro error → mensaje propio por stderr con la opción y `permea help`, exit 2
     (`research.md` R8, enmienda E-006-P3).
-- [ ] **T061** Ayudas de subcomando, en la **primera** línea de cada camino:
+  > **Hecho.**
+  > - Escalera: sin argumentos y `help`/`-h`/`--help`/`-help` → ayuda por stdout, exit 0, antes del
+  >   parseo y del banner.
+  > - Subcomando inexistente → exit 1 por stderr; con forma de secreto, sin reproducirlo.
+  > - `FlagSet` con `ContinueOnError` y salida descartada: `ErrHelp` → ayuda; otro error → mensaje
+  >   propio («opción desconocida: -bogus» / «la opción -scan necesita un valor») más «Ayuda: permea
+  >   help», exit 2. **Ese mensaje tampoco reproduce un secreto** (FR-024).
+  > - Rama `default` (opciones válidas sin modo): la ayuda por stderr, exit 0, como siempre.
+- [x] **T061** Ayudas de subcomando, en la **primera** línea de cada camino:
   - `runEnroll` (`enroll.go`), antes de inspeccionar stdin;
   - `runStatus` (`status.go`), que pasa a recibir los argumentos (se ajusta su llamada en
     `status_test.go`), antes de `config.DataDir()`;
   - `runProject` para `project -h` y `projectJoin` para `project join -h` (`project.go`).
 
   **Verde**: (20)–(26). `TestProject_ErroresDeUsoDeLaGramatica` sigue verde sin cambios.
-- [ ] **T062** **Mutaciones m14–m19**:
+  > **Verde**: (20)–(26) verdes. `TestProject_ErroresDeUsoDeLaGramatica` verde sin tocar.
+  > `status_test.go`: `runStatus(nil, &out)` en los 2 sitios. Suite **415 pass** (355 + 7 tests y 53
+  > subtests). Comprobado a mano en un HOME temporal (sin enrolar, `logs_root` vacío) que no cambian
+  > `--version`/`-version`, `--scan`/`-scan`, `--run`/`-run` («sync omitido») ni `--daemon`/`-daemon`
+  > (arranca su ciclo y lo corta `timeout`).
+- [x] **T062** **Mutaciones m14–m19**:
   - **m14**: la invocación sin argumentos escribe por stderr. Censo: (20). (21) no cae, porque mira
     sólo `help`.
   - **m15**: en `runStatus`, la comprobación de `-h` detrás de `DataDir()`. Censo: (22) (a).
@@ -879,7 +933,117 @@ no hay `registro-*.md` en este repositorio).
   - **m18**: la ayuda de `status` carga la configuración e imprime `DeviceToken`. Censo: (25).
     Co-caída: (22) (a), porque cargar la configuración crea el directorio en el sandbox vacío.
   - **m19**: ante una opción desconocida, escribir también la ayuda por stdout. Censo: (26).
-- [ ] **T063** Puertas del bloque.
+  > **Censos DECLARADOS el 2026-10-02, antes de mutar**, nombrando subtests (padres implícitos). Análisis
+  > propio sobre el código verde. Todo lo no nombrado, verde.
+  > - **m14** · sin argumentos → ayuda por **stderr**. Caen `TestAyuda_LasCuatroFormasSonIdenticas/sin_argumentos`
+  >   y `…/identicas`. (21) no cae porque mira `help`, y (25)/`sin_argumentos` tampoco: no hay token.
+  > - **m15** · en `runStatus`, `DataDir()` antes de atender `-h`. Caen
+  >   `TestAyudaSubcomando_NoHaceNada/vacio/status_-h` y `…/vacio/status_--help`, por «APARECIÓ
+  >   .config/permea». `enrolado/status_*` no cae: el directorio ya existe.
+  > - **m16** · `projectJoin` sin su bloque de ayuda. Caen (22)/`vacio/project_join_-h` y
+  >   `…/vacio/project_join_--help` (no enrolado → exit 1, sin cabecera), y (22)/`enrolado/project_join_-h`
+  >   y `…/enrolado/project_join_--help` (**emite al banco**, crea el `salt` y responde «unido»). (25) no
+  >   cae: su endpoint es inalcanzable y no imprime el token.
+  > - **m17** · el error de subcomando reproduce siempre lo tecleado. Caen
+  >   `TestDesconocido_NoReproduceSecretos/pmea2.`, `…/pmeaj1.` y `…/pmea1.`.
+  > - **m18** · la ayuda de `status`, tras escribirse, carga la configuración e imprime `DeviceToken`.
+  >   Caen `TestTokenCentinela_NuncaSale/status_-h` y `…/status_--help`, y la co-caída
+  >   (22)/`vacio/status_-h` y `…/vacio/status_--help` (cargar la configuración crea el directorio).
+  >   `enrolado/status_*` no cae: la cabecera va primero y el árbol no cambia.
+  > - **m19** · ante una opción desconocida o sin valor, escribir también la ayuda por stdout. Caen
+  >   `TestOpcionDesconocida_StderrYSalida2/desconocida` y `…/sin_valor`.
+  >
+  > **Tres más, por la disciplina 3**: los 17 subtests de (25) nacieron verdes, y m18 sólo tumba dos.
+  > Cada una inyecta el volcado de `config.json` en un camino de salida distinto:
+  > - **m-token-ayuda** · `escribirAyudaGeneral` y `escribirAyudaDe` vuelcan `config.json` al final.
+  >   Caen (25)/`sin_argumentos`, `help`, `-h`, `--help`, `-help`, `enroll_-h`, `enroll_--help`,
+  >   `status_-h`, `status_--help`, `project_-h`, `project_--help`, `project_join_-h` y
+  >   `project_join_--help` (13). En (20), (21) y (22) no hay `config.json` en el directorio de datos, o
+  >   el volcado va tras la cabecera: verdes.
+  > - **m-token-errores** · los errores de subcomando desconocido y de opción inválida vuelcan
+  >   `config.json` por stderr. Caen (25)/`enrol`, `--bogus` y `--scan`. (23) y (26) corren sin
+  >   `config.json`: verdes.
+  > - **m-token-status** · `status` enrolado imprime `DeviceToken`. Caen (25)/`status` y la co-caída
+  >   `TestStatus_Enrolled_ShowsURLNotToken` (`status_test.go`).
+  >
+  > **Ejecutadas las 9.** Cada una cayó **exactamente** según su censo y se revirtió por edición
+  > inversa con md5 idéntico (`main.go` `e699fa48…`, `status.go` `2d77da79…`, `project.go` `326ce28e…`,
+  > `ayuda.go` `b6386600…`); `vet` limpio con todas:
+  > - **m14**: (20)/`sin_argumentos` y `identicas`;
+  > - **m15**: (22)/`vacio/status_-h` y `--help` («APARECIÓ .config/permea»);
+  > - **m16**: (22)/`vacio/project_join_*` (exit 1) y `enrolado/project_join_*` («unido», «APARECIÓ
+  >   …/salt», **«emitió 1 peticiones al banco»**: el 0 no es vacuo);
+  > - **m17**: (24) ×3;
+  > - **m18**: (25)/`status_-h` y `--help`, más (22)/`vacio/status_*`;
+  > - **m19**: (26) ×2 («stdout debe estar VACÍO»);
+  > - **m-token-ayuda**: (25) ×13;
+  > - **m-token-errores**: (25)/`enrol`, `--bogus` y `--scan`;
+  > - **m-token-status**: (25)/`status` y `TestStatus_Enrolled_ShowsURLNotToken`.
+- [x] **T091** *(nueva, 2026-10-02, remate de B4, D-006-14)* **Rojos (27)–(29)** en
+  `cmd/permea/ayuda_test.go`, sobre el texto de ayuda aprobado por el dueño:
+  - (27) `TestAyuda_AnchoMaximo80`, un subtest por ayuda;
+  - (28) `TestAyuda_PrimerosPasosYAviso`, con los subtests `bloque`, `orden` y `aviso`;
+  - (29) `TestAyuda_SinJergaInterna`, un subtest por ayuda.
+  > **Paso 0, antes de tocar nada**: ninguna aserción de (20)–(26) depende del texto viejo.
+  > - (21) busca `enroll`, `status`, `project join`, las 4 opciones, `| permea enroll -` y
+  >   `| permea project join -`, y el texto aprobado los trae todos.
+  > - (22) exige `uso: permea <subcomando>`, que se conserva.
+  > - (20) y (23)–(26) no miran el texto.
+  >
+  > Ningún test anterior a B4 se toca.
+  >
+  > **🔴 Medido el 2026-10-02**:
+  > - (27): los 5 subtests caen (`ayuda_test.go:321`); el máximo es 105/97/105/100/100 caracteres
+  >   para general/enroll/status/project/project join.
+  > - (28): `bloque` (`:344`, «no contiene «Primeros pasos:»»), `orden` (`:350`, posiciones −1) y
+  >   `aviso` (`:355`).
+  > - (29): `general` cae («contiene jerga interna "P-001"», «"P-002"», «"sync_interval"»); `enroll`,
+  >   `status`, `project` y `project_join` **nacen verdes** → m-jerga.
+  >
+  > **Censo DECLARADO antes de mutar**: **m-jerga** · `escribirFila` añade « (P-001)» a la línea de la
+  > sinopsis. Caen `TestAyuda_SinJergaInterna/general`, `…/enroll`, `…/status`, `…/project` y
+  > `…/project_join`. Nada más: las sinopsis más « (P-001)» siguen por debajo de 80, la cabecera `uso:`
+  > y «Primeros pasos» no cambian, y las cinco formas siguen idénticas.
+  >
+  > **Ejecutada**: cayeron **exactamente** los 5 subtests declarados (`ayuda_test.go:370`, «la ayuda
+  > contiene jerga interna "P-001"»). Revertida por edición inversa: md5 de `ayuda.go`
+  > `8a484a9b13cdda45704cc0db10763fc8`, idéntico.
+- [x] **T092** *(nueva, 2026-10-02, remate de B4, D-006-14)* **Verde**: `cmd/permea/ayuda.go` con el
+  texto aprobado y la forma nueva (sinopsis sola en su línea, con sangría 2; descripción con 6;
+  ejemplos con 10). La general y las de subcomando salen de la misma tabla, con la misma
+  `escribirFila`. Comparar `permea help` byte a byte con el texto aprobado.
+  > **Verde medido**: `cmp` de `permea help` (HOME temporal) con el texto aprobado, **idéntico byte a
+  > byte** (41 líneas, termina en salto de línea, máximo 75 caracteres), con stderr vacío y rc 0.
+  > (20)–(29) verdes; suite **431 pass** (415 + 3 tests y 13 subtests).
+  >
+  > **⚠️ Ajuste de (28)/`aviso`**: en el texto aprobado «todo el historial» cruza un salto de línea
+  > («…La primera vez envía todo» / «el historial que conserve…»), y la búsqueda literal no podía
+  > casar nunca. La aserción compara con los espacios normalizados (`strings.Fields`). El texto
+  > aprobado no se tocó.
+- [x] **T063** Puertas del bloque.
+  > **Puertas, 2026-10-02**:
+  > - `gofmt` vacío;
+  > - `vet` limpio;
+  > - lint **0**;
+  > - `go test -count=1 ./...` **9/9 ok, 415 pass, 0 fail**;
+  > - `internal/event` sin diff;
+  > - Windows y darwin compilan;
+  > - `make run` rc 0;
+  > - `event.NewID` sin llamantes;
+  > - disciplina 8, sin resultados.
+  >
+  > **Repetidas tras el remate de B4 (D-006-14), 2026-10-02**:
+  > - `gofmt` vacío;
+  > - `vet` limpio;
+  > - lint **0**;
+  > - `go test -count=1 ./...` **9/9 ok, 431 pass, 0 fail**;
+  > - `internal/event` sin diff;
+  > - Windows y darwin compilan;
+  > - `make run` rc 0;
+  > - `event.NewID` sin llamantes;
+  > - disciplina 8, sin resultados;
+  > - `permea help` idéntica byte a byte al texto aprobado, y las 4 de subcomando, fragmento literal de
+  >   la general.
 - [ ] **T064** ✋ **Commit** (dueño):
   `006 B4: ayuda unica por stdout, ayudas de subcomando sin efectos y errores de uso`
 

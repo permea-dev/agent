@@ -34,7 +34,7 @@ func TestStatus_Enrolled_ShowsURLNotToken(t *testing.T) {
 	writeConfig(t, cfgDir, endpoint, token)
 
 	var out strings.Builder
-	if err := runStatus(&out); err != nil {
+	if err := runStatus(nil, &out); err != nil {
 		t.Fatalf("runStatus: %v", err)
 	}
 	s := out.String()
@@ -56,7 +56,7 @@ func TestStatus_NotEnrolled(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", cfgDir) // sin config.json → Load devuelve Default()
 
 	var out strings.Builder
-	if err := runStatus(&out); err != nil {
+	if err := runStatus(nil, &out); err != nil {
 		t.Fatalf("runStatus no debe fallar sin enrolar (exit 0): %v", err)
 	}
 	if !strings.Contains(out.String(), "no enrolado") {

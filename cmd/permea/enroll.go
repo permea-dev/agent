@@ -16,6 +16,12 @@ import (
 // enrollment string —y el token que contiene— es un secreto del mismo calibre que el
 // salt: NUNCA se hace eco ni aparece en errores.
 func runEnroll(args []string) error {
+	// P-006 FR-023: la ayuda va PRIMERO, antes de inspeccionar stdin. Pedirla no lee el secreto ni
+	// toca la configuración.
+	if esPeticionDeAyudaDeSubcomando(args) {
+		escribirAyudaDe(os.Stdout, "enroll")
+		return nil
+	}
 	fi, err := os.Stdin.Stat()
 	if err != nil {
 		return fmt.Errorf("no se pudo inspeccionar stdin: %w", err)

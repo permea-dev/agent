@@ -444,7 +444,10 @@ versión está publicada** y el dueño la ha ensayado en Windows **dos veces**:
   **DEBE** tener **una sola fuente**, para que no vuelva a haber dos textos que diverjan. Y **DEBE**
   recomendar la vía stdin para los dos valores sensibles (`003/contracts/cli.md:21`,
   `005/contracts/cli.md:60`). *(Enmendado 2026-10-02, D-006-7: se añade la invocación sin argumentos,
-  que hoy imprime la ayuda por stderr. El cambio de canal va al CHANGELOG, FR-028.)*
+  que hoy imprime la ayuda por stderr. El cambio de canal va al CHANGELOG, FR-028.)* *(Nota 2026-10-02, D-006-14: el
+  texto de la ayuda es el aprobado por el dueño, con tres garantías: ninguna línea pasa de 80
+  caracteres, la general trae «Primeros pasos» y el aviso del historial, y ninguna ayuda contiene jerga
+  interna.)*
 - **P-006 FR-022**: Un subcomando inexistente **DEBE** fallar con un mensaje que lo **nombre**, con el
   **mismo código de salida** que ya usa `permea project <verbo desconocido>` (1,
   `cmd/permea/project.go:55-56`). Si lo tecleado tiene la forma de un secreto conocido (`pmea2.`,
@@ -733,6 +736,17 @@ dice qué toca. Ningún número existente se ha reasignado.
   `.golangci.yml`**, no con opciones de línea de órdenes: la constitución nombra `golangci-lint run`
   a secas, y un instrumento que esconde no sirve de puerta. «Los 7 avisos» de arriba se conserva
   como se escribió.
+
+- **D-006-14 · El texto de la ayuda lo aprueba el dueño, literalmente** (dueño, 2026-10-02). El texto
+  de `permea help` y de las ayudas de subcomando es el aprobado (`cmd/permea/ayuda.go`), con tres
+  garantías:
+  1. **ninguna línea de ninguna ayuda pasa de 80 caracteres** (runas, no bytes);
+  2. **la ayuda general trae «Primeros pasos»** (`enroll` → `status` → `--run`) y **el aviso de que la
+     primera pasada envía todo el historial que conserve Claude Code**;
+  3. **ninguna ayuda contiene jerga interna**: `P-001`, `P-002`, `sync_interval`.
+
+  Toca FR-021 y `contracts/cli.md` §La ayuda general. Las vigilan los tests (27)–(29) de B4 (T091,
+  T092).
 
 ---
 

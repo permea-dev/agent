@@ -13,7 +13,14 @@ import (
 // estado de la config persistida (endpoint + token + https) y NUNCA contacta al backend
 // (a diferencia de enroll). NUNCA imprime el device_token (SC-005): a lo sumo un indicador
 // de presencia.
-func runStatus(stdout io.Writer) error {
+//
+// P-006 FR-023: recibe los argumentos para atender `-h`/`--help` en su PRIMERA línea, antes de
+// `config.DataDir()`, que CREA el directorio de datos: pedir la ayuda no puede dejar nada en disco.
+func runStatus(args []string, stdout io.Writer) error {
+	if esPeticionDeAyudaDeSubcomando(args) {
+		escribirAyudaDe(stdout, "status")
+		return nil
+	}
 	dir, err := config.DataDir()
 	if err != nil {
 		return err

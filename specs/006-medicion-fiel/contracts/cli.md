@@ -30,6 +30,15 @@ siguen siendo **0 y 1** (D-005-4).
   - la vía **stdin** recomendada para `enroll` y para `project join` (003 `cli.md:21`, 005 `cli.md:60`).
 - **Una sola fuente**: la ayuda de cada subcomando es un fragmento de la general, compuesto de la misma
   tabla.
+- *(Enmendado 2026-10-02, D-006-14: el dueño aprobó el texto literalmente, `cmd/permea/ayuda.go`.)*
+  Tres garantías más:
+  1. **ninguna línea de ninguna ayuda pasa de 80 caracteres** (runas, no bytes);
+  2. **la ayuda general trae «Primeros pasos»** (`enroll` → `status` → `--run`) y el aviso de que la
+     primera pasada envía **todo el historial** que conserve Claude Code;
+  3. **ninguna ayuda contiene jerga interna**: `P-001`, `P-002`, `sync_interval`.
+
+  Forma: la sinopsis va sola en su línea (sangría 2), la descripción debajo (sangría 6) y los ejemplos
+  debajo (sangría 10).
 - ~~**Flag desconocido** (`permea --bogus`): fuera de la spec, y se conserva lo que hace Go. El error va
   por **stderr**, con exit **2**, y la ayuda que lo acompaña sale ahora por stdout.~~ **Revocado el
   2026-10-02 por E-006-P3** (decisión del orquestador): ver §Opción desconocida.
