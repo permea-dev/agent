@@ -470,3 +470,230 @@ cmp: sin diferencias (rc=0)
 $ grep -c PENDIENTE CHANGELOG.md
 1
 ```
+
+## Cierre
+
+### C1 · T038 · Puertas *(2026-10-06, sobre `07904af`, árbol limpio; Go 1.22.2, golangci-lint 2.12.2)*
+
+Las arquitecturas del release salen de `.goreleaser.yaml`: darwin/amd64, darwin/arm64 y windows/amd64. windows/arm64 está fuera.
+`Getenv` no aparece en producción ni en `222c824` ni en `HEAD`.
+
+```
+$ gofmt -l .
+(rc=0)
+$ go vet ./...
+(rc=0)
+$ golangci-lint run
+0 issues.
+(rc=0)
+$ go test -count=1 ./...
+ok  	github.com/permea-dev/agent/cmd/permea	6.027s
+ok  	github.com/permea-dev/agent/internal/config	0.015s
+ok  	github.com/permea-dev/agent/internal/event	0.002s
+ok  	github.com/permea-dev/agent/internal/ingest	0.019s
+ok  	github.com/permea-dev/agent/internal/pricing	0.003s
+ok  	github.com/permea-dev/agent/internal/project	0.121s
+ok  	github.com/permea-dev/agent/internal/state	0.011s
+ok  	github.com/permea-dev/agent/internal/testutil	0.008s
+ok  	github.com/permea-dev/agent/internal/transport	0.126s
+(rc=0)
+recuento: tests {'pass': 494} · paquetes {'pass': 9}
+$ git diff 222c824 -- internal/event/ internal/ingest/eventid.go internal/ingest/eventid_test.go internal/ingest/boundary_test.go specs/006-medicion-fiel/contracts/event-id.md | wc -c
+0
+$ git diff 222c824 -- internal/state/state_test.go cmd/permea/project_test.go | wc -c
+0
+$ grep -n "8f147d1" internal/pricing/pricing.go
+25://   - Catálogo replicado: permea-dev/permea-platform · backend/config/pricing.php · 8f147d1
+$ grep -rn nolint --include=*.go . | wc -l
+1
+internal/transport/adhesion_test.go:194:	_, errDirecto := url.Parse(endpointNoAnalizableAdhesion) //nolint:staticcheck // SA1007: la URL inválida es el SUJETO del test — la causa de url.Parse que Adherir debe conservar (P-006 E-006-P4)
+$ grep -c PENDIENTE CHANGELOG.md
+1
+$ CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o /dev/null ./cmd/permea
+(rc=0)
+$ CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o /dev/null ./cmd/permea
+(rc=0)
+$ CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o /dev/null ./cmd/permea
+(rc=0)
+$ git diff 222c824 -- "*.go" | grep "^+" | grep -v "^+++" | grep -c Getenv
+0
+$ grep -rn Getenv --include=*.go cmd internal | grep -v _test.go   (HEAD)
+$ git grep -n Getenv 222c824 -- "cmd/*.go" "internal/*.go" | grep -v _test.go   (222c824)
+$ git log --oneline 222c824..HEAD
+07904af 007 B5: README y CHANGELOG de la 0.4.0
+c4596b4 007 B4: un mensaje se envia cuando esta cerrado
+24cf6b3 007 B3: cada partida vale el maximo de sus lineas
+5e3e5a0 007 B2: la escritura de cache se tarifa por su duracion
+3dc064c 007 B1: tarifas de 17 modelos con cinco cifras (8f147d1)
+0d90b5c 007 B0: enmienda E-3 y contrato de tarifas de 006 sustituido
+49cf73c 007: spec ratificada (E-1, E-2), plan, tareas, contrato de tarifas y quickstart
+$ git diff --stat 222c824
+ .specify/feature.json                          |   2 +-
+ CHANGELOG.md                                   |  25 ++
+ README.md                                      |  50 ++-
+ cmd/permea/coste_test.go                       |  70 ++++
+ cmd/permea/main.go                             |  66 +++-
+ cmd/permea/main_test.go                        |  18 +-
+ cmd/permea/retencion_test.go                   | 309 ++++++++++++++++
+ internal/ingest/cierre_test.go                 | 149 ++++++++
+ internal/ingest/claudecode.go                  |  82 +++--
+ internal/ingest/desglose_test.go               | 122 +++++++
+ internal/ingest/maximo_test.go                 | 147 ++++++++
+ internal/ingest/pasada.go                      | 248 +++++++++++--
+ internal/ingest/pasada_test.go                 |  31 +-
+ internal/pricing/pricing.go                    |  78 ++--
+ internal/pricing/pricing_test.go               | 101 ++++--
+ internal/state/retener_test.go                 |  78 ++++
+ internal/state/state.go                        |  39 +-
+ specs/006-medicion-fiel/contracts/tarifas.md   |   2 +
+ specs/007-coste-fiel/contracts/tarifas.md      | 111 ++++++
+ specs/007-coste-fiel/plan.md                   | 195 ++++++++++
+ specs/007-coste-fiel/quickstart.md             | 229 ++++++++++++
+ specs/007-coste-fiel/soporte/descubrimiento.md | 350 ++++++++++++++++++
+ specs/007-coste-fiel/soporte/registro.md       | 472 +++++++++++++++++++++++++
+ specs/007-coste-fiel/spec.md                   | 306 ++++++++++++++++
+ specs/007-coste-fiel/tasks.md                  | 308 ++++++++++++++++
+ 25 files changed, 3417 insertions(+), 171 deletions(-)
+```
+
+**Resultado: todo cuadra.**
+- **SC-012**: 494 pass en 9/9 paquetes, y lint a 0.
+- **SC-009 y FR-018**: la frontera sin diff; `state_test.go` y `project_test.go`, tampoco.
+- **La cabecera** cita `8f147d1`.
+- **Un `nolint`**, el de SA1007 *(E-006-P4)*.
+- **`PENDIENTE` = 1**: se resuelve en C5.
+- **Compilan** las tres arquitecturas del release.
+- **Ningún `Getenv` nuevo**.
+- **Siete commits** desde `222c824`.
+
+### C2 · T039 · Medidas sobre las copias del dueño *(2026-10-06; binario de la rama sobre `07904af`)*
+
+**Cómo**:
+- **Binario y sandbox**: el binario de la rama, en un `mktemp -d /tmp/permea-007-XXXXXX`, dentro de `env -i` con `HOME` y
+  `XDG_CONFIG_HOME` temporales. Antes de medir, `permea status` → «no enrolado».
+- **`--scan`**: fichero a fichero, con las copias **leídas en su sitio**. 0 ficheros con rc ≠ 0, 0 líneas `skip` y 0 ficheros escritos en
+  el sandbox.
+- **Scripts**: el contador y la comprobación del coste, extraídos de `quickstart.md`.
+- **Lo que queda**: las salidas con `event_id`, sólo en el temporal, que se borró tras comprobar el prefijo. Aquí, sólo recuentos y sumas.
+
+**SC-001 *(copia del dueño 2026-10-06-wsl)* — ✅**
+
+| Partida | Referencia | Agente *(`--scan`)* | Contador *(máximo)* | Contador *(primera)* |
+|---|---:|---:|---:|---:|
+| mensajes / eventos | 10 121 | 10 121 | 10 121 | — |
+| entrada | 26 392 | 26 392 | 26 392 | — |
+| salida | 11 713 955 | 11 713 955 | 11 713 955 | 11 713 955 |
+| escritura de caché | 32 765 802 | 32 765 802 | 32 765 802 | — |
+| lectura de caché | 4 499 158 833 | 4 499 158 833 | 4 499 158 833 | — |
+
+Del contador: facturables 22 181 · sintéticas 1 · sin identificador 0 · corruptas 0 · `crecen=0` · líneas sin desglose 0 · desglose que no
+suma 0.
+
+**SC-003 *(-wsl)* — ✅**: 10 121 eventos = 10 121 mensajes, y **0** `event_id` repetidos.
+
+**SC-002 *(copia del dueño 2026-10-06-windows)* — ✅**
+
+| Partida | Referencia | Agente | Contador *(máximo)* | Contador *(primera)* |
+|---|---:|---:|---:|---:|
+| mensajes / eventos | 6 074 | 6 074 | 6 074 | — |
+| entrada | 12 206 | 12 206 | 12 206 | — |
+| **salida** | **6 723 801** | **6 723 801** | **6 723 801** | **6 635 290** |
+| escritura de caché *(5 min / 1 h)* | 22 307 249 *(971 559 / 21 335 690)* | ídem | ídem | — |
+| lectura de caché | 2 423 738 410 | 2 423 738 410 | 2 423 738 410 | — |
+
+Los que crecen *(auxiliar independiente, sólo sumas)*: **143**. Su salida es **89 817** con «máximo» y 1 306 con «primera», como dice la
+spec. En -wsl, 0. `event_id` repetidos: 0. Facturables 13 869 · sintéticas 2.
+
+**SC-005 *(-wsl)***:
+- **El reparto — ✅**: a 5 min, **247 506**; a 1 h, **32 518 296**. Coinciden la referencia, el agente y el contador.
+- **El coste por evento — ✅ tras E-6**:
+
+| | Instrumento | -wsl *(10 121)* | -windows *(6 074)* |
+|---|---|---|---|
+| Antes *(Encargo 10)* | `float`, distinto si `abs(…) > 5e-5` | `coste_distinto=3` | `coste_distinto=4` |
+| Después *(Encargo 10-bis, E-6)* | `Decimal` exacto | `coste_distinto=0 empates=31 sin_tarifa=0` | `coste_distinto=0 empates=18 sin_tarifa=0` |
+
+**Las dos paradas y su resolución**:
+1. **Encargo 10, PARA en SC-005**: el script daba `coste_distinto=3` *(-wsl)*. Medidas en `Decimal`, las 3 *(y las 4 de -windows)* estaban
+   a **exactamente** 0,00005 del exacto. Eran empates de redondeo: el coste exacto acaba en 5 en la quinta cifra y `%.4f` lo redondea
+   desde el binario. La comparación en coma flotante los empujaba por encima del borde de su tolerancia.
+   **Resolución, E-6**: el script pasa a aritmética decimal exacta, y el empate vale.
+2. **Encargo 10-bis, PARA en el paso 2**: el esperado era «3 y 4 empates» y salieron **31 y 18**. Un diagnóstico de sólo lectura
+   clasificó cada empate decimal según lo que daba la comparación en `float`.
+   **Resolución**: el orquestador corrigió su esperado, que contaba sólo los empates visibles en coma flotante. Las cifras correctas son
+   las medidas.
+
+| Copia | Empates en decimal | …en `float` daban «distinto» | …en `float` pasaban sin verse | No empates que en `float` daban «distinto» |
+|---|---:|---:|---:|---:|
+| -wsl | 31 | 3 | 28 | 0 |
+| -windows | 18 | 4 | 14 | 0 |
+
+**Medida informativa** *(no es un SC)*: por modelo, el coste de la 0.4.0 y la parte debida a tarifar la escritura de 1 hora a su cifra,
+Σ `cw1h` × (`cache_write_1h` − `cache_write`) / 10⁶. En USD, recalculado con la tabla del contrato.
+
+| Copia | Modelo | Eventos | Coste 0.4.0 | Por la escritura de 1 h | % |
+|---|---|---:|---:|---:|---:|
+| -wsl | `claude-opus-5` | 5 727 | 1 689,604355 | 66,074771 | 3,91 % |
+| -wsl | `claude-opus-5-5` | 4 364 | 575,607939 | 43,330350 | 7,53 % |
+| -wsl | `claude-sonnet-5` | 30 | 2,853042 | 0,682361 | 23,92 % |
+| -wsl | **total** | **10 121** | **2 268,065336** | **110,087482** | **4,85 %** |
+| -windows | `claude-opus-4-8` | 7 | 0,627783 | 0,165862 | 26,42 % |
+| -windows | `claude-opus-5` | 1 453 | 362,655623 | 17,215882 | 4,75 % |
+| -windows | `claude-opus-5-5` | 4 614 | 617,702031 | 50,101674 | 8,11 % |
+| -windows | **total** | **6 074** | **980,985437** | **67,483419** | **6,88 %** |
+
+`sin_tarifa=0` en las dos copias. En -windows, la subida frente a la 0.3.0 incluye además los 88 511 tokens de salida que la 0.3.0 no
+contaba.
+
+**Huellas de las copias**, antes = después en las **cuatro** ejecuciones *(Encargo 10; Encargo 10-bis, SC-005 y diagnóstico)* e iguales a
+las de E-1:
+
+| Copia | Huella SHA-256 del conjunto | `.jsonl` | Ficheros |
+|---|---|---:|---:|
+| 2026-10-06-wsl | `82d79809411f61a3` | 31 | 50 |
+| 2026-10-06-windows | `d65f53cf7c56325c` | 29 | 78 |
+
+**Temporales**: `/tmp/permea-007-eKE9Jx`, `/tmp/permea-007-98z1vn` y `/tmp/permea-007-eSxU4g`, borrados tras comprobar el prefijo. No
+queda ningún `/tmp/permea-007-*`.
+
+### C3 · T040 · Snapshot *(2026-10-06, sobre `07904af`; goreleaser v2.16.0)*
+
+**Lo que se construyó y desde dónde**:
+- `goreleaser release --snapshot --clean` → rc 0, «skipping announce, publish, and validate». **No se publicó nada**: no había ninguna
+  credencial en el entorno, y el cask y el manifiesto de Scoop sólo se escribieron en `dist/`.
+- El hook `go mod tidy` dejó `go.mod` igual *(md5)*.
+- El árbol tenía modificados sólo cuatro documentos de `specs/007-coste-fiel/`, así que el código es el de `07904af`.
+
+**Versión inyectada: `0.3.0-SNAPSHOT-07904af`.** goreleaser parte de la última etiqueta, `v0.3.0`. No es ni `0.0.1-dev` ni `0.3.0`.
+
+| Artefacto | Bytes | SHA-256 |
+|---|---:|---|
+| `dist/permea_0.3.0-SNAPSHOT-07904af_windows_amd64.zip` | 2 484 829 | `897ffdd170e4f52e9d73912da8daec4052d8e9f75f670bf5b4f6c7f91cd8de1f` |
+| `dist/permea_0.3.0-SNAPSHOT-07904af_linux_amd64.tar.gz` | 2 416 049 | `b5f15d51aa9403eb136357297fbd929bbd0849051321a7baafcad15011ce5280` |
+| `dist/permea_0.3.0-SNAPSHOT-07904af_linux_arm64.tar.gz` | 2 229 960 | `b7c431c487a18d96e9c8b1f2781fbad2c54120d1e6ca1c763aa9eed9bef89495` |
+| `dist/permea_0.3.0-SNAPSHOT-07904af_darwin_amd64.tar.gz` | 2 460 846 | `26e95bf03af2ba4e0a9e7a58cb0ad3b432ae3f32081e18cf24902406b7234e57` |
+| `dist/permea_0.3.0-SNAPSHOT-07904af_darwin_arm64.tar.gz` | 2 318 501 | `dbb0c189123ce4d371eee5616e1b53e879c54d7470ea4e573e084a8063b72944` |
+
+`sha256sum -c` del fichero `permea_0.3.0-SNAPSHOT-07904af_checksums.txt`: OK en los 5.
+
+**Las comprobaciones**:
+- **Sandbox**: el binario de Linux, sacado del `.tar.gz`, en `env -i` con `HOME` temporal.
+  - `--version` → **`0.3.0-SNAPSHOT-07904af`** *(rc 0)*;
+  - `help` → rc 0, 41 líneas por stdout;
+  - 0 ficheros creados en el `HOME`.
+- **SC-011**: los textos se extrajeron de spec §Textos aprobados por programa. En `strings -e S` del ejecutable de Linux y en el de
+  Windows *(`permea.exe`)* aparece **1** vez cada uno:
+  - la segunda línea del resumen;
+  - el aviso de `--run`;
+  - la línea de `--scan`, con `cw5m=` y `cw1h=`;
+  - la primera línea de 006.
+
+  La comprobación cruzada sobre los bytes de cada ejecutable da lo mismo.
+- **README y LICENSE** dentro del `.zip` de Windows y del `.tar.gz` de Linux: `cmp` con los del repo → **idénticos** los cuatro. El README
+  empaquetado es el de la 0.4.0: cita `8f147d1` y los 17 modelos, y no lleva «Limitación conocida» ni «Limitación 1».
+- **`git status`**: no muestra `dist/`, que ignora `.gitignore:20 /dist/`.
+
+**Una trampa del instrumento**: en el shell de la sesión, `grep` es una función del perfil que llama a ugrep con `-I`, y salta los
+ficheros que parecen binarios. Sobre la salida de `strings` daba 0 coincidencias sin avisar. Las comprobaciones de SC-011 se hicieron con
+`command grep -a` *(GNU grep)*. Las medidas anteriores con `grep` fueron sobre texto, y sus cuentas coincidieron con las de `awk` o
+Python. Las de C2, además, fueron sobre las salidas de `--scan`: `grep -c '^evento:'` dio lo mismo que `awk`.

@@ -155,22 +155,26 @@ grep -o 'event_id=[0-9a-f]*' "$T/scan-wsl.txt" | sort | uniq -d | wc -l    # →
 ```
 Falsable, sobre un fichero **sintético**, nunca sobre la copia: duplicar una línea `assistant` no cambia el recuento *(lo cubre T021)*.
 
-**M4 · SC-005** *(-wsl)*: el coste de cada evento, recalculado con la tabla del contrato. El `--scan` imprime 4 decimales, así que la
-tolerancia es 5 × 10⁻⁵ por evento.
+**M4 · SC-005** *(-wsl)*: el coste de cada evento, recalculado con la tabla del contrato **en aritmética decimal exacta** *(E-6)*. El
+coste exacto se calcula con `Decimal` a partir de los tokens y la tabla, sin pasar por `float`. El `--scan` imprime 4 decimales, así que un
+evento es **distinto** sólo si |impreso − exacto| > 0,00005. La igualdad, |impreso − exacto| = 0,00005, es un **empate de redondeo** y
+vale: se cuenta aparte.
 ```sh
 cat > "$T/coste.py" <<'PY'
 import re, sys
-T = {  # contracts/tarifas.md, 8f147d1: input, output, cache_write (5 min), cache_write_1h, cache_read
-    'claude-fable-5': (10, 50, 12.5, 20, 1), 'claude-fable-5-1': (10, 50, 12.5, 20, 0.25),
-    'claude-mythos-5': (10, 50, 12.5, 20, 1), 'claude-opus-5-5': (4, 20, 5, 8, 0.2),
-    'claude-opus-5': (5, 25, 6.25, 10, 0.5), 'claude-opus-4-8': (5, 25, 6.25, 10, 0.5),
-    'claude-opus-4-7': (5, 25, 6.25, 10, 0.5), 'claude-opus-4-6': (5, 25, 6.25, 10, 0.5),
-    'claude-opus-4-5': (5, 25, 6.25, 10, 0.5), 'claude-opus-4-1': (15, 75, 18.75, 30, 1.5),
-    'claude-opus-4': (15, 75, 18.75, 30, 1.5), 'claude-sonnet-5': (2, 10, 2.5, 4, 0.2),
-    'claude-sonnet-4-6': (3, 15, 3.75, 6, 0.3), 'claude-sonnet-4-5': (3, 15, 3.75, 6, 0.3),
-    'claude-sonnet-4': (3, 15, 3.75, 6, 0.3), 'claude-haiku-4-5': (1, 5, 1.25, 2, 0.1),
-    'claude-haiku-3-5': (0.8, 4, 1, 1.6, 0.08)}
-eventos = distintos = sin_tarifa = 0
+from decimal import Decimal
+T = {  # contracts/tarifas.md, 8f147d1: input, output, cache_write (5 min), cache_write_1h, cache_read — como CADENAS, sin float
+    'claude-fable-5': ('10', '50', '12.5', '20', '1'), 'claude-fable-5-1': ('10', '50', '12.5', '20', '0.25'),
+    'claude-mythos-5': ('10', '50', '12.5', '20', '1'), 'claude-opus-5-5': ('4', '20', '5', '8', '0.2'),
+    'claude-opus-5': ('5', '25', '6.25', '10', '0.5'), 'claude-opus-4-8': ('5', '25', '6.25', '10', '0.5'),
+    'claude-opus-4-7': ('5', '25', '6.25', '10', '0.5'), 'claude-opus-4-6': ('5', '25', '6.25', '10', '0.5'),
+    'claude-opus-4-5': ('5', '25', '6.25', '10', '0.5'), 'claude-opus-4-1': ('15', '75', '18.75', '30', '1.5'),
+    'claude-opus-4': ('15', '75', '18.75', '30', '1.5'), 'claude-sonnet-5': ('2', '10', '2.5', '4', '0.2'),
+    'claude-sonnet-4-6': ('3', '15', '3.75', '6', '0.3'), 'claude-sonnet-4-5': ('3', '15', '3.75', '6', '0.3'),
+    'claude-sonnet-4': ('3', '15', '3.75', '6', '0.3'), 'claude-haiku-4-5': ('1', '5', '1.25', '2', '0.1'),
+    'claude-haiku-3-5': ('0.8', '4', '1', '1.6', '0.08')}
+TOLERANCIA = Decimal('0.00005')
+eventos = distintos = empates = sin_tarifa = 0
 for linea in open(sys.argv[1], encoding='utf-8'):
     if not linea.startswith('evento:'):
         continue
@@ -179,14 +183,17 @@ for linea in open(sys.argv[1], encoding='utf-8'):
     tokens = [int(f[k]) for k in ('in', 'out', 'cw5m', 'cw1h', 'cr')]
     if f['model'] not in T:
         sin_tarifa += 1
-        esperado = 0.0
+        exacto = Decimal(0)
     else:
-        esperado = sum(t * r for t, r in zip(tokens, T[f['model']])) / 1e6
-    if abs(float(f['cost'].lstrip('$')) - esperado) > 5e-5:
+        exacto = sum(Decimal(t) * Decimal(r) for t, r in zip(tokens, T[f['model']])) / Decimal(10**6)
+    diferencia = abs(Decimal(f['cost'].lstrip('$')) - exacto)
+    if diferencia > TOLERANCIA:
         distintos += 1
-print(f"eventos={eventos} coste_distinto={distintos} sin_tarifa={sin_tarifa}")
+    elif diferencia == TOLERANCIA:
+        empates += 1                     # el exacto acaba en 5 en la quinta cifra: vale cualquiera de los dos lados
+print(f"eventos={eventos} coste_distinto={distintos} empates={empates} sin_tarifa={sin_tarifa}")
 PY
-(cd "$T" && python3 -I coste.py "$T/scan-wsl.txt")      # → coste_distinto=0
+(cd "$T" && python3 -I coste.py "$T/scan-wsl.txt")      # → coste_distinto=0 (empates: 31 en -wsl y 18 en -windows, medidos el 2026-10-06)
 ```
 
 **Al terminar**: `huella` de las dos copias, igual que al empezar, y después `rm -rf "$T"`. Sólo se transcriben a `tasks.md` los recuentos

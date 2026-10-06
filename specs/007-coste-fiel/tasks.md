@@ -220,11 +220,11 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
 
-- [ ] **T038** **C1** · Puertas sobre la rama, transcritas: las del bloque más `go test` → **432 + nuevos** *(SC-012)*; `grep -rn nolint` → 1;
+- [x] **T038** **C1** · Puertas sobre la rama, transcritas: las del bloque más `go test` → **432 + nuevos** *(SC-012)*; `grep -rn nolint` → 1;
   la cabecera cita `8f147d1`; compilan Windows y darwin; `PENDIENTE` → 1.
-- [ ] **T039** **C2** · Medidas *(quickstart §Copias, §Contador, §M1–M4)*: huella de las dos copias antes; el contador; `--scan` en
+- [x] **T039** **C2** · Medidas *(quickstart §Copias, §Contador, §M1–M4)*: huella de las dos copias antes; el contador; `--scan` en
   `env -i`; SC-001, SC-002, SC-003 y SC-005 contra las referencias de la spec; huella después, igual; temporales borrados.
-- [ ] **T040** **C3** · `goreleaser release --snapshot --clean`; SHA-256 del zip de Windows; `strings` del binario contiene los textos
+- [x] **T040** **C3** · `goreleaser release --snapshot --clean`; SHA-256 del zip de Windows; `strings` del binario contiene los textos
   aprobados *(SC-011)*.
 - [ ] **T041** ✋ **C4 · W1** *(quickstart §W1)*: `--version` primero; sólo después `status`, `--scan` y los dos `--run` separados por
   más de T. Se anota cada paso.
