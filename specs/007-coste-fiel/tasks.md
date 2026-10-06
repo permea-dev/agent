@@ -1,6 +1,6 @@
 # Tasks: 007 · «Coste fiel»
 
-**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1, E-2)* · [plan.md](./plan.md) ·
+**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1, E-2, E-3)* · [plan.md](./plan.md) ·
 [contracts/tarifas.md](./contracts/tarifas.md) · [quickstart.md](./quickstart.md)
 **Base**: `222c824`. **Línea base a preservar**: `go test -count=1 ./...` → **9 paquetes ok, 432 pass, 0 fail**; `golangci-lint run` → **0**.
 Ambas medidas el 2026-10-06.
@@ -11,7 +11,7 @@ Ambas medidas el 2026-10-06.
   una detrás de otra.
 - **✋**: la ejecuta **el dueño**: commits, la PR, la fusión, la etiqueta y los ensayos en Windows. Claude no hace git de escritura.
   El mensaje de cada commit va previsto, **sin tildes ni ñ**.
-- **(1)…(22)** son los rojos y **(m1)…(m21)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero
+- **(1)…(23)** son los rojos y **(m1)…(m22)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero
   se llama **R-B4a** y **M-B4a**.
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 
@@ -42,30 +42,45 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 
 ## B0 · Documentos
 
-- [ ] **T001** Fase 0. Transcribir la línea base sobre `222c824`:
+- [x] **T001** Fase 0. Transcribir la línea base sobre `222c824`:
   - suite: 432 pass y 9 paquetes;
   - lint: 0;
   - el `git diff` de la frontera, vacío.
   Si algo difiere, **se para**.
-- [ ] **T002** En `specs/006-medicion-fiel/contracts/tarifas.md`, una línea bajo el título: «*Sustituido el 2026-10-06 por
+  > **Hecho el 2026-10-06**, sobre `49cf73c` *(sólo documentos desde `222c824`)*: 432 pass y 9/9 paquetes ok; `0 issues.`; diff de la
+  > frontera de 0 bytes.
+- [x] **T002** En `specs/006-medicion-fiel/contracts/tarifas.md`, una línea bajo el título: «*Sustituido el 2026-10-06 por
   `specs/007-coste-fiel/contracts/tarifas.md` (cinco cifras, `8f147d1`).*». Ningún otro cambio en 006.
-- [ ] **T003** ✋ Commit: `007 B0: spec ratificada (E-1, E-2), plan, tareas, contrato de tarifas y quickstart`.
+- [ ] **T003** ✋ Commit: `007 B0: enmienda E-3 y contrato de tarifas de 006 sustituido` *(E-3: los documentos ya entraron en el commit
+  «007: spec ratificada (E-1, E-2), plan, tareas, contrato de tarifas y quickstart»)*.
 
 ## B1 · Tarifas *(`contracts/tarifas.md`; FR-006, FR-007, FR-008; SC-010)*
 
-- [ ] **T004** Fase 0: `CacheWrite1h float64` en `Rate`, `internal/pricing/pricing.go`, sin rellenar. La suite sigue verde.
-- [ ] **T005** **Rojos (1) y (2)** en `internal/pricing/pricing_test.go`:
+- [x] **T004** Fase 0: `CacheWrite1h float64` en `Rate`, `internal/pricing/pricing.go`, sin rellenar. La suite sigue verde.
+- [x] **T005** **Rojos (1) y (2)** en `internal/pricing/pricing_test.go`:
   - `esperadaDelCatalogo` pasa a las **17 × 5** del contrato, escrita a mano desde `contracts/tarifas.md` *(no copiada de `pricing.go`)*,
     con la procedencia `8f147d1`;
   - `TestEspejo_CifrasClaveAClave` compara también `CacheWrite1h`.
   - **Esperado**: `TestEspejo_RecuentoDeClaves` falla con 16 ≠ 17; `CifrasClaveAClave` falla en 16 subtests por `cache_write_1h` y en
     `claude-fable-5-1` por clave ausente.
-- [ ] **T006** **Verde**: `Table` a 17 × 5. La cabecera cita `8f147d1`, la verificación del 2026-10-04 y la aprobación *(contrato
+  > **Rojo transcrito**: `la tabla tiene 16 claves; el catálogo replicado tiene 17`. En `CifrasClaveAClave` fallan **17** subtests:
+  > 16 con `escritura de caché a 1 hora = 0, want …` *(20, 10, 30, 8, 6, 4, 2, 1.6 según la fila)* y `falta la clave "claude-fable-5-1"`.
+  > `NingunaClaveSobra` sigue verde.
+- [x] **T006** **Verde**: `Table` a 17 × 5. La cabecera cita `8f147d1`, la verificación del 2026-10-04 y la aprobación *(contrato
   §La cabecera)*. **La «Limitación 1» se queda hasta B2.**
-- [ ] **T007** Mutaciones, cada una con su censo declarado antes de mutar:
+  > **Verde**: 9/9 paquetes ok, **433 pass** *(432 + el subtest `claude-fable-5-1`)*. La «Limitación 1» añade que `CacheWrite1h` se
+  > replica pero `Cost` todavía no la usa.
+- [x] **T007** Mutaciones, cada una con su censo declarado antes de mutar:
   - **(m1)** `CacheWrite1h` de `claude-fable-5-1` a 0 → cae sólo `CifrasClaveAClave/claude-fable-5-1` *(SC-010)*;
   - **(m2)** una clave sobrante → caen `NingunaClaveSobra` y `RecuentoDeClaves`;
-  - **(m3)** cruzar 5 m y 1 h en `claude-opus-5-5` → cae sólo `CifrasClaveAClave/claude-opus-5-5`.
+  - **(m3)** cruzar 5 m y 1 h en `claude-opus-5-5` → cae `CifrasClaveAClave/claude-opus-5-5` y, **co-caída declarada antes de
+    mutar** *(2026-10-06; el plan no la recogía)*, `TestCost_Opus55AMano`: `Cost` tarifa la escritura con `CacheWrite`, que pasa a 8,00.
+  > **Hecho el 2026-10-06.** Lo caído coincide con lo declarado en las tres, y el md5 de `pricing.go` es el mismo antes y después
+  > *(`e3a744c9…`)*.
+  > - **m1**: `CifrasClaveAClave/claude-fable-5-1`, «escritura de caché a 1 hora = 0, want 20».
+  > - **m2**: `RecuentoDeClaves` *(«18 claves; … 17»)* y `NingunaClaveSobra` *(«"claude-sobrante-de-mutacion" está en la tabla…»)*.
+  > - **m3**: `CifrasClaveAClave/claude-opus-5-5` *(«= 8, want 5» y «= 5, want 8»)* y `TestCost_Opus55AMano` *(«coste = 1.2146106000, want
+  >   1.0775736000»)*.
 - [ ] **T008** ✋ Puertas y commit: `007 B1: tarifas de 17 modelos con cinco cifras (8f147d1)`.
 
 ## B2 · Desglose y coste por duración *(FR-001 a FR-005, FR-007, FR-016; SC-004)*
@@ -144,14 +159,17 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 - [ ] **T026** [P] Rojos de reglas en `internal/ingest/cierre_test.go` *(nuevo)*:
   - (i): en el mismo fichero cierra, y en otro no;
   - (ii): con `ahora` y `mtime` dados, los tres casos de SC-007;
+  - (iii) *(E-3)*: con el `mtime` de ahora, el tope a 24 h y a 24 h − 1 s;
   - **(21)**: línea tardía contada y no emitida;
   - releídas, contadas aparte.
-- [ ] **T027** [P] **Rojos (15), (16), (17), (19) y (20)** en `cmd/permea/retencion_test.go` *(nuevo, sandbox)*:
+- [ ] **T027** [P] **Rojos (15), (16), (17), (19), (20) y (23)** en `cmd/permea/retencion_test.go` *(nuevo, sandbox)*:
   - **(15)**, SC-006 con **dos procesos** `--run` *(sin enrolar, `LogsRoot` temporal)*:
     - el primero, con la línea parcial, no encola nada del mensaje, y el offset queda en su comienzo;
     - se añaden la final y la primera línea de otro mensaje;
     - el segundo encola **un** evento con la final;
   - **(16)**, SC-007 a, b y c: `generate()` con el reloj y `os.Chtimes`;
+  - **(23)** *(E-3)*, el tope de SC-007, con el `mtime` de ahora: `timestamp` a 24 h − 1 s → retenido *(rojo)*; a 24 h → emitido
+    *(nace verde, T031)*;
   - **(17)**, SC-008;
   - **(19)**: el aviso de `--run`, literal *(spec §Textos)*;
   - **(20)**: el predicado de `tick()` es falso si todo lo leído es releído y no se emitió nada.
@@ -169,10 +187,10 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 - [ ] **T031** Verdes de nacimiento, con su mutación:
   - **(22)** SC-009: un mensaje abierto con centinelas de `message.id` y `requestId`; tras la pasada, **ningún** fichero del directorio de
     datos los contiene, y `state.json` tiene sus cuatro campos;
-  - **(16 a)**.
+  - **(16 a)** y **(23, 24 h)** *(E-3)*.
 - [ ] **T032** Mutaciones, con el censo declarado:
   - **(m13)** el offset avanza al final → cae (15);
-  - **(m14)** sin la condición del `mtime` → cae (16 b);
+  - **(m14)** sin la condición del `mtime` → caen (16 b) y, declarada, (23, 24 h − 1 s), que depende de ella *(E-3)*;
   - **(m15)** sin la del `timestamp` → cae (16 c);
   - **(m16)** la regla (i) mira todos los ficheros → cae (17), caso de otro fichero;
   - **(m17)** emitir lo abierto al acabar `--run` → caen (15) y (19);
@@ -180,7 +198,8 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   - **(m19)** guardar el abierto en `pendientes.json` con sus identificadores → cae (22);
   - **(m20)** sin la regla (i) → caen (17), caso del mismo fichero, y **la co-caída declarada**
     `TestProjectJoin_LaPeticionNuncaSeEncola/CASO_POSITIVO`, en `cmd/permea/project_test.go` *(plan R-3)*;
-  - **(m21)** no emitir nunca por T → cae (16 a);
+  - **(m21)** no emitir nunca por T → cae (16 a). El tope (iii) es una regla aparte y (23, 24 h) sigue verde;
+  - **(m22)** *(E-3)* quitar el tope de 24 h → cae (23, 24 h), y sólo ése;
   - **M-B4a**: el método ignora el offset pedido → cae R-B4a.
 - [ ] **T033** ✋ Puertas y commit: `007 B4: un mensaje se envia cuando esta cerrado`.
 
@@ -193,8 +212,8 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   - se retiran la limitación de los tokens de salida crecientes y la «Limitación 1»;
   - se declaran la **hipótesis P-1** y la espera del último mensaje *(10 minutos sin cambios, o la pasada siguiente)*;
   - la «Limitación 2» sigue.
-- [ ] **T036** En `CHANGELOG.md`, `## 0.4.0 — PENDIENTE` encima de la 0.3.0, con el **cuerpo aprobado literal** *(spec §Textos)*.
-  Comprobación: el cuerpo extraído de los dos ficheros, comparado con `cmp`, sin diferencias. `grep -c PENDIENTE CHANGELOG.md` → 1.
+- [ ] **T036** En `CHANGELOG.md`, `## 0.4.0 — PENDIENTE` encima de la 0.3.0, con el **cuerpo aprobado literal y sus citas** *(spec §Textos,
+  E-3)*. Comprobación: el cuerpo extraído de los dos ficheros, **citas incluidas**, comparado con `cmp`, sin diferencias. `grep -c PENDIENTE CHANGELOG.md` → 1.
 - [ ] **T037** ✋ Puertas y commit: `007 B5: README y CHANGELOG de la 0.4.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
@@ -230,7 +249,7 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 | 005 | T011, T015 (m7) | | 004 | T010, T011 |
 | 006, 008 | T005–T007 | | 005 | T012, T039 |
 | 007 | T006, T013 | | 006 | T025, T027 (15), T032 |
-| 009 | T018–T020, T022 | | 007 | T026, T027 (16), T031, T032 |
+| 009 | T018–T020, T022 | | 007 | T026, T027 (16, 23), T031, T032 |
 | 010 | T026, T027, T030, T032 | | 008 | T026, T027 (17), T032 |
 | 011, 012 | T024, T025, T030 | | 009 | T031, T038 + puertas |
 | 013 | T020, T026 (21) | | 010 | T007 (m1) |
@@ -251,7 +270,7 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 |---|---|---|---|
 | m1 | B1 | `CacheWrite1h` de `claude-fable-5-1` a 0 | `CifrasClaveAClave/claude-fable-5-1` |
 | m2 | B1 | clave sobrante | `NingunaClaveSobra`, `RecuentoDeClaves` |
-| m3 | B1 | cruzar 5 m/1 h en `claude-opus-5-5` | `CifrasClaveAClave/claude-opus-5-5` |
+| m3 | B1 | cruzar 5 m/1 h en `claude-opus-5-5` | `CifrasClaveAClave/claude-opus-5-5`, `TestCost_Opus55AMano` *(declarada)* |
 | m4 | B2 | cruzar las tarifas en `Cost` | (3), (4) *(+ `TestCost` si su vector usa 1 h, declarado en T015)* |
 | m5 | B2 | sin desglose a 5 min | (5), (6) |
 | m6 | B2 | aceptar el desglose incoherente | (6) |
@@ -262,7 +281,7 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 | m11 | B3 | sumar | (9), (10), (14) |
 | m12 | B3 | desglose de la última | (11) |
 | m13 | B4 | offset al final | (15) |
-| m14 | B4 | sin la condición del `mtime` | (16 b) |
+| m14 | B4 | sin la condición del `mtime` | (16 b), (23, 24 h − 1 s) *(declarada, E-3)* |
 | m15 | B4 | sin la del `timestamp` | (16 c) |
 | m16 | B4 | regla (i) entre ficheros | (17), caso de otro fichero |
 | m17 | B4 | emitir lo abierto al acabar `--run` | (15), (19) |
@@ -270,6 +289,7 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 | m19 | B4 | `pendientes.json` con identificadores | (22) |
 | m20 | B4 | sin la regla (i) | (17), caso del mismo fichero, + `TestProjectJoin_LaPeticionNuncaSeEncola/CASO_POSITIVO` *(declarada)* |
 | m21 | B4 | no emitir nunca por T | (16 a) |
+| m22 | B4 | *(E-3)* sin el tope de 24 h | (23, 24 h) |
 | M-B4a | B4 | el método ignora el offset pedido | R-B4a |
 
 ## Lo que este plan de tareas NO hace

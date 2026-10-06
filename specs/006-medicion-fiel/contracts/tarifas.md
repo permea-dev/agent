@@ -1,5 +1,7 @@
 # Contrato — La tabla de tarifas como espejo del catálogo de la plataforma (P-006)
 
+*Sustituido el 2026-10-06 por `specs/007-coste-fiel/contracts/tarifas.md` (cinco cifras, `8f147d1`).*
+
 **Feature**: `006-medicion-fiel` | **Fecha**: 2026-10-02 | **Requisitos**: P-006 FR-014 a FR-020 · D-006-4 · Q-006-1 (resuelta el 2026-10-02)
 
 **Relación con contratos existentes.** Cumple la semántica de 001: `Cost(model, …) → (coste,

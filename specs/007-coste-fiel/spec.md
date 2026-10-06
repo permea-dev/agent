@@ -1,6 +1,6 @@
 # 007 · «Coste fiel» — Especificación
 
-**Feature Branch**: `007-coste-fiel` · **Created**: 2026-10-06 · **Status**: Ratificada el 2026-10-06 *(E-2)* · **Cabeza de partida**: `222c824` · **Enmiendas**: E-1, E-2
+**Feature Branch**: `007-coste-fiel` · **Created**: 2026-10-06 · **Status**: Ratificada el 2026-10-06 *(E-2)* · **Cabeza de partida**: `222c824` · **Enmiendas**: E-1, E-2, E-3
 **Input**: las decisiones del dueño `D-1`…`D-3` · el descubrimiento del 06-10 *(`soporte/descubrimiento.md`; las referencias, desde E-1,
 sobre la **copia del dueño 2026-10-06-wsl** y la **copia del dueño 2026-10-06-windows**)* · el «Hallazgo de W2» de 006 *(`specs/006-medicion-fiel/spec.md:377-389`)* · el catálogo de la plataforma
 `permea-dev/permea-platform` · `backend/config/pricing.php` · **`8f147d1`** *(P-031, en producción desde el 2026-10-06)*.
@@ -37,7 +37,7 @@ sobre la **copia del dueño 2026-10-06-wsl** y la **copia del dueño 2026-10-06-
 |---|---|---|---|
 | **P-1** ✅ **(a)** | **Una línea sin desglose**: toda su escritura de caché va a **1 hora** *(la misma hipótesis que declara la cabecera del catálogo, `pricing.php@8f147d1:19-30`)* | (a) a 1 hora · (b) a 5 minutos, como la 0.3.0 · (c) coste no disponible | **(a)**. Es coherente con la plataforma, y hoy **no hay ninguna** línea así *(0 en las dos copias del dueño)*: es un caso de defensa, no de volumen |
 | **P-2** ✅ **(a)** | **Regla del mensaje**: cada partida vale **el máximo** entre sus líneas; **nunca se suman** | (a) el máximo por partida · (b) la última línea · (c) la primera, como la 0.3.0 | **(a)**. **Windows** *(E-1, W-A2)*: 143 mensajes crecen, sólo en la salida y sólo en subagentes; el máximo es la última en los 143; **0** decrecen; la primera da 1 306 y el máximo 89 817. En WSL las tres reglas coinciden *(0 diferencias, 0 decrecimientos)*. La medida no pide otra regla: «máximo» y «última» dan lo mismo en las dos copias. El máximo no depende del orden de lectura y no baja si una línea llega fuera de sitio. **Ajuste de la medida**: el desglose 5 m / 1 h se toma **de la línea que da el máximo de la escritura de caché** *(la última, si empatan)*, para que la suma siga siendo exacta *(`DECIDÍ YO`)* |
-| **P-3** ✅ **(a) sin (d)**, con Q-1 (a), Q-6 (a) y la regla (ii) de FR-010 *(E-2)* | **Retención**: un mensaje se emite **cuando está cerrado**. Lo que sigue abierto **no se consume**: el offset de su fichero se queda en el comienzo del mensaje y la pasada siguiente lo relee *(`--run` seguidos y ciclos de `--daemon`; Q-3 (d), E-1)*. «Cerrado» = **(i)** empieza **otro mensaje posterior en el mismo fichero**, o **(ii)** pasan **T = 10 minutos, fijo**, sin líneas nuevas suyas **ni cambios en su fichero** *(FR-010, E-2)*. `stop_reason` **no** cuenta como cierre *(Q-1)* | T: (a) 10 min · (b) 5 min · (c) 30 min · señal: (d) además `stop_reason` no nulo | **(a) sin (d)**. Primera → última línea de un mensaje: máx. **259,9 s** en WSL *(p99 81,6 s)* y **144,6 s** en Windows *(90,9 s en los 143 que crecen)*; 10 min es más del doble. **0** huecos ≥ 5 min en las dos copias. Regla (i): **0** mensajes reciben una línea tras empezar el siguiente, también en Windows *(W-A4)*. `stop_reason`: ver Q-1 |
+| **P-3** ✅ **(a) sin (d)**, con Q-1 (a), Q-6 (a) y la regla (ii) de FR-010 *(E-2)* | **Retención**: un mensaje se emite **cuando está cerrado**. Lo que sigue abierto **no se consume**: el offset de su fichero se queda en el comienzo del mensaje y la pasada siguiente lo relee *(`--run` seguidos y ciclos de `--daemon`; Q-3 (d), E-1)*. «Cerrado» = **(i)** empieza **otro mensaje posterior en el mismo fichero**, o **(ii)** pasan **T = 10 minutos, fijo**, sin líneas nuevas suyas **ni cambios en su fichero** *(FR-010, E-2)*, o **(iii)** pasan **24 horas** desde su última línea, cambie o no su fichero *(tope de la espera, E-3)*. `stop_reason` **no** cuenta como cierre *(Q-1)* | T: (a) 10 min · (b) 5 min · (c) 30 min · señal: (d) además `stop_reason` no nulo | **(a) sin (d)**. Primera → última línea de un mensaje: máx. **259,9 s** en WSL *(p99 81,6 s)* y **144,6 s** en Windows *(90,9 s en los 143 que crecen)*; 10 min es más del doble. **0** huecos ≥ 5 min en las dos copias. Regla (i): **0** mensajes reciben una línea tras empezar el siguiente, también en Windows *(W-A4)*. `stop_reason`: ver Q-1 |
 | **P-4** ✅ **(a)** | **Versión `0.4.0`**. Lo ya enviado **no se corrige ni se reenvía**: un mensaje que la 0.3.0 envió con su primera línea conserva su `event_id`, y la plataforma descarta el repetido por (`org_id`, `event_id`). **Se declara** en el CHANGELOG | (a) 0.4.0 · (b) 0.3.1 | **(a)**. Cambia el coste que emite el agente y su conducta entre pasadas. No es un parche |
 | **P-5** ✅ | **Los textos nuevos que ve el usuario**, literales, en §Textos aprobados *(el CHANGELOG, sustituido en E-2)* | aprobarlos tal cual o corregirlos | Aprobarlos **antes de escribir sus tests** *(como D-006-14)* |
 
@@ -58,7 +58,7 @@ sobre la **copia del dueño 2026-10-06-wsl** y la **copia del dueño 2026-10-06-
 
 ### Edge Cases
 - **El último mensaje de un fichero, sin otro detrás**: se cierra por inactividad: T desde su última línea **y** desde el último cambio
-  del fichero *(FR-010, E-2)*.
+  del fichero *(FR-010, E-2)*; y, aunque el fichero siga cambiando, a las 24 h de su última línea *(FR-010 (iii), E-3)*.
 - **Un subagente**: `stop_reason` nulo en las líneas parciales, y en 61 de 219 mensajes de Windows y en todos los de WSL también en la
   última *(W-A3)*; se cierra por (i) o (ii), igual que los demás.
 - **Una línea llega después de que su mensaje se emitiera** *(tras T)*: dentro de la pasada, cuenta como tardía y no se emite *(FR-013)*.
@@ -101,8 +101,10 @@ sobre la **copia del dueño 2026-10-06-wsl** y la **copia del dueño 2026-10-06-
   mismo fichero, o **(ii)** han pasado **≥ T** *(10 min, fijo)* **desde el `timestamp` de su última línea Y desde la última modificación de
   su fichero** *(el `os.Stat` de la pasada, `internal/state/state.go:80`; no el `ModTime` guardado, que va en segundos y nadie lee)*, las dos
   contra el reloj del agente, que **DEBE** poder inyectarse en los tests *(E-2: la medida no pudo contrastar el `timestamp` con la hora
-  real de escritura)*. Efectos declarados: el último mensaje espera a que **toda la conversación** lleve T sin escribirse; un `mtime` que
-  se quede atrás *(Windows, sin comprobar)* sólo devuelve la regla a la del `timestamp`, nunca cierra antes que ella.
+  real de escritura)*, o **(iii)** han pasado **≥ 24 horas** desde el `timestamp` de su última línea, **cambie o no su fichero**, contra el
+  mismo reloj *(E-3: tope de la espera)*. Efectos declarados: el último mensaje espera a que **toda la conversación** lleve T sin escribirse,
+  y nunca más de 24 h *(la (iii) cierra el caso de un fichero que siga cambiando sin líneas nuevas, `plan.md` R-2)*; un `mtime` que se
+  quede atrás *(Windows, sin comprobar)* sólo devuelve la regla (ii) a la del `timestamp`, nunca cierra antes que ella.
 - **FR-011** *(memoria entre pasadas — Q-3 ✅ (d))*: lo abierto **NO se guarda**. El offset de un fichero **NO DEBE** pasar del
   comienzo de la primera línea de su mensaje abierto, y la pasada siguiente lo relee del log. `state.json` conserva sus cuatro campos
   (`internal/state/state.go:15-20`) y **no gana ninguno**. `ScanFile` (`:79-122`) se conserva como envoltorio con su conducta de hoy; el
@@ -169,10 +171,12 @@ sobre la **copia del dueño 2026-10-06-wsl** y la **copia del dueño 2026-10-06-
   - la línea parcial cae en la primera pasada y la final en la segunda → **un** evento con la final;
   - con la cola inspeccionada entre las dos, la primera pasada **no** ha encolado nada de ese mensaje;
   - entre las dos, el offset del fichero en `state.json` es **el comienzo de la primera línea** de ese mensaje *(FR-011)*.
-- **SC-007** *(cierre por T — E-2)*: con el reloj inyectado y el `mtime` del fichero fijado *(`os.Chtimes`)*, un mensaje sin líneas nuevas:
+- **SC-007** *(cierre por T — E-2, E-3)*: con el reloj inyectado y el `mtime` del fichero fijado *(`os.Chtimes`)*, un mensaje sin líneas nuevas:
   - `timestamp` y `mtime` a **T** del reloj → **emitido**;
-  - `timestamp` a T y `mtime` a **T − 1 s** → **retenido**; `mtime` a T y `timestamp` a **T − 1 s** → **retenido**.
-  Quitar cualquiera de las dos condiciones hace caer su caso, y sólo ése.
+  - `timestamp` a T y `mtime` a **T − 1 s** → **retenido**; `mtime` a T y `timestamp` a **T − 1 s** → **retenido**;
+  - *(E-3, tope)* con el `mtime` **de ahora**: `timestamp` a **24 h** → **emitido**; a **24 h − 1 s** → **retenido**.
+  Quitar la condición del `timestamp` hace caer su caso, y sólo ése. Quitar la del `mtime` hace caer su caso **y** el de 24 h − 1 s, que
+  depende de ella. Quitar el tope hace caer el caso de 24 h, y sólo ése.
 - **SC-008** *(cierre por mensaje posterior)*: un mensaje A seguido de la primera línea de B, en el mismo fichero, emite A en esa pasada.
   Si B está en **otro** fichero, A sigue retenido.
 - **SC-009** *(frontera intacta)*: los tests de FR-018 **sin tocar** y en verde. `git diff 222c824 -- internal/event/ internal/ingest/eventid.go
@@ -182,6 +186,7 @@ sobre la **copia del dueño 2026-10-06-wsl** y la **copia del dueño 2026-10-06-
 - **SC-010** *(espejo)*: el test del espejo da **17** claves y **cinco** cifras exactas. La mutación que quita `CacheWrite1h` de
   `claude-fable-5-1` cae por su subtest.
 - **SC-011** *(textos)*: los textos nuevos, **byte a byte** iguales a los aprobados *(P-5)*, comparados con `cmp`, también sobre el binario publicado.
+  El CHANGELOG se compara contra el texto **con citas** de §Textos aprobados *(E-3)*.
 - **SC-012** *(suites)*: `go test -count=1 ./...` en verde, **432 + los nuevos**; `golangci-lint run` **0**, sin tope.
 
 ## Censo de tests — **autorización para la fase de tareas**
@@ -235,25 +240,33 @@ evento: tool=%s model=%s in=%d out=%d cw=%d cw5m=%d cw1h=%d cr=%d cost=$%.4f cos
 %d mensajes siguen abiertos: se enviarán en la próxima pasada
 ```
 **CHANGELOG `0.4.0`** *(E-2: sustituye al propuesto. La aprobación cubre el cuerpo; el encabezado lleva la fecha del día de la
-etiqueta y, hasta entonces, `PENDIENTE`, como en 006)*:
+etiqueta y, hasta entonces, `PENDIENTE`, como en 006. **E-3**: cada punto lleva al final la cita de su especificación, con el formato de
+la 0.3.0; las frases aprobadas no cambian. Éste es el texto contra el que compara SC-011)*:
 ```
 ## 0.4.0 — PENDIENTE
 
 ### Cambia
 - El coste de la escritura de caché usa su duración: la de 5 minutos a su tarifa y la de 1 hora a la suya (el doble de la entrada).
   Antes toda iba a la de 5 minutos, y el coste salía por debajo.
+  (`specs/007-coste-fiel/spec.md`, FR-001, FR-002, FR-007)
 - Un mensaje que Claude Code escribe en varias líneas se cuenta entero: cada partida vale lo más alto que alcanza. Antes contaba
   la primera línea, y en las conversaciones de subagentes podía faltar parte de la salida.
+  (`specs/007-coste-fiel/spec.md`, FR-009)
 - El último mensaje de cada conversación se envía cuando empieza el siguiente o tras 10 minutos sin cambios. Si la pasada
   termina antes, sale en la siguiente.
+  (`specs/007-coste-fiel/spec.md`, FR-010, FR-011, FR-014)
 - Tarifas de 17 modelos, con la escritura de caché a 1 hora; nueva: claude-fable-5-1.
+  (`specs/007-coste-fiel/spec.md`, FR-006, FR-008; `specs/007-coste-fiel/contracts/tarifas.md`)
 
 ### Lo ya enviado
 - No se corrige ni se reenvía. Un mensaje que la 0.3.0 envió incompleto se queda como llegó.
+  (`specs/007-coste-fiel/spec.md`, FR-019)
 
 ### Limitaciones conocidas
 - El «modo rápido» no se distingue: un mensaje en modo rápido queda por debajo de su coste.
+  (`specs/007-coste-fiel/spec.md`, FR-007, N-3)
 - Una línea sin el desglose de la caché se tarifa entera a 1 hora.
+  (`specs/007-coste-fiel/spec.md`, FR-003, FR-004)
 ```
 
 ## Preguntas abiertas — **ninguna** *(E-2)*
@@ -288,3 +301,4 @@ orquestador, 2026-10-06. Q-5: resuelta por la medida *(E-1)*.
 |---|---|---|---|
 | **E-1** | 2026-10-06 | **Referencias**: SC-001, SC-003 y SC-005 pasan a la copia del dueño 2026-10-06-wsl *(10 121 mensajes)*; SC-002, a la -windows *(6 074, con los 143 de W2)*. Q-5, resuelta. **Q-3**: nueva opción (d) y recomendación (d) en lugar de (a); se reescriben P-3, FR-011, FR-012, FR-013, FR-014, FR-015, SC-006, SC-009, el caso del truncado, la entidad y el censo de `internal/state`; nuevo FR-021 *(relectura)*. **P-2, Q-1, Q-6**: misma recomendación, con la evidencia de Windows. **Q-1**: cae la razón «en Windows cerraría en la línea parcial». **Assumption 1**: medida en Windows. **P-5**: el resumen pasa a dos líneas *(la de hoy intacta)* y el CHANGELOG dice que el último mensaje espera 10 minutos. **N-5**: sistema y versión no se separan | La copia temporal del descubrimiento se borró: sus cifras no se podían repetir. Las copias del dueño sí. La medida de Windows *(`soporte/descubrimiento.md` §Windows y §C)* |
 | **E-2** | 2026-10-06 | **Ratificadas por el dueño** *(20:00, Madrid)*: P-1 (a), P-2 (a), P-3 (a) sin (d) con Q-1 (a) y Q-6 (a), P-4 (a), Q-2 (a) y P-5, con el **CHANGELOG sustituido** por el aprobado *(encabezado `PENDIENTE` hasta la etiqueta)*. **Decisiones de método del orquestador**: Q-3 (d), Q-4 (a), FR-021 *(el demonio calla si sólo relee)* y **FR-010 (ii) más conservadora**: ≥ T desde el `timestamp` **y** desde el `mtime` del fichero; SC-007 pasa a tres casos. El crecimiento deja de atribuirse a Windows *(Contexto, N-5)*. §Preguntas abiertas, a cero. ✋ → ✅ en P, FR y Q, con las alternativas como rastro. Censo: `project_test.go` y `TestScan_LineaConCuatroPartidasYEventID`, medidos y fuera | Ratificación del dueño y decisiones del orquestador del 06-10. Contraste de la regla (ii) con el código: `plan.md` §Decisiones |
+| **E-3** | 2026-10-06 | **Enmienda del orquestador.** **(1) Tope de la espera**: FR-010 gana la regla **(iii)**, que cierra un mensaje a las ≥ 24 h del `timestamp` de su última línea, cambie o no su fichero. SC-007 gana su caso *(con el `mtime` de ahora: a 24 h, emitido; a 24 h − 1 s, retenido)*. Se tocan P-3 y el caso límite del último mensaje; el CHANGELOG no cambia por esto. **(2) Citas en el CHANGELOG**: cada punto del cuerpo aprobado lleva al final la cita de su especificación, con el formato de la 0.3.0, sin cambiar las frases. SC-011 compara contra el texto con citas. **(3)** `tasks.md` T003 pasa a «007 B0: enmienda E-3 y contrato de tarifas de 006 sustituido» | Cierra el riesgo R-2 del plan *(un fichero que cambia sin líneas nuevas retendría su último mensaje sin límite)*. La cabecera de `CHANGELOG.md` exige citar la especificación en cada punto |
