@@ -108,3 +108,15 @@ func TestDesglose_LaPasadaCuentaLasLineasSinDesglose(t *testing.T) {
 		t.Errorf("SinDesglose = %d; se esperaba 2 (una sin desglose y una con un desglose que no suma)", got)
 	}
 }
+
+// (24) · P-007 FR-003, FR-017 (E-4) — sin escritura de caché no hubo hipótesis: una línea sin desglose y
+// con escritura 0 NO cuenta en `SinDesglose`.
+func TestDesglose_SinEscrituraNoCuentaComoSinDesglose(t *testing.T) {
+	p := NuevaPasada()
+	_ = leerEnUnaPasada(t, p, []byte(`{"type":"assistant","timestamp":"2026-10-06T12:00:00Z","sessionId":"s","cwd":"/tmp/x",`+
+		`"requestId":"req_DESGLOSE00000000000000000007","message":{"id":"msg_DESGLOSE00000000000000000007","model":"claude-opus-5-5",`+
+		`"usage":{"input_tokens":10,"output_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}`))
+	if got := p.Recuentos().SinDesglose; got != 0 {
+		t.Errorf("SinDesglose = %d; se esperaba 0 (sin escritura de caché no hay nada que tarifar a 1 hora)", got)
+	}
+}

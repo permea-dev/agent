@@ -108,34 +108,45 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 	}
 	u := r.Message.Usage
 	cw5m, cw1h, conDesglose := desglosarEscritura(u.CacheCreationTokens, u.CacheCreation.Ephemeral5m, u.CacheCreation.Ephemeral1h)
-	if !conDesglose {
-		ctx.Pasada.contarSinDesglose()
+	if !conDesglose && u.CacheCreationTokens > 0 {
+		ctx.Pasada.contarSinDesglose() // P-007 FR-003 (E-4): sin escritura no hubo hipótesis que contar
 	}
-	// P-006 FR-001/FR-005: dentro de la pasada, sólo la PRIMERA línea del mensaje se emite. Las
-	// demás se cuentan y NUNCA se suman. Con la pasada a nil, todo se emite.
-	if !ctx.Pasada.registrar(id, consumo{u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens, cw5m, cw1h}) {
+	c := consumo{u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens, cw5m, cw1h}
+	// El evento base sale de la primera línea del mensaje: identidad, momento, modelo y referencias. Los
+	// tokens y el coste los pone `conConsumo`.
+	base := func() event.Event {
+		return event.Event{
+			SchemaVersion: event.SchemaVersion,
+			AgentVersion:  ctx.AgentVersion,
+			EventID:       id,
+			OccurredAt:    r.Timestamp,
+			Tool:          "claude_code",
+			Model:         r.Message.Model,
+			ProjectRef:    ctx.Resolutor.Derivar(r.Cwd, ctx.Salt),
+			SessionRef:    event.Ref(ctx.Salt, r.SessionID),
+			MachineRef:    event.Ref(ctx.Salt, ctx.MachineID),
+			DevID:         ctx.DevID,
+			OrgID:         ctx.OrgID,
+		}
+	}
+	// P-007 FR-009: con pasada, la línea se ACUMULA en su mensaje, que sale al cerrar el fichero con el
+	// máximo de cada partida. Sin pasada, cada línea se emite como hasta ahora.
+	if ctx.Pasada.acumular(id, c, base) {
 		return nil, nil
 	}
-	cost, costAvailable := pricing.Cost(r.Message.Model, u.InputTokens, u.OutputTokens, cw5m, cw1h, u.CacheReadTokens)
-	return &event.Event{
-		SchemaVersion:       event.SchemaVersion,
-		AgentVersion:        ctx.AgentVersion,
-		EventID:             id,
-		OccurredAt:          r.Timestamp,
-		Tool:                "claude_code",
-		Model:               r.Message.Model,
-		TokensInput:         u.InputTokens,
-		TokensOutput:        u.OutputTokens,
-		TokensCacheCreation: u.CacheCreationTokens,
-		TokensCacheRead:     u.CacheReadTokens,
-		CostUSD:             cost,
-		CostAvailable:       costAvailable,
-		ProjectRef:          ctx.Resolutor.Derivar(r.Cwd, ctx.Salt),
-		SessionRef:          event.Ref(ctx.Salt, r.SessionID),
-		MachineRef:          event.Ref(ctx.Salt, ctx.MachineID),
-		DevID:               ctx.DevID,
-		OrgID:               ctx.OrgID,
-	}, nil
+	ev := conConsumo(base(), c)
+	return &ev, nil
+}
+
+// conConsumo completa el evento base con los tokens de `c` y su coste, tarifando la escritura de caché por
+// duración (P-007 FR-002). El evento lleva el TOTAL de la escritura; el desglose no cruza la frontera (FR-005).
+func conConsumo(base event.Event, c consumo) event.Event {
+	base.TokensInput = c.entrada
+	base.TokensOutput = c.salida
+	base.TokensCacheCreation = c.escrituraCache
+	base.TokensCacheRead = c.lecturaCache
+	base.CostUSD, base.CostAvailable = pricing.Cost(base.Model, c.entrada, c.salida, c.escritura5m, c.escritura1h, c.lecturaCache)
+	return base
 }
 
 // desglosarEscritura reparte la escritura de caché de una línea por duración (P-007 FR-003, FR-004). Si la

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/permea-dev/agent/internal/config"
+	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/project"
 	"github.com/permea-dev/agent/internal/state"
@@ -283,6 +284,15 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		if err != nil {
 			return total, pasada, err
 		}
+		// P-007 FR-009, FR-012: los mensajes del fichero salen al cerrarlo, con el máximo de cada partida, y se
+		// encolan ANTES de guardar el estado. Si algo falla antes de este punto, el estado no avanza y la
+		// pasada siguiente relee esas líneas.
+		for _, c := range pasada.CerrarFichero() {
+			if err := transport.Append(a.dir, c.Evento); err != nil {
+				return total, pasada, err
+			}
+			total++
+		}
 	}
 
 	if err := st.Save(statePath); err != nil {
@@ -415,29 +425,36 @@ func dryRun(path string) error {
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
 	n := 0
+	imprimir := func(ev event.Event, cw5m, cw1h int) {
+		n++
+		ref := ev.ProjectRef
+		if len(ref) > 8 {
+			ref = ref[:8] + "…"
+		}
+		// P-007 FR-016: el desglose de la escritura de caché, detrás de `cw=`, que sigue siendo el total. Viaja
+		// con el mensaje cerrado: el evento no lo lleva (D-1).
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cw5m=%d cw1h=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, cw5m, cw1h, ev.TokensCacheRead,
+			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
+	}
 	for sc.Scan() {
 		ev, err := ingest.FromClaudeCodeLine(sc.Bytes(), ctx)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "skip:", err)
 			continue
 		}
-		if ev == nil {
-			continue
+		if ev != nil {
+			// Sólo si la pasada no la acumula, que con un `event_id` de 32 hex es inalcanzable. Su desglose no
+			// se conoce aquí, y se imprime a 0.
+			imprimir(*ev, 0, 0)
 		}
-		n++
-		ref := ev.ProjectRef
-		if len(ref) > 8 {
-			ref = ref[:8] + "…"
-		}
-		// P-007 FR-016: el desglose de la escritura de caché, detrás de `cw=`, que sigue siendo el total. Lo da
-		// la pasada: el evento no lo lleva (D-1).
-		cw5m, cw1h, _ := pasada.Desglose(ev.EventID)
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cw5m=%d cw1h=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, cw5m, cw1h, ev.TokensCacheRead,
-			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
 	}
 	if err := sc.Err(); err != nil {
 		return err
+	}
+	// P-007 FR-016: el fichero está completo, así que al final se cierra todo lo que tenga.
+	for _, c := range pasada.CerrarFichero() {
+		imprimir(c.Evento, c.Escritura5m, c.Escritura1h)
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", n)
 	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores

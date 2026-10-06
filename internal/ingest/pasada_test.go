@@ -22,8 +22,9 @@ func lineaConConsumo(messageID, requestID string, entrada, salida int) []byte {
 		requestID, messageID, entrada, salida))
 }
 
-// leerEnUnaPasada pasa las líneas por FromClaudeCodeLine con UNA pasada compartida y devuelve los
-// eventos emitidos. Una línea corrupta es precondición rota (t.Fatalf).
+// leerEnUnaPasada pasa las líneas por FromClaudeCodeLine con UNA pasada compartida, como un fichero, y
+// devuelve los eventos emitidos: los que salgan por línea y los que la pasada cierre al acabar el fichero
+// (P-007 FR-009). Una línea corrupta es precondición rota (t.Fatalf).
 func leerEnUnaPasada(t *testing.T, p *Pasada, lineas ...[]byte) []*event.Event {
 	t.Helper()
 	ctx := Context{Salt: "s", Pasada: p}
@@ -36,6 +37,10 @@ func leerEnUnaPasada(t *testing.T, p *Pasada, lineas ...[]byte) []*event.Event {
 		if ev != nil {
 			emitidos = append(emitidos, ev)
 		}
+	}
+	for _, c := range p.CerrarFichero() {
+		ev := c.Evento
+		emitidos = append(emitidos, &ev)
 	}
 	return emitidos
 }
@@ -75,8 +80,10 @@ func TestPasada_UnMensajeDeTresLineasEsUnEvento(t *testing.T) {
 	})
 }
 
-// (8) · P-006 FR-005, SC-008 (a) — la segunda línea del mismo mensaje trae OTRO consumo: no se emite,
-// el evento conserva el de la PRIMERA, nunca se suman, y la discrepancia se cuenta.
+// (8) · P-006 FR-005, SC-008 (a) — la segunda línea del mismo mensaje trae OTRO consumo: un solo evento,
+// nunca se suman, y la discrepancia se cuenta.
+//
+// P-007 FR-009 sustituye «la primera manda» por EL MÁXIMO POR PARTIDA: 100/40 y 999/1 dan 999/40.
 func TestCasoLimite_ConsumoDistinto(t *testing.T) {
 	const m, r = "msg_DISCREPA00000000000000001", "req_DISCREPA00000000000000001"
 	p := NuevaPasada()
@@ -87,9 +94,9 @@ func TestCasoLimite_ConsumoDistinto(t *testing.T) {
 			t.Errorf("P-006 FR-005: dos líneas del mismo mensaje produjeron %d eventos; se esperaba 1", len(evs))
 		}
 	})
-	t.Run("conserva_el_consumo_de_la_primera", func(t *testing.T) {
-		if got := tokensDe(evs); got != 140 {
-			t.Errorf("P-006 FR-005: los eventos emitidos suman %d tokens; se esperaban los 140 de la PRIMERA línea, nunca una suma", got)
+	t.Run("cada_partida_vale_su_maximo", func(t *testing.T) {
+		if got := tokensDe(evs); got != 1039 {
+			t.Errorf("P-007 FR-009: los eventos emitidos suman %d tokens; se esperaban 999 + 40 = 1039, el máximo de cada partida, nunca una suma", got)
 		}
 	})
 	t.Run("cuenta_la_discrepancia", func(t *testing.T) {

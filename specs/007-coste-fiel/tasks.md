@@ -1,6 +1,6 @@
 # Tasks: 007 · «Coste fiel»
 
-**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1, E-2, E-3)* · [plan.md](./plan.md) ·
+**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1, E-2, E-3, E-4)* · [plan.md](./plan.md) ·
 [contracts/tarifas.md](./contracts/tarifas.md) · [quickstart.md](./quickstart.md)
 **Base**: `222c824`. **Línea base a preservar**: `go test -count=1 ./...` → **9 paquetes ok, 432 pass, 0 fail**; `golangci-lint run` → **0**.
 Ambas medidas el 2026-10-06.
@@ -11,7 +11,7 @@ Ambas medidas el 2026-10-06.
   una detrás de otra.
 - **✋**: la ejecuta **el dueño**: commits, la PR, la fusión, la etiqueta y los ensayos en Windows. Claude no hace git de escritura.
   El mensaje de cada commit va previsto, **sin tildes ni ñ**.
-- **(1)…(23)** son los rojos y **(m1)…(m22)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero
+- **(1)…(25)** son los rojos y **(m1)…(m24)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero
   se llama **R-B4a** y **M-B4a**.
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 
@@ -51,7 +51,7 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   > frontera de 0 bytes.
 - [x] **T002** En `specs/006-medicion-fiel/contracts/tarifas.md`, una línea bajo el título: «*Sustituido el 2026-10-06 por
   `specs/007-coste-fiel/contracts/tarifas.md` (cinco cifras, `8f147d1`).*». Ningún otro cambio en 006.
-- [ ] **T003** ✋ Commit: `007 B0: enmienda E-3 y contrato de tarifas de 006 sustituido` *(E-3: los documentos ya entraron en el commit
+- [x] **T003** ✋ *(`0d90b5c`)* Commit: `007 B0: enmienda E-3 y contrato de tarifas de 006 sustituido` *(E-3: los documentos ya entraron en el commit
   «007: spec ratificada (E-1, E-2), plan, tareas, contrato de tarifas y quickstart»)*.
 
 ## B1 · Tarifas *(`contracts/tarifas.md`; FR-006, FR-007, FR-008; SC-010)*
@@ -73,7 +73,7 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   - **(m3)** cruzar 5 m y 1 h en `claude-opus-5-5` → cae `CifrasClaveAClave/claude-opus-5-5` y, **co-caída declarada antes de
     mutar** *(2026-10-06; el plan no la recogía)*, `TestCost_Opus55AMano`: `Cost` tarifa la escritura con `CacheWrite`, que pasa a 8,00.
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T007.
-- [ ] **T008** ✋ Puertas y commit: `007 B1: tarifas de 17 modelos con cinco cifras (8f147d1)`.
+- [x] **T008** ✋ *(`3dc064c`)* Puertas y commit: `007 B1: tarifas de 17 modelos con cinco cifras (8f147d1)`.
 
 ## B2 · Desglose y coste por duración *(FR-001 a FR-005, FR-007, FR-016; SC-004)*
 
@@ -110,34 +110,39 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   - **(m7)** `tokens_cache_creation` = 5 m + 1 h → cae (6);
   - **(m8)** `cw5m` con el total → cae (8).
   > Transcripciones de T009–T015, el censo declarado y las mutaciones nuevas M-B2a y M-B2b: [`soporte/registro.md`](./soporte/registro.md) §B2.
-- [ ] **T016** ✋ Puertas y commit: `007 B2: la escritura de cache se tarifa por su duracion`.
+- [x] **T016** ✋ *(`5e3e5a0`)* Puertas y commit: `007 B2: la escritura de cache se tarifa por su duracion`.
 
 ## B3 · Máximo dentro de la pasada *(FR-009, FR-013, FR-016; SC-002, SC-003)*
 
-- [ ] **T017** Fase 0:
+- [x] **T017** Fase 0:
   - en `internal/ingest/pasada.go`, el acumulador por mensaje *(máximo por partida, desglose de la línea del máximo de la escritura,
     primera línea para el evento, D-007-P5)*, vacío y nil-seguro;
   - el método que cierra **al final de un fichero** y devuelve los cerrados con su desglose.
   - Compila; la suite sigue verde.
-- [ ] **T018** **Rojos (9) a (12)** en `internal/ingest/maximo_test.go` *(nuevo)*:
+- [x] **T018** **Rojos (9) a (12)** en `internal/ingest/maximo_test.go` *(nuevo)*:
   - **(9)**: 7 → 1 303 → 89 817 → **un** evento con **89 817**;
   - **(10)**: 7 → 89 817 → 1 303 → 89 817;
-  - **(11)**: escritura 100 *(todo 5 m)* → 300 *(todo 1 h)* → desglose 0 / 300;
-  - **(12)**: `Crecieron` = 1.
+  - **(11)** *(E-4: el máximo NO en la última)*: escritura 100 *(todo 5 m)* → 300 *(todo 1 h)* → 200 *(todo 5 m)* → desglose 0 / 300;
+  - **(12)**: `Crecieron` = 1;
+  - **(25)** *(E-4, empate)*: 300 *(todo 5 m)* → 300 *(todo 1 h)* → vale la última, 0 / 300.
+  **Rojo (24)** *(E-4)* en `desglose_test.go`: una línea sin desglose y con escritura 0 **no** cuenta en `SinDesglose`; (7) sigue dando 2.
   **Rojo (13)** en `cmd/permea/coste_test.go`: `--scan` del mensaje de (9) → `out=89817`.
-- [ ] **T019** Censo de `internal/ingest/pasada_test.go`, transcribiendo antes y después:
+- [x] **T019** Censo de `internal/ingest/pasada_test.go`, transcribiendo antes y después:
   - `leerEnUnaPasada` recoge también los cerrados al final;
   - `TestCasoLimite_ConsumoDistinto` pasa de «la primera» a «el máximo» *(100/40 y 999/1 → 999/40)*, y su discrepancia se sigue contando.
-- [ ] **T020** **Verde**:
+- [x] **T020** **Verde**:
   - con pasada, `FromClaudeCodeLine` acumula y devuelve `nil`; **sin pasada, emite por línea como hoy** *(FR-018)*;
   - el coste se calcula al cerrar, con el máximo;
   - `generate()` encola los cerrados **al final de cada fichero, antes** de `st.Save` *(FR-012)*, y `dryRun()` los imprime.
-- [ ] **T021** **(14)**, que nace verde: duplicar una línea no cambia ni eventos ni sumas *(SC-003)*. La valida (m11).
-- [ ] **T022** Mutaciones:
-  - **(m9)** máximo → primera: caen (9), (10) y (13);
-  - **(m10)** máximo → última: cae sólo (10);
-  - **(m11)** sumar: caen (9), (10) y (14);
-  - **(m12)** desglose de la última línea: cae sólo (11).
+- [x] **T021** **(14)**, que nace verde: duplicar una línea no cambia ni eventos ni sumas *(SC-003)*. La valida (m11).
+- [x] **T022** Mutaciones:
+  - **(m9)** máximo → primera: caen (9), (10), (11), (12), (13) y `ConsumoDistinto` *(censo en el registro)*;
+  - **(m10)** máximo → última: caen (10) y `ConsumoDistinto`;
+  - **(m11)** sumar: caen (9), (10), (12), (13), (14), `ConsumoDistinto` y `UnMensajeDeTresLineas…/tokens_de_una_linea`;
+  - **(m12)** desglose de la última línea: cae sólo (11);
+  - **(m23)** *(E-4)* contar sin desglose también con escritura 0: cae sólo (24);
+  - **(m24)** *(E-4)* la primera entre las empatadas: cae sólo (25).
+  > Censo, transcripciones y mutaciones: [`soporte/registro.md`](./soporte/registro.md) §B3.
 - [ ] **T023** ✋ Puertas y commit: `007 B3: cada partida vale el maximo de sus lineas`.
 
 ## B4 · Retención: offset, cierre, `--run`, `--daemon` y resumen *(FR-010 a FR-015, FR-017, FR-019, FR-021; SC-006 a SC-009)*
@@ -271,10 +276,12 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 | m8 | B2 | `cw5m` con el total | (8) |
 | M-B2a | B2 | el evento lleva `cw1h` como total | (4) *(tokens)*, (8) |
 | M-B2b | B2 | sin desglose, total = 0 | (5) y (6) *(tokens)*, `TestScan_LineaConCuatroPartidasYEventID` |
-| m9 | B3 | máximo → primera | (9), (10), (13) |
-| m10 | B3 | máximo → última | (10) |
-| m11 | B3 | sumar | (9), (10), (14) |
+| m9 | B3 | máximo → primera | (9), (10), (11), (12), (13), `ConsumoDistinto` |
+| m10 | B3 | máximo → última | (10), `ConsumoDistinto` |
+| m11 | B3 | sumar | (9), (10), (12), (13), (14), `ConsumoDistinto`, `UnMensajeDeTresLineas…` |
 | m12 | B3 | desglose de la última | (11) |
+| m23 | B3 | *(E-4)* sin desglose cuenta aunque la escritura sea 0 | (24) |
+| m24 | B3 | *(E-4)* la primera entre las empatadas | (25) |
 | m13 | B4 | offset al final | (15) |
 | m14 | B4 | sin la condición del `mtime` | (16 b), (23, 24 h − 1 s) *(declarada, E-3)* |
 | m15 | B4 | sin la del `timestamp` | (16 c) |

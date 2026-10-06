@@ -122,3 +122,115 @@ Cada mutación lista lo que **debe** caer, padres incluidos implícitamente. Si 
 **m8, primera forma, inválida**: imprimir `ev.TokensCacheCreation` en el sitio de `cw5m` dejaba la variable sin usar, y `cmd/permea`
 no compilaba *(`[build failed]`)*. Se revirtió por edición inversa, con el md5 de `main.go` otra vez en `6f8147f4…`, y **no cuenta**.
 La forma válida descarta `cw5m` de la pasada y lo toma del total.
+
+## B3 · El máximo dentro de la pasada
+
+### T017 · Fase 0
+
+En `pasada.go`: el tipo `Cerrado` *(evento y desglose)*, `CerrarFichero()` devolviendo `nil` y seguro con pasada nula, y el recuento
+`Crecieron`, sin usar. **Suite verde, 9/9.**
+
+### T018 · Rojos
+
+```
+(9)  --- FAIL: TestMaximo_LaSalidaQueCreceValeSuMaximo        salida = 7; se esperaba 89 817, el máximo (la primera daría 7)
+(10) --- FAIL: TestMaximo_ElMaximoEnMedioNoLaUltima           salida = 7; se esperaba 89 817, el máximo (la última daría 1 303)
+(11) --- FAIL: TestMaximo_ElDesgloseEsElDeLaLineaDelMaximo/coste     coste = 0.0005000000, want 0.0024000000
+     --- FAIL: …/desglose                                     la pasada no cerró el mensaje: el desglose no se puede observar
+(25) --- FAIL: TestMaximo_EnEmpateValeLaUltima/coste          coste = 0.0015000000, want 0.0024000000
+     --- FAIL: …/desglose                                     la pasada no cerró el mensaje: el desglose no se puede observar
+(12) --- FAIL: TestMaximo_LaPasadaCuentaLosQueCrecieron       Crecieron = 0; se esperaba 1 (uno crece y otro repite)
+(13) --- FAIL: TestScan_LaSalidaQueCreceValeSuMaximo          … "evento: … in=3 out=7 cw=0 cw5m=0 cw1h=0 cr=0 cost=$0.0002 …"
+(24) --- FAIL: TestDesglose_SinEscrituraNoCuentaComoSinDesglose  SinDesglose = 1; se esperaba 0
+```
+**Razones**:
+- «la primera manda»: el evento sale con la primera línea, que en (11) da 100 a 5 min y en (25) 300 a 5 min;
+- la pasada no cierra nada;
+- `SinDesglose` cuenta aunque la escritura sea 0.
+
+**(14)**, `TestMaximo_UnaLineaDuplicadaNoCambiaNada`, **nace verde**: compara la lectura con y sin la línea duplicada, y con «la primera»
+también coincidían. La valida m11.
+
+### T019 · Censo de `internal/ingest/pasada_test.go`
+
+**Antes**, literal:
+```go
+func leerEnUnaPasada(t *testing.T, p *Pasada, lineas ...[]byte) []*event.Event {
+	t.Helper()
+	ctx := Context{Salt: "s", Pasada: p}
+	var emitidos []*event.Event
+	for _, l := range lineas {
+		ev, err := FromClaudeCodeLine(l, ctx)
+		if err != nil {
+			t.Fatalf("precondición: línea corrupta: %v", err)
+		}
+		if ev != nil {
+			emitidos = append(emitidos, ev)
+		}
+	}
+	return emitidos
+}
+```
+y en `TestCasoLimite_ConsumoDistinto` el subtest `conserva_el_consumo_de_la_primera`, que esperaba **140** *(«los 140 de la PRIMERA línea»)*.
+
+**Después**:
+- `leerEnUnaPasada` añade al final `for _, c := range p.CerrarFichero() { … emitidos = append(emitidos, &ev) }`;
+- el subtest pasa a `cada_partida_vale_su_maximo` y espera **1039** *(999 + 40)*;
+- el comentario cita P-007 FR-009, y `cuenta_la_discrepancia` sigue igual.
+
+Con la Fase 0, el subtest nuevo cayó por su razón: `los eventos emitidos suman 140 tokens; se esperaban 999 + 40 = 1039`.
+
+### T020 · Verde
+
+- `internal/ingest/pasada.go`:
+  - `mensaje` *(base, primera, máximo y emitido)*, y la `Pasada` con `mensajes` y `abiertos`;
+  - `acumular` aplica el máximo por partida y el desglose de la línea del máximo de la escritura *(`>=`, la última si empatan)*. Un
+    mensaje ya emitido en la pasada no se reemite;
+  - `CerrarFichero` emite en orden de aparición, cuenta `Emitidos` y `Crecieron`, y devuelve el desglose;
+  - fuera `registrar`, `vistos` y `Desglose`.
+- `internal/ingest/claudecode.go`:
+  - `SinDesglose` sólo con escritura > 0 *(E-4)*;
+  - el evento base sale de la primera línea;
+  - **sin pasada, por línea como hoy**;
+  - `conConsumo` pone tokens y coste en un solo sitio.
+- `cmd/permea/main.go`:
+  - `generate()` encola los cerrados **al final de cada fichero, antes de `st.Save`**;
+  - `dryRun()` los imprime al final, con su desglose;
+  - se importa `internal/event`.
+- **9/9 ok, 458 pass** *(446 + 12)*. `golangci-lint run` → 0.
+
+### T021 · (14)
+
+Nace verde *(ver T018)*. La validó m11: `con una línea duplicada: 1 eventos y 92430 de salida; sin ella: 1 y 91127`.
+
+### T022 · Censo declarado ANTES de mutar *(2026-10-06)*
+
+m9, m10 y m11 tocan **sólo las cuatro partidas** en `acumular`, y dejan la regla del desglose como está. Respecto a `plan.md` y
+`tasks.md`, **m9, m10 y m11 declaran más** de lo previsto. Las razones:
+- `TestCasoLimite_ConsumoDistinto`, ya con «máximo», cae con cualquier otra regla;
+- (11) depende del máximo de la escritura;
+- (12) cuenta los que crecen;
+- `TestPasada_UnMensajeDeTresLineasEsUnEvento` suma tokens.
+
+| # | Mutación *(en `internal/ingest/pasada.go`, `acumular`, salvo m23)* | Debe caer *(hojas)* |
+|---|---|---|
+| m9 | máximo → **primera**: no se actualiza ninguna de las cuatro partidas | `TestMaximo_LaSalidaQueCreceValeSuMaximo`, `TestMaximo_ElMaximoEnMedioNoLaUltima`, `TestScan_LaSalidaQueCreceValeSuMaximo`, `TestCasoLimite_ConsumoDistinto/cada_partida_vale_su_maximo`, `TestMaximo_ElDesgloseEsElDeLaLineaDelMaximo/coste` y `/desglose` *(la escritura se queda en 100, y la de 200 la supera)*, `TestMaximo_LaPasadaCuentaLosQueCrecieron` |
+| m10 | máximo → **última**: las cuatro partidas toman la de la línea | `TestMaximo_ElMaximoEnMedioNoLaUltima`, `TestCasoLimite_ConsumoDistinto/cada_partida_vale_su_maximo` *(999 + 1)* |
+| m11 | **sumar** las cuatro partidas | `TestMaximo_LaSalidaQueCreceValeSuMaximo`, `TestMaximo_ElMaximoEnMedioNoLaUltima`, `TestScan_LaSalidaQueCreceValeSuMaximo`, `TestCasoLimite_ConsumoDistinto/cada_partida_vale_su_maximo`, `TestMaximo_UnaLineaDuplicadaNoCambiaNada` *(14)*, `TestPasada_UnMensajeDeTresLineasEsUnEvento/tokens_de_una_linea`, `TestMaximo_LaPasadaCuentaLosQueCrecieron` *(el que repite también «crece»)* |
+| m12 | desglose de la **última** línea *(`if true`)* | `TestMaximo_ElDesgloseEsElDeLaLineaDelMaximo/coste` y `/desglose` |
+| m23 | *(`claudecode.go`)* contar sin desglose aunque la escritura sea 0 | `TestDesglose_SinEscrituraNoCuentaComoSinDesglose` |
+| m24 | la **primera** entre las empatadas *(`>=` → `>`)* | `TestMaximo_EnEmpateValeLaUltima/coste` y `/desglose` |
+
+### T022 · Resultado *(2026-10-06)*
+
+**Las seis coinciden con lo declarado.** Reversión por edición inversa, con el md5 igual antes y después: `pasada.go` `90a531b9…` y
+`claudecode.go` `f29a6519…`.
+
+| # | Mensajes |
+|---|---|
+| m9 | `salida = 7` ×2; `out=7`; `coste = 0.0010000000, want 0.0024000000`; `desglose = 200 / 0`; `Crecieron = 0`; `suman 140 tokens` |
+| m10 | `salida = 1303`; `suman 1000 tokens` |
+| m11 | `salida = 91127` ×2; `out=91127`; `Crecieron = 2`; `92430 de salida; sin ella: 1 y 91127`; `suman 420 tokens`; `suman 1140 tokens` |
+| m12 | `coste = 0.0010000000, want 0.0024000000`; `desglose = 200 / 0; se esperaba 0 / 300` |
+| m23 | `SinDesglose = 1; se esperaba 0` |
+| m24 | `coste = 0.0015000000, want 0.0024000000`; `desglose = 300 / 0; se esperaba 0 / 300` |

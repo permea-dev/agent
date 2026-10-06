@@ -43,3 +43,28 @@ func TestScan_LineaConDesgloseDeLaEscritura(t *testing.T) {
 		}
 	}
 }
+
+// (13) · P-007 FR-009, FR-016, SC-002 — `--scan` de un mensaje cuya salida crece 7 → 1 303 → 89 817 imprime
+// UN evento con `out=89817`.
+func TestScan_LaSalidaQueCreceValeSuMaximo(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	var contenido strings.Builder
+	for _, salida := range []string{"7", "1303", "89817"} {
+		contenido.WriteString(`{"type":"assistant","timestamp":"2026-10-06T12:00:00Z","sessionId":"s","cwd":"/tmp/x",` +
+			`"requestId":"req_COSTESCAN0000000000000002","message":{"id":"msg_COSTESCAN0000000000000002","model":"claude-opus-5-5",` +
+			`"usage":{"input_tokens":3,"output_tokens":` + salida + `,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}` + "\n")
+	}
+	fichero := filepath.Join(t.TempDir(), "crece.jsonl")
+	if err := os.WriteFile(fichero, []byte(contenido.String()), 0o600); err != nil {
+		t.Fatalf("escribir el fichero de prueba: %v", err)
+	}
+
+	codigo, stdout, _, _ := ejecutar(t, 20*time.Second, "--scan", fichero)
+	eventos := lineasEvento(stdout)
+	if codigo != 0 || len(eventos) != 1 {
+		t.Fatalf("precondición: `--scan` debe salir con 0 e imprimir un evento (código %d, eventos %d)", codigo, len(eventos))
+	}
+	if !strings.Contains(eventos[0]+" ", " out=89817 ") {
+		t.Errorf("P-007 FR-009: la salida del evento no es el máximo, 89 817: %q", eventos[0])
+	}
+}
