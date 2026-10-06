@@ -36,40 +36,46 @@ func TestCost_UnknownModel(t *testing.T) {
 // ═══ P-006 B3 · EL ESPEJO DEL CATÁLOGO DE LA PLATAFORMA (FR-014, FR-020, SC-009) ═══════════
 //
 // La tabla empaquetada es una copia exacta del catálogo de la plataforma en un commit concreto
-// (`specs/006-medicion-fiel/contracts/tarifas.md`). Esta tabla esperada se escribe APARTE, copiada del
+// (`specs/007-coste-fiel/contracts/tarifas.md`, que sustituye al de 006). Esta tabla esperada se escribe APARTE, copiada del
 // catálogo y NO de `pricing.go`: dos copias que un test obliga a coincidir avisan de un cambio; una
 // sola copia lo aplicaría en silencio. El test no lee el otro repositorio.
 //
-// PROCEDENCIA: permea-dev/permea-platform · backend/config/pricing.php · e50d0a5
-// (16 claves; `claude-sonnet-5` corregida a 2.00 / 10.00 / 2.50 / 0.20 el 2026-10-02, Q-006-1).
+// PROCEDENCIA: permea-dev/permea-platform · backend/config/pricing.php · 8f147d1
+// (17 claves y CINCO cifras: la escritura de caché a 5 minutos y a 1 hora; fila nueva `claude-fable-5-1`). Escrita
+// a mano desde la tabla literal de `specs/007-coste-fiel/contracts/tarifas.md` (P-007 FR-008), no desde `pricing.go`.
 var esperadaDelCatalogo = map[string]Rate{
-	"claude-fable-5":    {Input: 10.00, Output: 50.00, CacheWrite: 12.50, CacheRead: 1.00},
-	"claude-mythos-5":   {Input: 10.00, Output: 50.00, CacheWrite: 12.50, CacheRead: 1.00},
-	"claude-opus-5-5":   {Input: 4.00, Output: 20.00, CacheWrite: 5.00, CacheRead: 0.20},
-	"claude-opus-5":     {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheRead: 0.50},
-	"claude-opus-4-8":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheRead: 0.50},
-	"claude-opus-4-7":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheRead: 0.50},
-	"claude-opus-4-6":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheRead: 0.50},
-	"claude-opus-4-5":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheRead: 0.50},
-	"claude-opus-4-1":   {Input: 15.00, Output: 75.00, CacheWrite: 18.75, CacheRead: 1.50},
-	"claude-opus-4":     {Input: 15.00, Output: 75.00, CacheWrite: 18.75, CacheRead: 1.50},
-	"claude-sonnet-5":   {Input: 2.00, Output: 10.00, CacheWrite: 2.50, CacheRead: 0.20},
-	"claude-sonnet-4-6": {Input: 3.00, Output: 15.00, CacheWrite: 3.75, CacheRead: 0.30},
-	"claude-sonnet-4-5": {Input: 3.00, Output: 15.00, CacheWrite: 3.75, CacheRead: 0.30},
-	"claude-sonnet-4":   {Input: 3.00, Output: 15.00, CacheWrite: 3.75, CacheRead: 0.30},
-	"claude-haiku-4-5":  {Input: 1.00, Output: 5.00, CacheWrite: 1.25, CacheRead: 0.10},
-	"claude-haiku-3-5":  {Input: 0.80, Output: 4.00, CacheWrite: 1.00, CacheRead: 0.08},
+	"claude-fable-5":    {Input: 10.00, Output: 50.00, CacheWrite: 12.50, CacheWrite1h: 20.00, CacheRead: 1.00},
+	"claude-fable-5-1":  {Input: 10.00, Output: 50.00, CacheWrite: 12.50, CacheWrite1h: 20.00, CacheRead: 0.25},
+	"claude-mythos-5":   {Input: 10.00, Output: 50.00, CacheWrite: 12.50, CacheWrite1h: 20.00, CacheRead: 1.00},
+	"claude-opus-5-5":   {Input: 4.00, Output: 20.00, CacheWrite: 5.00, CacheWrite1h: 8.00, CacheRead: 0.20},
+	"claude-opus-5":     {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheWrite1h: 10.00, CacheRead: 0.50},
+	"claude-opus-4-8":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheWrite1h: 10.00, CacheRead: 0.50},
+	"claude-opus-4-7":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheWrite1h: 10.00, CacheRead: 0.50},
+	"claude-opus-4-6":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheWrite1h: 10.00, CacheRead: 0.50},
+	"claude-opus-4-5":   {Input: 5.00, Output: 25.00, CacheWrite: 6.25, CacheWrite1h: 10.00, CacheRead: 0.50},
+	"claude-opus-4-1":   {Input: 15.00, Output: 75.00, CacheWrite: 18.75, CacheWrite1h: 30.00, CacheRead: 1.50},
+	"claude-opus-4":     {Input: 15.00, Output: 75.00, CacheWrite: 18.75, CacheWrite1h: 30.00, CacheRead: 1.50},
+	"claude-sonnet-5":   {Input: 2.00, Output: 10.00, CacheWrite: 2.50, CacheWrite1h: 4.00, CacheRead: 0.20},
+	"claude-sonnet-4-6": {Input: 3.00, Output: 15.00, CacheWrite: 3.75, CacheWrite1h: 6.00, CacheRead: 0.30},
+	"claude-sonnet-4-5": {Input: 3.00, Output: 15.00, CacheWrite: 3.75, CacheWrite1h: 6.00, CacheRead: 0.30},
+	"claude-sonnet-4":   {Input: 3.00, Output: 15.00, CacheWrite: 3.75, CacheWrite1h: 6.00, CacheRead: 0.30},
+	"claude-haiku-4-5":  {Input: 1.00, Output: 5.00, CacheWrite: 1.25, CacheWrite1h: 2.00, CacheRead: 0.10},
+	"claude-haiku-3-5":  {Input: 0.80, Output: 4.00, CacheWrite: 1.00, CacheWrite1h: 1.60, CacheRead: 0.08},
 }
 
 // (15) · P-006 FR-020 — la tabla tiene exactamente las claves del catálogo replicado.
+//
+// (1) · P-007 FR-006, FR-008 — 17 desde `8f147d1`.
 func TestEspejo_RecuentoDeClaves(t *testing.T) {
 	if got, want := len(Table), len(esperadaDelCatalogo); got != want {
 		t.Errorf("la tabla tiene %d claves; el catálogo replicado tiene %d", got, want)
 	}
 }
 
-// (16) · P-006 FR-014, FR-020 — cada clave del catálogo existe en la tabla con sus CUATRO cifras
-// exactas. Un subtest por clave, para que el fallo diga cuál.
+// (16) · P-006 FR-014, FR-020 — cada clave del catálogo existe en la tabla con sus cifras exactas. Un
+// subtest por clave, para que el fallo diga cuál.
+//
+// (2) · P-007 FR-006, FR-008, SC-010 — las cifras son CINCO: también la escritura de caché a 1 hora.
 func TestEspejo_CifrasClaveAClave(t *testing.T) {
 	claves := make([]string, 0, len(esperadaDelCatalogo))
 	for k := range esperadaDelCatalogo {
@@ -92,6 +98,9 @@ func TestEspejo_CifrasClaveAClave(t *testing.T) {
 			}
 			if got.CacheWrite != quiere.CacheWrite {
 				t.Errorf("escritura de caché = %v, want %v", got.CacheWrite, quiere.CacheWrite)
+			}
+			if got.CacheWrite1h != quiere.CacheWrite1h {
+				t.Errorf("escritura de caché a 1 hora = %v, want %v", got.CacheWrite1h, quiere.CacheWrite1h)
 			}
 			if got.CacheRead != quiere.CacheRead {
 				t.Errorf("lectura de caché = %v, want %v", got.CacheRead, quiere.CacheRead)
