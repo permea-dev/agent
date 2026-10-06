@@ -206,15 +206,16 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 
 ## B5 · README y CHANGELOG *(FR-020; SC-011)*
 
-- [ ] **T034** **Rojo**, transcrito:
+- [x] **T034** **Rojo**, transcrito:
   - `grep -n "Limitación conocida" README.md` y `grep -n "Limitación 1" README.md` → > 0;
   - `grep -c '^## 0.4.0' CHANGELOG.md` → 0.
-- [ ] **T035** En `README.md`:
+- [x] **T035** En `README.md`:
   - se retiran la limitación de los tokens de salida crecientes y la «Limitación 1»;
   - se declaran la **hipótesis P-1** y la espera del último mensaje *(10 minutos sin cambios, o la pasada siguiente)*;
   - la «Limitación 2» sigue.
-- [ ] **T036** En `CHANGELOG.md`, `## 0.4.0 — PENDIENTE` encima de la 0.3.0, con el **cuerpo aprobado literal y sus citas** *(spec §Textos,
+- [x] **T036** En `CHANGELOG.md`, `## 0.4.0 — PENDIENTE` encima de la 0.3.0, con el **cuerpo aprobado literal y sus citas** *(spec §Textos,
   E-3)*. Comprobación: el cuerpo extraído de los dos ficheros, **citas incluidas**, comparado con `cmp`, sin diferencias. `grep -c PENDIENTE CHANGELOG.md` → 1.
+  > Rojos, cambios, `cmp` y la aproximación de «releída»: [`soporte/registro.md`](./soporte/registro.md) §B5.
 - [ ] **T037** ✋ Puertas y commit: `007 B5: README y CHANGELOG de la 0.4.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*

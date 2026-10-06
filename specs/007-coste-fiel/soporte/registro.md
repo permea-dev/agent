@@ -410,3 +410,63 @@ declaración corregida de m21:
   m22 usa un marcador.
 
 (m17 imprime 644/322 donde la ejecución sin mutar imprimía 646/323: los `timestamp` de ahora cambian de longitud entre ejecuciones.)
+
+## B5 · README y CHANGELOG
+
+### De paso · la marca «releída» es una aproximación *(2026-10-06; sólo se declara, sin cambiar conducta)*
+
+`Recorrer` marca como releída la línea que empieza por debajo del `Size` guardado. Ese `Size` es el del stat de la pasada anterior, no lo
+que esa pasada leyó. Tiene dos imprecisiones:
+1. **Una línea a medio escribir** en la pasada anterior, sin `\n`, no se consumió, pero quedaba por debajo del `Size`. Al completarse se
+   cuenta como **releída** sin haberse leído.
+2. **Si el fichero creció entre el stat y la lectura**, la pasada leyó más allá del `Size` que guardó. Si esas líneas se releen después,
+   se cuentan como **nuevas**.
+
+**Efecto, comprobado en el código.** La marca va de `Recorrer` a `Pasada.Situar`, de ahí a `contarFacturable` y de ahí sólo al recuento
+`Releidas`. Ese recuento lo usan **únicamente**:
+- la segunda línea del resumen;
+- `HayNovedades`, que decide si el demonio escribe el resumen de ese ciclo.
+
+**No** entra en `acumular` ni en `CerrarConReloj`, así que **nunca** cambia lo que se emite. Queda declarado en el comentario de
+`Recorrer`.
+
+### T034 · Rojos *(por `grep`)*
+
+```
+$ grep -n "Limitación conocida" README.md
+150:  **Limitación conocida**: si las líneas de un mismo mensaje traen tokens de salida crecientes, se
+$ grep -n "Limitación 1" README.md
+175:- **Limitación 1**: la escritura de caché va a la tarifa de **5 minutos**; una escritura de caché de
+$ grep -c "^## 0.4.0" CHANGELOG.md
+0
+```
+
+### T035 · `README.md`
+
+- **§Modos de ejecución**:
+  - fuera la «Limitación conocida»;
+  - **un evento por mensaje, contado entero** *(cada partida vale lo más alto que alcanza)*;
+  - **un mensaje sale cuando está completo** *(cuando empieza el siguiente o tras 10 minutos sin cambios; tope de 24 h; lo abierto se
+    relee)*;
+  - el resumen, en **dos líneas**;
+  - `--scan`, con `cw5m=` y `cw1h=`, cierra todo al final del fichero;
+  - `--run` deja lo abierto y avisa, con el texto aprobado;
+  - `--daemon` cierra a su hora aunque el fichero no crezca, y sólo escribe el resumen si hay novedades.
+- **§Coste y tarifas**:
+  - **17 modelos con cinco cifras** y `8f147d1`;
+  - la escritura de caché, por duración;
+  - **fuera la «Limitación 1»**, y entra la **hipótesis P-1**;
+  - la «Limitación 2» sigue.
+- **§Instalación**: el ejemplo `PERMEA_VERSION=v0.3.0` pasa a `v0.4.0`.
+
+### T036 · `CHANGELOG.md`
+
+`## 0.4.0 — PENDIENTE` va encima de la 0.3.0, con el cuerpo **sacado por programa** del bloque de spec §Textos aprobados, sin copiarlo
+a mano.
+
+```
+$ cmp <cuerpo 0.4.0 de CHANGELOG.md> <spec §Textos aprobados>
+cmp: sin diferencias (rc=0)
+$ grep -c PENDIENTE CHANGELOG.md
+1
+```

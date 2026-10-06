@@ -94,6 +94,14 @@ func (s *Store) ScanFile(path string, fn func(line []byte) error) error {
 //     leída y la última modificación del fichero, del stat de ESTA pasada, y devuelve el offset que se
 //     guarda. Así un mensaje abierto no se consume: el offset se queda en su comienzo y la pasada
 //     siguiente lo relee del log.
+//
+// «Releída» es una APROXIMACIÓN, porque el `Size` anterior es el del stat de la pasada anterior, no lo que
+// esa pasada leyó. Tiene dos imprecisiones:
+//   - una línea que estaba a medio escribir en la pasada anterior se cuenta como releída sin haberse leído;
+//   - si el fichero creció entre el stat y la lectura, una línea ya leída se cuenta como nueva.
+//
+// Sólo afectan al recuento de releídas y a si el demonio escribe el resumen de ese ciclo. NUNCA a lo que se
+// emite: la marca no entra en la acumulación ni en el cierre de los mensajes.
 func (s *Store) Recorrer(path string, fn func(line []byte, inicio int64, releida bool) error,
 	fijar func(leido int64, modificado time.Time) int64) error {
 	info, err := os.Stat(path)

@@ -29,7 +29,7 @@ etiqueta de la release.
 es solo macOS):
 
     curl -fsSL https://raw.githubusercontent.com/permea-dev/agent/main/install.sh | sh
-    # opcional: PERMEA_VERSION=v0.3.0 PREFIX="$HOME/.local/bin" sh install.sh
+    # opcional: PERMEA_VERSION=v0.4.0 PREFIX="$HOME/.local/bin" sh install.sh
 
 **Windows** — Scoop (bucket propio):
 
@@ -143,21 +143,30 @@ servidor**, sobre lo que ya llegó.
     permea --run                    # una pasada: escanea, encola y drena al backend
     permea --daemon                 # bucle continuo: cada sync_interval genera y transmite
 
-- **Un evento por mensaje.** Claude Code escribe varias líneas por mensaje con el mismo consumo; el
-  agente emite **uno** por mensaje, con un `event_id` derivado del propio mensaje (el mismo en
-  cualquier pasada o instalación), y la plataforma descarta los repetidos. Las líneas `<synthetic>`
-  no se emiten. Al final de cada pasada, un resumen por stderr con **sólo recuentos**.
-  **Limitación conocida**: si las líneas de un mismo mensaje traen tokens de salida crecientes, se
-  cuenta el de la primera; en los datos medidos en Windows, un 1,6 % de la salida de menos. Se
-  corregirá en la versión siguiente.
+- **Un evento por mensaje, contado entero.** Claude Code escribe varias líneas por mensaje, y a veces
+  —en las conversaciones de subagentes— la salida crece de una línea a la siguiente. El agente emite
+  **uno** por mensaje, con un `event_id` derivado del propio mensaje (el mismo en cualquier pasada o
+  instalación), y **cada partida vale lo más alto que alcanza** entre sus líneas; nunca se suman. La
+  plataforma descarta los repetidos. Las líneas `<synthetic>` no se emiten.
+- **Un mensaje sale cuando está completo.** El último de cada conversación se envía cuando empieza el
+  siguiente o tras **10 minutos sin cambios** en la conversación (y, como tope, a las 24 horas de su
+  última línea). Lo que sigue abierto no se guarda aparte: el agente lo relee del log en la pasada
+  siguiente.
+- **Al final de cada pasada, dos líneas por stderr con sólo recuentos**: lo leído y lo emitido; y los
+  mensajes que crecieron entre líneas, los que esperan a cerrarse, las líneas releídas, las tardías y
+  las que no traen el desglose de la caché.
 - **`--scan`** imprime por evento las cuatro partidas de tokens (`in=`, `out=`, `cw=`, `cr=`), el
-  coste y el `event_id`.
-- **`--run`** hace una pasada: descubre los logs de Claude Code, lee solo lo nuevo por
-  offset (idempotente), encola de forma durable en `queue.jsonl` y, si hay `endpoint`
-  configurado, drena la cola por HTTPS autenticado.
-- **`--daemon`** repite lo anterior cada `sync_interval`. Errores de red/5xx se reintentan
-  con backoff acotado (máx. 5 reintentos, tope 5 min) y el lote permanece en cola; un error
-  de autenticación (401/403) detiene el sync por configuración errónea. `Ctrl-C` para parar.
+  desglose de la escritura de caché por duración (`cw5m=`, `cw1h=`), el coste y el `event_id`. Como
+  lee un fichero completo, cierra todos sus mensajes al final.
+- **`--run`** hace una pasada: descubre los logs de Claude Code, lee lo nuevo por offset, encola de
+  forma durable en `queue.jsonl` lo que está cerrado y, si hay `endpoint` configurado, drena la cola
+  por HTTPS autenticado. Lo que sigue abierto se queda para la pasada siguiente, y lo avisa: «N
+  mensajes siguen abiertos: se enviarán en la próxima pasada».
+- **`--daemon`** repite lo anterior cada `sync_interval`; un mensaje en espera se cierra a su hora
+  aunque su fichero no crezca, y el resumen sólo se escribe en los ciclos con novedades. Errores de
+  red/5xx se reintentan con backoff acotado (máx. 5 reintentos, tope 5 min) y el lote permanece en
+  cola; un error de autenticación (401/403) detiene el sync por configuración errónea. `Ctrl-C` para
+  parar.
 - Sin `endpoint` configurado, la medición local funciona igual: los eventos quedan en la
   cola y nada se transmite.
 - **Windows, PowerShell 5.1**: al redirigir la salida a un fichero (`2>`, `>`), las tildes pueden
@@ -166,14 +175,17 @@ servidor**, sobre lo que ya llegó.
 ## Coste y tarifas
 
 El coste se calcula **en local**, en **USD**, con una tabla empaquetada en el binario
-(`internal/pricing`): **16 modelos**, espejo exacto del catálogo de tarifas de la plataforma
-(`permea-dev/permea-platform` · `backend/config/pricing.php` · `e50d0a5`).
+(`internal/pricing`): **17 modelos con cinco cifras** cada uno —entrada, salida, escritura de caché a
+5 minutos, escritura de caché a 1 hora y lectura de caché—, espejo exacto del catálogo de tarifas de
+la plataforma (`permea-dev/permea-platform` · `backend/config/pricing.php` · `8f147d1`).
 
 - **Casamiento exacto**: la tarifa se busca por el identificador de modelo tal como llega en el log.
   No se normalizan sufijos de fecha, prefijos ni mayúsculas. Un modelo sin fila sale con
   `cost_available=false` y coste 0, y sus tokens se cuentan igual.
-- **Limitación 1**: la escritura de caché va a la tarifa de **5 minutos**; una escritura de caché de
-  1 hora quedaría infravalorada (el log no la distingue).
+- **La escritura de caché, por su duración**: la de 5 minutos a su tarifa y la de 1 hora a la suya (el
+  doble de la entrada). El log trae el desglose; el evento sigue llevando sólo el total.
+- **Hipótesis P-1**: una línea **sin el desglose** de la caché, o con uno que no suma el total, se
+  tarifa entera a **1 hora**. Es la misma hipótesis que declara el catálogo de la plataforma.
 - **Limitación 2**: el **«modo rápido»** no se distingue; un evento en modo rápido quedaría
   infravalorado.
 
