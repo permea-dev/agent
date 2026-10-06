@@ -28,6 +28,11 @@ import (
 // (`derivarEventID`, specs/006-medicion-fiel/contracts/event-id.md). NUNCA se copian a ningún
 // campo del evento, ni enteros ni en fragmento (P-006 FR-003): la denylist del golden lleva sus
 // centinelas y sus núcleos.
+//
+// P-007 · EL DESGLOSE DE LA ESCRITURA DE CACHÉ (FR-001): de `usage.cache_creation` se admiten SÓLO
+// `ephemeral_5m_input_tokens` y `ephemeral_1h_input_tokens`, dos NÚMEROS de consumo. Nada más de ese
+// objeto, y la ampliación no cubre ningún otro campo. El desglose sirve para tarifar y NUNCA cruza la
+// frontera: el evento lleva el total, `cache_creation_input_tokens` (FR-005).
 type rawRecord struct {
 	Type      string    `json:"type"`
 	Timestamp time.Time `json:"timestamp"`
@@ -42,6 +47,11 @@ type rawRecord struct {
 			OutputTokens        int `json:"output_tokens"`
 			CacheCreationTokens int `json:"cache_creation_input_tokens"`
 			CacheReadTokens     int `json:"cache_read_input_tokens"`
+			// Punteros para distinguir «no viene» de «viene a 0» (P-007 FR-003).
+			CacheCreation struct {
+				Ephemeral5m *int `json:"ephemeral_5m_input_tokens"`
+				Ephemeral1h *int `json:"ephemeral_1h_input_tokens"`
+			} `json:"cache_creation"`
 		} `json:"usage"`
 	} `json:"message"`
 }
@@ -97,12 +107,16 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 		return nil, nil
 	}
 	u := r.Message.Usage
+	cw5m, cw1h, conDesglose := desglosarEscritura(u.CacheCreationTokens, u.CacheCreation.Ephemeral5m, u.CacheCreation.Ephemeral1h)
+	if !conDesglose {
+		ctx.Pasada.contarSinDesglose()
+	}
 	// P-006 FR-001/FR-005: dentro de la pasada, sólo la PRIMERA línea del mensaje se emite. Las
 	// demás se cuentan y NUNCA se suman. Con la pasada a nil, todo se emite.
-	if !ctx.Pasada.registrar(id, consumo{u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens}) {
+	if !ctx.Pasada.registrar(id, consumo{u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens, cw5m, cw1h}) {
 		return nil, nil
 	}
-	cost, costAvailable := pricing.Cost(r.Message.Model, u.InputTokens, u.OutputTokens, u.CacheCreationTokens, u.CacheReadTokens)
+	cost, costAvailable := pricing.Cost(r.Message.Model, u.InputTokens, u.OutputTokens, cw5m, cw1h, u.CacheReadTokens)
 	return &event.Event{
 		SchemaVersion:       event.SchemaVersion,
 		AgentVersion:        ctx.AgentVersion,
@@ -122,4 +136,15 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 		DevID:               ctx.DevID,
 		OrgID:               ctx.OrgID,
 	}, nil
+}
+
+// desglosarEscritura reparte la escritura de caché de una línea por duración (P-007 FR-003, FR-004). Si la
+// línea trae las DOS cifras del desglose y suman el total, son las del log. Si no las trae, o no suman, toda
+// la escritura va a 1 hora (hipótesis P-1; Q-4) y `conDesglose` es false, para que la pasada lo cuente. El
+// total no se toca nunca: es lo que cruza la frontera (FR-005).
+func desglosarEscritura(total int, a5m, a1h *int) (cw5m, cw1h int, conDesglose bool) {
+	if a5m != nil && a1h != nil && *a5m+*a1h == total {
+		return *a5m, *a1h, true
+	}
+	return 0, total, false
 }

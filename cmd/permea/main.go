@@ -429,8 +429,11 @@ func dryRun(path string) error {
 		if len(ref) > 8 {
 			ref = ref[:8] + "…"
 		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
+		// P-007 FR-016: el desglose de la escritura de caché, detrás de `cw=`, que sigue siendo el total. Lo da
+		// la pasada: el evento no lo lleva (D-1).
+		cw5m, cw1h, _ := pasada.Desglose(ev.EventID)
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cw5m=%d cw1h=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, cw5m, cw1h, ev.TokensCacheRead,
 			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
 	}
 	if err := sc.Err(); err != nil {

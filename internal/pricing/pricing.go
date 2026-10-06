@@ -26,9 +26,10 @@ type Rate struct {
 //   - Casamiento: exacto con el identificador de modelo tal como llega en el evento; no se normalizan
 //     sufijos de fecha, prefijos ni mayúsculas (P-006 FR-018). Un modelo sin fila sale con
 //     cost_available=false y cost_usd=0 (P-006 FR-017).
-//   - Limitación 1: la escritura de caché va a la tarifa de 5 MINUTOS; una escritura de 1 hora
-//     quedaría infravalorada (el evento no la distingue). `CacheWrite1h` se replica del catálogo, pero
-//     `Cost` todavía no la usa.
+//   - Hipótesis P-1 (sustituye a la «Limitación 1»): la escritura de caché se tarifa por su duración, la
+//     de 5 minutos a `CacheWrite` y la de 1 hora a `CacheWrite1h`. Una línea SIN desglose, o con uno que no
+//     suma el total, tarifa TODA su escritura a 1 hora (P-007 FR-003, FR-004). Es la misma hipótesis que
+//     declara la cabecera del catálogo.
 //   - Limitación 2: el «modo rápido» no se distingue; un evento en modo rápido quedaría infravalorado.
 //
 // Un cambio del catálogo se absorbe en un solo commit, en cinco sitios: la fila aquí, la fila en la tabla
@@ -57,11 +58,15 @@ var Table = map[string]Rate{
 // Cost devuelve el coste de una llamada y un booleano de disponibilidad (R5): un
 // modelo ausente de la tabla devuelve (0, false) —"no disponible", distinto de un
 // coste 0 real—; los tokens se contabilizan aparte aunque el coste no esté disponible.
-func Cost(model string, in, out, cacheCreate, cacheRead int) (float64, bool) {
+//
+// La escritura de caché llega partida por duración y se tarifa por duración: `cacheWrite5m` a `CacheWrite` y
+// `cacheWrite1h` a `CacheWrite1h` (P-007 FR-002). Cuál es cuál lo decide quien lee el log, no esta función.
+func Cost(model string, in, out, cacheWrite5m, cacheWrite1h, cacheRead int) (float64, bool) {
 	r, ok := Table[model]
 	if !ok {
 		return 0, false
 	}
 	perM := func(tokens int, rate float64) float64 { return float64(tokens) / 1_000_000 * rate }
-	return perM(in, r.Input) + perM(out, r.Output) + perM(cacheCreate, r.CacheWrite) + perM(cacheRead, r.CacheRead), true
+	return perM(in, r.Input) + perM(out, r.Output) + perM(cacheWrite5m, r.CacheWrite) + perM(cacheWrite1h, r.CacheWrite1h) +
+		perM(cacheRead, r.CacheRead), true
 }

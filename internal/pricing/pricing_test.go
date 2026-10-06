@@ -12,7 +12,7 @@ import (
 // de la plataforma (`contracts/tarifas.md`). Antes este test fijaba la cifra errónea, 15 / 75.
 func TestCost(t *testing.T) {
 	// claude-opus-4-6: Input 5, Output 25, CacheWrite 6.25, CacheRead 0.5 (USD/millón).
-	cost, ok := Cost("claude-opus-4-6", 1_000_000, 1_000_000, 1_000_000, 1_000_000)
+	cost, ok := Cost("claude-opus-4-6", 1_000_000, 1_000_000, 1_000_000, 0, 1_000_000)
 	if !ok {
 		t.Fatalf("modelo conocido debe devolver ok=true")
 	}
@@ -24,7 +24,7 @@ func TestCost(t *testing.T) {
 
 // TestCost_UnknownModel: un modelo ausente de la tabla no bloquea; ok=false, coste 0.
 func TestCost_UnknownModel(t *testing.T) {
-	cost, ok := Cost("modelo-inexistente", 1000, 1000, 0, 0)
+	cost, ok := Cost("modelo-inexistente", 1000, 1000, 0, 0, 0)
 	if ok {
 		t.Errorf("modelo desconocido debe devolver ok=false")
 	}
@@ -118,22 +118,40 @@ func TestEspejo_NingunaClaveSobra(t *testing.T) {
 	}
 }
 
-// (19) · P-006 FR-014, SC-010 — un evento de `claude-opus-5-5` con las CUATRO partidas, contra el
-// cálculo hecho a mano (por el orquestador, no con las constantes de la tabla).
+// (19) · P-006 FR-014, SC-010 — un evento de `claude-opus-5-5` con todas sus partidas, contra el cálculo
+// hecho a mano (por el orquestador, no con las constantes de la tabla).
 //
-// Es el ÚNICO test que distingue las cuatro partidas: `TestCost` usa los mismos tokens en las cuatro,
-// así que no ve dos tarifas cruzadas. Por eso los tokens son irregulares y la comparación es ABSOLUTA
-// y estricta (≤ 1e-9), no el ±1 % de `TestCost`, que viene de SC-001 de la feature 001: con ±1 % no se
-// ve una tarifa desviada en un céntimo ni un coste redondeado a céntimos.
+// Es el ÚNICO test que distingue las partidas: `TestCost` usa los mismos tokens en todas, así que no ve
+// dos tarifas cruzadas. Por eso los tokens son irregulares y la comparación es ABSOLUTA y estricta
+// (≤ 1e-9), no el ±1 % de `TestCost`, que viene de SC-001 de la feature 001: con ±1 % no se ve una tarifa
+// desviada en un céntimo ni un coste redondeado a céntimos.
+//
+// (3) · P-007 FR-002, SC-004 — la escritura de caché, por duración: la de 5 minutos a `CacheWrite` y la de
+// 1 hora a `CacheWrite1h`. Dos vectores: con desglose, y con toda la escritura a 1 hora, que es lo que
+// recibe `Cost` cuando la línea no trae desglose (P-1). Si se cruzan las dos tarifas, caen los dos.
 func TestCost_Opus55AMano(t *testing.T) {
-	cost, ok := Cost("claude-opus-5-5", 123_457, 7_891, 45_679, 987_653)
-	if !ok {
-		t.Fatalf("claude-opus-5-5 debe tener fila (ok=true)")
+	casos := []struct {
+		nombre string
+		cw5m   int
+		cw1h   int
+		want   float64
+		aMano  string
+	}{
+		// A 4 / 20 / 5 / 8 / 0,20 USD por millón.
+		{"con_desglose", 12_345, 33_334, 1.1775756,
+			"0,493828 + 0,157820 + 0,061725 + 0,266672 + 0,1975306 = 1,1775756"},
+		{"sin_desglose_todo_a_1_hora", 0, 45_679, 1.2146106,
+			"0,493828 + 0,157820 + 0,365432 + 0,1975306 = 1,2146106"},
 	}
-	// A 4 / 20 / 5 / 0,20 USD por millón:
-	// 0,493828 + 0,157820 + 0,228395 + 0,1975306 = 1,0775736 USD.
-	want := 1.0775736
-	if math.Abs(cost-want) > 1e-9 {
-		t.Errorf("coste = %.10f, want %.10f (diferencia absoluta %.3g > 1e-9)", cost, want, math.Abs(cost-want))
+	for _, c := range casos {
+		t.Run(c.nombre, func(t *testing.T) {
+			cost, ok := Cost("claude-opus-5-5", 123_457, 7_891, c.cw5m, c.cw1h, 987_653)
+			if !ok {
+				t.Fatalf("claude-opus-5-5 debe tener fila (ok=true)")
+			}
+			if math.Abs(cost-c.want) > 1e-9 {
+				t.Errorf("coste = %.10f, want %.10f (%s; diferencia absoluta %.3g > 1e-9)", cost, c.want, c.aMano, math.Abs(cost-c.want))
+			}
+		})
 	}
 }

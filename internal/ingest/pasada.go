@@ -26,9 +26,11 @@ import (
 // La clave del conjunto es el `event_id` ya derivado, en sus 16 bytes, no en la cadena hex
 // (`research.md` R3.4). El resumen sólo lleva recuentos: dice CUÁNTO, nunca QUIÉN.
 
-// consumo son las cuatro partidas de tokens de una línea.
+// consumo son las cuatro partidas de tokens de una línea y el reparto de su escritura de caché por duración
+// (P-007 FR-002), ya resuelto por `desglosarEscritura`.
 type consumo struct {
 	entrada, salida, escrituraCache, lecturaCache int
+	escritura5m, escritura1h                      int
 }
 
 // Pasada es el estado de UNA lectura de los logs. El cero no es utilizable: se crea con NuevaPasada.
@@ -46,6 +48,7 @@ type Recuentos struct {
 	Sinteticas       int // líneas `<synthetic>` descartadas (P-006 FR-007)
 	SinIdentificador int // líneas sin `message.id` ni `requestId`, no emitidas (P-006 FR-006)
 	ConsumoDistinto  int // repetidas cuyo consumo difiere del de la primera (P-006 FR-005)
+	SinDesglose      int // líneas sin desglose de la escritura de caché, o con uno que no suma: todo a 1 hora (P-007 FR-003, FR-004)
 }
 
 // NuevaPasada estrena una pasada vacía.
@@ -85,6 +88,28 @@ func (p *Pasada) contarSintetica() {
 	if p != nil {
 		p.recuentos.Sinteticas++
 	}
+}
+
+// contarSinDesglose anota una línea sin desglose de la escritura de caché, o con uno que no suma (P-007 FR-003).
+func (p *Pasada) contarSinDesglose() {
+	if p != nil {
+		p.recuentos.SinDesglose++
+	}
+}
+
+// Desglose devuelve el reparto por duración de la escritura de caché del mensaje `eventID`, el de la línea que
+// produjo su evento en esta pasada (P-007 FR-016). El desglose NO viaja en el evento (D-1): quien lo imprime,
+// `--scan`, lo pide aquí. ok es false si la pasada no emitió ese mensaje, o si es nil.
+func (p *Pasada) Desglose(eventID string) (cw5m, cw1h int, ok bool) {
+	if p == nil {
+		return 0, 0, false
+	}
+	var clave [bytesEventID]byte
+	if n, err := hex.Decode(clave[:], []byte(eventID)); err != nil || n != bytesEventID {
+		return 0, 0, false
+	}
+	c, visto := p.vistos[clave]
+	return c.escritura5m, c.escritura1h, visto
 }
 
 // contarSinIdentificador anota una línea que no se puede emitir por no traer identificadores.

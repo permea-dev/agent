@@ -63,60 +63,53 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   - `TestEspejo_CifrasClaveAClave` compara también `CacheWrite1h`.
   - **Esperado**: `TestEspejo_RecuentoDeClaves` falla con 16 ≠ 17; `CifrasClaveAClave` falla en 16 subtests por `cache_write_1h` y en
     `claude-fable-5-1` por clave ausente.
-  > **Rojo transcrito**: `la tabla tiene 16 claves; el catálogo replicado tiene 17`. En `CifrasClaveAClave` fallan **17** subtests:
-  > 16 con `escritura de caché a 1 hora = 0, want …` *(20, 10, 30, 8, 6, 4, 2, 1.6 según la fila)* y `falta la clave "claude-fable-5-1"`.
-  > `NingunaClaveSobra` sigue verde.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T005.
 - [x] **T006** **Verde**: `Table` a 17 × 5. La cabecera cita `8f147d1`, la verificación del 2026-10-04 y la aprobación *(contrato
   §La cabecera)*. **La «Limitación 1» se queda hasta B2.**
-  > **Verde**: 9/9 paquetes ok, **433 pass** *(432 + el subtest `claude-fable-5-1`)*. La «Limitación 1» añade que `CacheWrite1h` se
-  > replica pero `Cost` todavía no la usa.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T006.
 - [x] **T007** Mutaciones, cada una con su censo declarado antes de mutar:
   - **(m1)** `CacheWrite1h` de `claude-fable-5-1` a 0 → cae sólo `CifrasClaveAClave/claude-fable-5-1` *(SC-010)*;
   - **(m2)** una clave sobrante → caen `NingunaClaveSobra` y `RecuentoDeClaves`;
   - **(m3)** cruzar 5 m y 1 h en `claude-opus-5-5` → cae `CifrasClaveAClave/claude-opus-5-5` y, **co-caída declarada antes de
     mutar** *(2026-10-06; el plan no la recogía)*, `TestCost_Opus55AMano`: `Cost` tarifa la escritura con `CacheWrite`, que pasa a 8,00.
-  > **Hecho el 2026-10-06.** Lo caído coincide con lo declarado en las tres, y el md5 de `pricing.go` es el mismo antes y después
-  > *(`e3a744c9…`)*.
-  > - **m1**: `CifrasClaveAClave/claude-fable-5-1`, «escritura de caché a 1 hora = 0, want 20».
-  > - **m2**: `RecuentoDeClaves` *(«18 claves; … 17»)* y `NingunaClaveSobra` *(«"claude-sobrante-de-mutacion" está en la tabla…»)*.
-  > - **m3**: `CifrasClaveAClave/claude-opus-5-5` *(«= 8, want 5» y «= 5, want 8»)* y `TestCost_Opus55AMano` *(«coste = 1.2146106000, want
-  >   1.0775736000»)*.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T007.
 - [ ] **T008** ✋ Puertas y commit: `007 B1: tarifas de 17 modelos con cinco cifras (8f147d1)`.
 
 ## B2 · Desglose y coste por duración *(FR-001 a FR-005, FR-007, FR-016; SC-004)*
 
-- [ ] **T009** Fase 0 *(paso mecánico)*:
+- [x] **T009** Fase 0 *(paso mecánico)*:
   - `Cost(model, in, out, cw5m, cw1h, cr)` con **la conducta de hoy**: las dos a `CacheWrite`;
   - `FromClaudeCodeLine` pasa el total como `cw5m` y 0 como `cw1h`;
   - `TestCost`, `TestCost_UnknownModel` y `TestCost_Opus55AMano` cambian **sólo la llamada**.
   - La suite sigue verde y con el mismo número de tests.
-- [ ] **T010** **Rojo (3)** en `pricing_test.go`: `TestCost_Opus55AMano` pasa a los dos vectores de SC-004, comparados en absoluto con
+- [x] **T010** **Rojo (3)** en `pricing_test.go`: `TestCost_Opus55AMano` pasa a los dos vectores de SC-004, comparados en absoluto con
   tolerancia ≤ 1e-9.
   - Con desglose *(12 345 a 5 min / 33 334 a 1 h)*: **1,1775756**. Hoy da 1,0775736.
   - Sin desglose *(0 / 45 679)*: **1,2146106**.
-- [ ] **T011** [P] **Rojos (4) a (7)** en `internal/ingest/desglose_test.go` *(nuevo)*, con líneas sintéticas y sin pasada:
+- [x] **T011** [P] **Rojos (4) a (7)** en `internal/ingest/desglose_test.go` *(nuevo)*, con líneas sintéticas y sin pasada:
   - **(4)**: coste 1,1775756 y `tokens_cache_creation` = 45 679;
   - **(5)**: la línea sin `cache_creation` da 1,2146106;
   - **(6)**: con 5 m + 1 h ≠ total *(p. ej. 10 000 + 10 000 frente a 45 679)*, da 1,2146106 y el total del log;
   - **(7)**: con pasada, `Recuentos().SinDesglose` = 2 tras (5) y (6).
-- [ ] **T012** [P] **Rojo (8)** en `cmd/permea/coste_test.go` *(nuevo, de proceso)*: `--scan` de una línea con desglose imprime
+- [x] **T012** [P] **Rojo (8)** en `cmd/permea/coste_test.go` *(nuevo, de proceso)*: `--scan` de una línea con desglose imprime
   `cw5m=12345 cw1h=33334` y conserva `cw=45679`. Se compara `ExitCode()`.
-- [ ] **T013** **Verde**:
+- [x] **T013** **Verde**:
   - `rawRecord` decodifica `usage.cache_creation.ephemeral_5m_input_tokens` y `…_1h_…` *(comentario de la guarda: números de consumo)*;
   - se aplican las reglas P-1 y Q-4;
   - `Cost` tarifa por duración;
   - `consumo` gana el desglose y `Recuentos` gana `SinDesglose`;
   - `dryRun` imprime `cw5m=` y `cw1h=` detrás de `cw=`. El desglose viaja por la pasada, no por el evento *(D-007-P2)*;
   - la cabecera cambia la «Limitación 1» por la **hipótesis P-1**.
-- [ ] **T014** Comprobar y transcribir, sin tocarlos:
+- [x] **T014** Comprobar y transcribir, sin tocarlos:
   - `TestScan_LineaConCuatroPartidasYEventID` sigue verde, porque `" cw=7 "` sigue en la línea;
   - los cinco tests de `boundary_test.go` siguen verdes.
-- [ ] **T015** Mutaciones:
+- [x] **T015** Mutaciones:
   - **(m4)** cruzar las tarifas en `Cost` → caen (3) y (4). Co-caída a declarar: `TestCost`, si su vector usa 1 h;
   - **(m5)** sin desglose a 5 min → caen (5) y (6);
   - **(m6)** aceptar el desglose incoherente → cae (6);
   - **(m7)** `tokens_cache_creation` = 5 m + 1 h → cae (6);
   - **(m8)** `cw5m` con el total → cae (8).
+  > Transcripciones de T009–T015, el censo declarado y las mutaciones nuevas M-B2a y M-B2b: [`soporte/registro.md`](./soporte/registro.md) §B2.
 - [ ] **T016** ✋ Puertas y commit: `007 B2: la escritura de cache se tarifa por su duracion`.
 
 ## B3 · Máximo dentro de la pasada *(FR-009, FR-013, FR-016; SC-002, SC-003)*
@@ -271,11 +264,13 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 | m1 | B1 | `CacheWrite1h` de `claude-fable-5-1` a 0 | `CifrasClaveAClave/claude-fable-5-1` |
 | m2 | B1 | clave sobrante | `NingunaClaveSobra`, `RecuentoDeClaves` |
 | m3 | B1 | cruzar 5 m/1 h en `claude-opus-5-5` | `CifrasClaveAClave/claude-opus-5-5`, `TestCost_Opus55AMano` *(declarada)* |
-| m4 | B2 | cruzar las tarifas en `Cost` | (3), (4) *(+ `TestCost` si su vector usa 1 h, declarado en T015)* |
+| m4 | B2 | cruzar las tarifas en `Cost` | (3) ×2, (4), (5), (6) *(su coste)* y `TestCost` *(declarado en T015)* |
 | m5 | B2 | sin desglose a 5 min | (5), (6) |
-| m6 | B2 | aceptar el desglose incoherente | (6) |
+| m6 | B2 | aceptar el desglose incoherente | (6) *(coste)*, (7) |
 | m7 | B2 | `tokens_cache_creation` = 5 m + 1 h | (6) |
 | m8 | B2 | `cw5m` con el total | (8) |
+| M-B2a | B2 | el evento lleva `cw1h` como total | (4) *(tokens)*, (8) |
+| M-B2b | B2 | sin desglose, total = 0 | (5) y (6) *(tokens)*, `TestScan_LineaConCuatroPartidasYEventID` |
 | m9 | B3 | máximo → primera | (9), (10), (13) |
 | m10 | B3 | máximo → última | (10) |
 | m11 | B3 | sumar | (9), (10), (14) |
