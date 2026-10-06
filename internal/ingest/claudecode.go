@@ -131,7 +131,7 @@ func FromClaudeCodeLine(line []byte, ctx Context) (*event.Event, error) {
 	}
 	// P-007 FR-009: con pasada, la línea se ACUMULA en su mensaje, que sale al cerrar el fichero con el
 	// máximo de cada partida. Sin pasada, cada línea se emite como hasta ahora.
-	if ctx.Pasada.acumular(id, c, base) {
+	if ctx.Pasada.acumular(id, c, r.Timestamp, base) {
 		return nil, nil
 	}
 	ev := conConsumo(base(), c)

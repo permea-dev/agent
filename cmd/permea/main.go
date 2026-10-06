@@ -167,6 +167,9 @@ type agent struct {
 	dir  string
 	cfg  config.Config
 	ictx ingest.Context
+	// reloj da la hora contra la que se cierran los mensajes por espera (P-007 FR-010). Nil es time.Now; los
+	// tests lo fijan por código, nunca por entorno ni por bandera.
+	reloj func() time.Time
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -263,10 +266,17 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 	// y entre ciclos no hay memoria (los repetidos los descarta la plataforma por `event_id`).
 	pasada := ingest.NuevaPasada()
 	ictx.Pasada = pasada
+	// P-007 FR-010: la hora contra la que se cierran los mensajes por espera, una para toda la pasada.
+	ahora := time.Now()
+	if a.reloj != nil {
+		ahora = a.reloj()
+	}
 
 	total := 0
 	for _, logPath := range logs {
-		err := st.ScanFile(logPath, func(line []byte) error {
+		var cerrados []ingest.Cerrado
+		err := st.Recorrer(logPath, func(line []byte, inicio int64, releida bool) error {
+			pasada.Situar(inicio, releida)
 			ev, err := ingest.FromClaudeCodeLine(line, ictx)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "skip (línea corrupta):", err)
@@ -280,14 +290,23 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 			}
 			total++
 			return nil
+		}, func(leido int64, modificado time.Time) int64 {
+			// P-007 FR-010, FR-011: salen los mensajes cerrados; lo que sigue abierto no se consume, y el offset
+			// se queda en su comienzo para que la pasada siguiente lo relea.
+			var abierto int64
+			var hayAbierto bool
+			cerrados, abierto, hayAbierto = pasada.CerrarConReloj(ahora, modificado)
+			if hayAbierto {
+				return abierto
+			}
+			return leido
 		})
 		if err != nil {
 			return total, pasada, err
 		}
-		// P-007 FR-009, FR-012: los mensajes del fichero salen al cerrarlo, con el máximo de cada partida, y se
-		// encolan ANTES de guardar el estado. Si algo falla antes de este punto, el estado no avanza y la
-		// pasada siguiente relee esas líneas.
-		for _, c := range pasada.CerrarFichero() {
+		// P-007 FR-012: lo cerrado se encola ANTES de guardar el estado. Si algo falla antes de este punto, el
+		// estado no avanza y la pasada siguiente relee esas líneas.
+		for _, c := range cerrados {
 			if err := transport.Append(a.dir, c.Evento); err != nil {
 				return total, pasada, err
 			}
@@ -326,6 +345,9 @@ func runOnce() error {
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos encolados en %s\n", n, transport.QueuePath(a.dir))
 	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
+	if aviso := pasada.AvisoDeAbiertos(); aviso != "" {
+		fmt.Fprintln(os.Stderr, aviso) // P-007 FR-014: lo abierto sale en la próxima pasada
+	}
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -383,7 +405,7 @@ func (a *agent) tick() error {
 		}
 		// P-006: el resumen, sólo si la pasada leyó algo. Un resumen vacío cada ciclo es ruido, y el
 		// ruido enseña a ignorar los avisos.
-		if pasada.Recuentos().Facturables > 0 {
+		if pasada.HayNovedades() {
 			fmt.Fprintln(os.Stderr, pasada.Resumen())
 		}
 	}

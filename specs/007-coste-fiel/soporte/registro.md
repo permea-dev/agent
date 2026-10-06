@@ -234,3 +234,179 @@ m9, m10 y m11 tocan **sólo las cuatro partidas** en `acumular`, y dejan la regl
 | m12 | `coste = 0.0010000000, want 0.0024000000`; `desglose = 200 / 0; se esperaba 0 / 300` |
 | m23 | `SinDesglose = 1; se esperaba 0` |
 | m24 | `coste = 0.0015000000, want 0.0024000000`; `desglose = 300 / 0; se esperaba 0 / 300` |
+
+## B4 · Retención: offset, cierre, `--run`, `--daemon` y resumen
+
+### T024 · Fase 0
+
+- `internal/state`: `Recorrer(path, fn(line, inicio, releida), fijar(leido, modificado))`, todavía con el offset de hoy y sin
+  releídas. `ScanFile` es su envoltorio.
+- `agent.reloj`.
+- El esqueleto de la `Pasada`: `Situar`, `CerrarConReloj` *(cerraba todo)*, `HayNovedades` *(facturables > 0, el predicado de hoy, ya
+  usado por `tick`)*, `AvisoDeAbiertos` *(vacío)* y los recuentos `EnEspera`, `Releidas` y `Tardias`.
+- **Suite verde, 9/9**, y `state_test.go` sin tocar.
+
+### T025–T028 · Rojos
+
+```
+R-B4a TestRecorrer_GuardaElOffsetPedidoYMarcaLasReleidas/offset_pedido   offset guardado = 24; se pidió 8 (…), no el final
+      …/releidas                                                         releídas = [false]; se esperaba [true true false]
+(i)   TestCierre_ReglaI/mismo_fichero    cerrados = 2 · abierto = 0, hay = false · EnEspera = 0; se esperaba 1
+      TestCierre_ReglaI/otro_fichero     cerrados 1 + 1, abiertos false y false
+(ii)  TestCierre_ReglaII/b_…, /c_…       con el mtime / el timestamp a T − 1 s, el mensaje debe seguir abierto
+(iii) TestCierre_ReglaIII/a_24h_menos_1s_retenido   … debe seguir abierto
+(21)  TestCierre_LineaTardia             cerrados = 2 · Tardias = 0; se esperaba 1
+      TestCierre_Releidas                Releidas = 0; se esperaba 2 · una pasada que sólo relee y no emite no tiene novedades
+(15)  TestRetencion_SC006_DosProcesos/…  [5 7] (sólo P) · offset = 646; se esperaba 323 · [5 7 89817 3]
+(16)  TestRetencion_SC007_CierrePorT/b_…, /c_…      cola [42]
+(23)  TestRetencion_TopeDe24Horas/a_24h_menos_1s_retenido   cola [42]
+(17)  TestRetencion_SC008_CierrePorMensajePosterior/mismo_fichero, /otro_fichero   cola [11 22]
+(19)  TestRetencion_AvisoDeRun           stderr no lleva el aviso aprobado
+(20)  TestRetencion_TickCallaSiSoloRelee Releidas = 0
+(22)  TestRetencion_SC009_NadaDelProveedorEnDisco   precondición: la pasada debe dejar el mensaje abierto
+(18)  TestPasada_ElResumenNoLlevaIdentificadores/dos_lineas_aprobadas   el resumen era una línea
+```
+
+**Razones**:
+- el offset avanzaba al final;
+- se cerraba todo al acabar el fichero;
+- no había tardías, ni releídas, ni aviso;
+- el resumen tenía una línea.
+
+**Nacen verdes**:
+- `ReglaII/a` y `SC007/a`: los valida m21;
+- `ReglaIII/a_24h` y `TopeDe24Horas/a_24h`: los valida m22;
+- `R-B4a/size_y_modtime_del_stat`: lo valida M-B4b.
+
+**(22) no nace verde**: cae en su **precondición**, porque en la Fase 0 no queda ningún mensaje abierto. Sus dos aserciones se cumplían, y
+las validan m19 y M-B4d.
+
+### T029 · Censo de `cmd/permea/main_test.go`
+
+**No dieron rojo sin el reloj.** Sus líneas son de 2026-10-02, más de 24 h antes del reloj real, y la regla (iii) *(E-3)* las cierra.
+- **Diagnóstico** *(no es una mutación del protocolo)*: sin la (iii), los dos dieron el rojo previsto. El md5 de `pasada.go` fue el mismo
+  antes y después *(`4eb7a909…`)*:
+  - `TestPasada_GenerateEncolaUnoPorMensaje`: «un mensaje de tres líneas dejó 0 eventos en la cola; se esperaba 1»;
+  - `TestActualizar_NoReenviaNiReescribeLaCola`: «la pasada encoló 0 eventos nuevos ([]); se esperaba sólo el de la línea posterior al
+    offset».
+- **Cambio**: los dos fijan el `mtime` en el `timestamp` de sus líneas *(2026-10-02 12:00Z)* y el reloj a T + 1 s. Desde ahí se cierran
+  por la regla (ii) y no dependen de la fecha real.
+
+### T030 · Verde
+
+- **`internal/state/state.go`**: `Recorrer` marca como releída la línea que empieza por debajo del `Size` anterior *(ninguna, si hubo
+  truncado)*. Guarda el offset que devuelve `fijar`, acotado a [previo, leído], y `Size` y `ModTime` del stat.
+- **`internal/ingest/pasada.go`**:
+  - las constantes `EsperaDeCierre` *(10 min)* y `TopeDeEspera` *(24 h)*;
+  - la regla (i) en `acumular`, y las tardías;
+  - `CerrarConReloj`, con (i), (ii) y (iii), y el comienzo del primer abierto;
+  - el resumen en dos líneas;
+  - `HayNovedades` *(facturables no releídas, o emitidos)*;
+  - `AvisoDeAbiertos`;
+  - la cabecera: lo abierto se relee.
+- **`internal/ingest/claudecode.go`**: `acumular` recibe el `timestamp`.
+- **`cmd/permea/main.go`**:
+  - `generate()` usa `Recorrer` y `Situar`, una hora por pasada, y deja el offset en el abierto;
+  - `runOnce` escribe el aviso;
+  - `tick` usa `HayNovedades`.
+- **9/9 ok y `golangci-lint run` → 0**, antes de mutar.
+
+### T031 · Verdes de nacimiento
+
+`ReglaII/a`, `SC007/a`, `ReglaIII/a_24h`, `TopeDe24Horas/a_24h` y `R-B4a/size_y_modtime_del_stat` nacieron verdes, y las dos aserciones de
+(22) se cumplían. Todos los validan sus mutaciones *(abajo)*.
+
+### FR-012 y `state.json` *(comprobado el 2026-10-06)*
+
+- **Encolar antes de guardar, como hoy.** En `generate()`, `Recorrer` sólo actualiza el estado **en memoria** *(`s.Files[path]`)*. Los
+  cerrados se encolan con `transport.Append` después de `Recorrer`, y **después** va `st.Save(statePath)`, que es lo único que escribe
+  `state.json`. Una caída entre medias re-encola, y nunca pierde.
+- **Cuatro campos.** `type FileState struct` es **idéntico** al de `24cf6b3` *(comparado con `cmp`)*: `path`, `size`, `mod_time` y
+  `offset`. `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos` lo comprueba sobre el `state.json` real, en PASS, y
+  M-B4d lo valida.
+
+### T032 · Censo declarado ANTES de mutar *(2026-10-06)*
+
+**Dos cambios respecto a `tasks.md`, declarados aquí antes de mutar:**
+- **m20 NO tumba `TestProjectJoin_LaPeticionNuncaSeEncola/CASO_POSITIVO`.** Su fixture lleva `timestamp` de 2026-06-20, más de 24 h
+  antes del reloj real, así que la regla (iii) de E-3 cierra sus dos mensajes aunque falte la (i). La co-caída que preveía el plan
+  *(R-3)* la escribimos antes de E-3.
+- **m21 también tumba los dos tests del censo de `main_test.go`**: desde T029 se cierran por la regla (ii).
+
+Otras mutaciones también hacen caer más de lo que preveían las tareas, porque los tests de `ingest` y los de `cmd` cubren las mismas
+reglas a dos niveles. **M-B4b** y **M-B4d** son nuevas: validan los subtests que nacen verdes, `size_y_modtime_del_stat` de R-B4a y
+`state_json_cuatro_campos` de (22).
+
+| # | Mutación | Debe caer *(hojas)* |
+|---|---|---|
+| m13 | `generate`: el offset avanza al final *(sin `return abierto`)* | `TestRetencion_SC006_DosProcesos/offset_en_el_comienzo_de_M`, `TestRetencion_TickCallaSiSoloRelee` |
+| m14 | (ii) sin la condición del `mtime` | `TestCierre_ReglaII/b_mtime_a_T_menos_1s_retenido`, `TestCierre_ReglaIII/a_24h_menos_1s_retenido`, `TestRetencion_SC007_CierrePorT/b_mtime_a_T_menos_1s_retenido`, `TestRetencion_TopeDe24Horas/a_24h_menos_1s_retenido` |
+| m15 | (ii) sin la condición del `timestamp` | `TestCierre_ReglaII/c_timestamp_a_T_menos_1s_retenido`, `TestRetencion_SC007_CierrePorT/c_timestamp_a_T_menos_1s_retenido` |
+| m16 | la regla (i) alcanza a los retenidos de otros ficheros | `TestCierre_ReglaI/otro_fichero`, `TestRetencion_SC008_CierrePorMensajePosterior/otro_fichero` |
+| m17 | `generate` emite todo al acabar cada fichero, como B3 | `TestRetencion_SC006_DosProcesos/` *(los tres)*, `TestRetencion_SC007_CierrePorT/b_…` y `/c_…`, `TestRetencion_TopeDe24Horas/a_24h_menos_1s_retenido`, `TestRetencion_SC008_…/mismo_fichero` y `/otro_fichero`, `TestRetencion_AvisoDeRun`, `TestRetencion_TickCallaSiSoloRelee`, `TestRetencion_SC009_NadaDelProveedorEnDisco` *(precondición)* |
+| m18 | `Recorrer`: ninguna línea es releída | `TestRecorrer_GuardaElOffsetPedidoYMarcaLasReleidas/releidas`, `TestRetencion_TickCallaSiSoloRelee` |
+| m19 | `generate` escribe cada línea leída en `pendientes.json` | `TestRetencion_SC009_NadaDelProveedorEnDisco/sin_centinelas` |
+| m20 | sin la regla (i) | `TestCierre_ReglaI/mismo_fichero`, `TestCierre_LineaTardia`, `TestRetencion_SC008_…/mismo_fichero`, `TestRetencion_SC006_DosProcesos/` *(los tres)* |
+| m21 | (ii) nunca cierra | `TestCierre_ReglaII/a_las_dos_a_T_emitido`, `TestRetencion_SC007_CierrePorT/a_las_dos_a_T_emitido`, `TestPasada_GenerateEncolaUnoPorMensaje`, `TestActualizar_NoReenviaNiReescribeLaCola` |
+| m22 | sin la regla (iii) | `TestCierre_ReglaIII/a_24h_emitido`, `TestRetencion_TopeDe24Horas/a_24h_emitido` |
+| M-B4a | `Recorrer` guarda el final y no el offset pedido | `TestRecorrer_…/offset_pedido` y `/releidas`, `TestRetencion_SC006_DosProcesos/offset_en_el_comienzo_de_M`, `TestRetencion_TickCallaSiSoloRelee` |
+| M-B4b | `Recorrer` guarda como `Size` el offset pedido | `TestRecorrer_…/size_y_modtime_del_stat` y `/releidas`, `TestRetencion_TickCallaSiSoloRelee` |
+| M-B4d | `FileState` gana un quinto campo | `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos` |
+
+#### m21 · Parada y corrección *(2026-10-06)*
+
+**Parada.** m21 **no coincidió** con lo declarado, y se dejó puesta *(md5 de `pasada.go` `a4d92dd4…`)*.
+- **Declarado**: `TestActualizar_NoReenviaNiReescribeLaCola`, es decir, el test entero.
+- **Caído**: sólo su hoja `TestActualizar_NoReenviaNiReescribeLaCola/solo_lo_posterior_al_offset`.
+- **Verde**: la otra hoja, `…/la_cola_previa_byte_a_byte`, como debe. m21 no toca la cola previa.
+- **Lo demás coincidió**: cayeron los otros tres declarados *(`TestCierre_ReglaII/a_las_dos_a_T_emitido`,
+  `TestRetencion_SC007_CierrePorT/a_las_dos_a_T_emitido` y `TestPasada_GenerateEncolaUnoPorMensaje`)*.
+
+**Causa**: se nombró el test y no su hoja.
+
+**Corrección autorizada por el orquestador el 2026-10-06** *(y regla E-5: el censo se declara por HOJA, nunca por test padre)*. La
+declaración corregida de m21:
+
+| # | Mutación | Debe caer *(hojas)* |
+|---|---|---|
+| m21 | (ii) nunca cierra | `TestCierre_ReglaII/a_las_dos_a_T_emitido`, `TestRetencion_SC007_CierrePorT/a_las_dos_a_T_emitido`, `TestPasada_GenerateEncolaUnoPorMensaje`, `TestActualizar_NoReenviaNiReescribeLaCola/solo_lo_posterior_al_offset` |
+
+**Las pendientes, declaradas otra vez por hoja con su nombre completo** *(E-5; mismo contenido que la tabla de arriba, ahora sin abreviar)*:
+
+| # | Debe caer *(hojas)* |
+|---|---|
+| m22 | `TestCierre_ReglaIII/a_24h_emitido`, `TestRetencion_TopeDe24Horas/a_24h_emitido` |
+| M-B4a | `TestRecorrer_GuardaElOffsetPedidoYMarcaLasReleidas/offset_pedido`, `TestRecorrer_GuardaElOffsetPedidoYMarcaLasReleidas/releidas`, `TestRetencion_SC006_DosProcesos/offset_en_el_comienzo_de_M`, `TestRetencion_TickCallaSiSoloRelee` *(sin subtests)* |
+| M-B4b | `TestRecorrer_GuardaElOffsetPedidoYMarcaLasReleidas/size_y_modtime_del_stat`, `TestRecorrer_GuardaElOffsetPedidoYMarcaLasReleidas/releidas`, `TestRetencion_TickCallaSiSoloRelee` |
+| M-B4d | `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos` |
+
+### T032 · Resultado *(2026-10-06)*
+
+**Las trece coinciden con lo declarado** *(m21, con el censo corregido)*. Reversión por edición inversa, con el md5 igual antes y después:
+- `pasada.go` `4eb7a909…`;
+- `state.go` `918a6d46…`;
+- `main.go` `589a3533…`.
+
+| # | Mensajes |
+|---|---|
+| m13 | `offset = 646; se esperaba 323`; `Releidas = 0` |
+| m14 | `cola [42]` ×2; «debe seguir abierto» ×2 |
+| m15 | `cola [42]`; «debe seguir abierto» |
+| m16 | `B en otro fichero no cierra A; cola [11]`; `cerrados 0 + 1` |
+| m17 | `[5 7]`; `offset = 644; se esperaba 322`; `[5 7 89817 3]`; `cola [42]` ×3; `cola [11 22]` ×2; sin aviso; `Releidas = 0`; precondición de (22) |
+| m18 | `releídas = [false false false]`; `Releidas = 0`; «no debe escribir su resumen» |
+| m19 | `pendientes.json contiene un identificador del proveedor (…)` ×3 |
+| m20 | `[]` ×2; `offset = 0`; `cola []`; `cerrados = 0` ×2; `EnEspera = 2`; `Tardias = 0`. **`project_test` no cae** |
+| m21 | `dejó 0 eventos en la cola`; `encoló 0 eventos nuevos ([])`; `cola []`; «debe cerrarse» |
+| m22 | `cola []`; «debe cerrarse aunque el fichero cambie» |
+| M-B4a | `offset guardado = 24; se pidió 8`; `releídas = [false]`; `offset = 646`; `Releidas = 0` |
+| M-B4b | `Size/ModTime = 8/…; los del stat son 24/…`; `releídas = [false false false]`; `Releidas = 0` |
+| M-B4d | `una entrada de state.json tiene 5 campos; se esperaban 4` |
+
+**Inválidas, no cuentan:**
+- **m17, primera forma** *(`CerrarFichero()` dejaba `ahora` sin usar; no compilaba)*: revertida con el md5 en `589a3533…`. Se rehízo
+  cerrando con el reloj adelantado mil horas.
+- **m20**: el script no la pudo revertir porque borraba un bloque. Se revirtió a mano por edición inversa, con el md5 en `4eb7a909…`.
+  m22 usa un marcador.
+
+(m17 imprime 644/322 donde la ejecución sin mutar imprimía 646/323: los `timestamp` de ahora cambian de longitud entre ejecuciones.)

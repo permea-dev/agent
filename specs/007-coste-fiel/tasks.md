@@ -1,6 +1,6 @@
 # Tasks: 007 · «Coste fiel»
 
-**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1, E-2, E-3, E-4)* · [plan.md](./plan.md) ·
+**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1 a E-5)* · [plan.md](./plan.md) ·
 [contracts/tarifas.md](./contracts/tarifas.md) · [quickstart.md](./quickstart.md)
 **Base**: `222c824`. **Línea base a preservar**: `go test -count=1 ./...` → **9 paquetes ok, 432 pass, 0 fail**; `golangci-lint run` → **0**.
 Ambas medidas el 2026-10-06.
@@ -20,7 +20,7 @@ Ambas medidas el 2026-10-06.
 - **Disciplinas 1–9 de 006** *(`specs/006-medicion-fiel/tasks.md` §Disciplinas transversales)* y la **10** de `plan.md` *(las copias del
   dueño se leen en su sitio)*.
 - **Protocolo de mutación de 006, sin cambios**:
-  1. el censo se declara **en la tarea, antes** de mutar, con las co-caídas;
+  1. el censo se declara **en la tarea, antes** de mutar, con las co-caídas, **por HOJA (subtest), nunca por test padre** *(E-5)*;
   2. se muta y se ejecuta `go test -count=1 ./... 2>&1`;
   3. si el conjunto de `FAIL` **coincide** con lo declarado, se revierte por edición inversa y se transcribe el fallo;
   4. si **no** coincide, la mutación **se deja puesta y se para**;
@@ -147,20 +147,20 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 
 ## B4 · Retención: offset, cierre, `--run`, `--daemon` y resumen *(FR-010 a FR-015, FR-017, FR-019, FR-021; SC-006 a SC-009)*
 
-- [ ] **T024** Fase 0:
+- [x] **T024** Fase 0:
   - en `internal/state/state.go`, el método nuevo que da al callback el **comienzo** de cada línea y fija el offset que decide quien llama
     *(D-007-P3)*, con `ScanFile` como envoltorio;
   - el campo `reloj func() time.Time` en el `agent`, a `time.Now` por defecto *(D-007-P6)*.
   - Suite verde y `state_test.go` **sin tocar**.
-- [ ] **T025** [P] **R-B4a** en `internal/state/retener_test.go` *(nuevo)*: el offset guardado es el pedido, no el final, y `Size`
+- [x] **T025** [P] **R-B4a** en `internal/state/retener_test.go` *(nuevo)*: el offset guardado es el pedido, no el final, y `Size`
   y `ModTime` siguen siendo los del stat. ROJO mientras el método avance como hoy.
-- [ ] **T026** [P] Rojos de reglas en `internal/ingest/cierre_test.go` *(nuevo)*:
+- [x] **T026** [P] Rojos de reglas en `internal/ingest/cierre_test.go` *(nuevo)*:
   - (i): en el mismo fichero cierra, y en otro no;
   - (ii): con `ahora` y `mtime` dados, los tres casos de SC-007;
   - (iii) *(E-3)*: con el `mtime` de ahora, el tope a 24 h y a 24 h − 1 s;
   - **(21)**: línea tardía contada y no emitida;
   - releídas, contadas aparte.
-- [ ] **T027** [P] **Rojos (15), (16), (17), (19), (20) y (23)** en `cmd/permea/retencion_test.go` *(nuevo, sandbox)*:
+- [x] **T027** [P] **Rojos (15), (16), (17), (19), (20) y (23)** en `cmd/permea/retencion_test.go` *(nuevo, sandbox)*:
   - **(15)**, SC-006 con **dos procesos** `--run` *(sin enrolar, `LogsRoot` temporal)*:
     - el primero, con la línea parcial, no encola nada del mensaje, y el offset queda en su comienzo;
     - se añaden la final y la primera línea de otro mensaje;
@@ -171,34 +171,37 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   - **(17)**, SC-008;
   - **(19)**: el aviso de `--run`, literal *(spec §Textos)*;
   - **(20)**: el predicado de `tick()` es falso si todo lo leído es releído y no se emitió nada.
-- [ ] **T028** **Rojo (18)** en `internal/ingest/pasada_test.go`, en el censo: `TestPasada_ElResumenNoLlevaIdentificadores` mira las
+- [x] **T028** **Rojo (18)** en `internal/ingest/pasada_test.go`, en el censo: `TestPasada_ElResumenNoLlevaIdentificadores` mira las
   **dos** líneas. La primera, **byte a byte** la de hoy; la segunda, la aprobada.
-- [ ] **T029** Censo de `cmd/permea/main_test.go`: `TestPasada_GenerateEncolaUnoPorMensaje` y `TestActualizar_NoReenviaNiReescribeLaCola`
-  fijan el reloj a T + 1 s sobre el `timestamp` y el `mtime`. Transcribir el rojo que daban sin el reloj *(el último mensaje, retenido)*.
-- [ ] **T030** **Verde**:
+- [x] **T029** Censo de `cmd/permea/main_test.go`: `TestPasada_GenerateEncolaUnoPorMensaje` y `TestActualizar_NoReenviaNiReescribeLaCola`
+  fijan el reloj a T + 1 s sobre el `timestamp` y el `mtime`. *(Ejecución: sin el reloj **no** daban rojo, porque la regla (iii) cierra sus
+  líneas de 2026-10-02; dan el rojo previsto sólo sin la (iii). Ver el registro.)*
+- [x] **T030** **Verde**:
   - reglas (i) y (ii), esta última con `max(timestamp, mtime)`;
   - el offset en el comienzo del abierto;
   - `--run` deja lo abierto y avisa;
   - `tick` con el predicado de FR-021;
   - el resumen en dos líneas;
   - el comentario de `pasada.go` sobre «entre pasadas no hay memoria» se reescribe: ahora lo abierto se relee.
-- [ ] **T031** Verdes de nacimiento, con su mutación:
+- [x] **T031** Verdes de nacimiento, con su mutación:
   - **(22)** SC-009: un mensaje abierto con centinelas de `message.id` y `requestId`; tras la pasada, **ningún** fichero del directorio de
-    datos los contiene, y `state.json` tiene sus cuatro campos;
+    datos los contiene, y `state.json` tiene sus cuatro campos. *(Ejecución: en la Fase 0 cae en su precondición, porque no hay
+    abiertos; sus aserciones se cumplían. Las validan m19 y M-B4d.)*
   - **(16 a)** y **(23, 24 h)** *(E-3)*.
-- [ ] **T032** Mutaciones, con el censo declarado:
-  - **(m13)** el offset avanza al final → cae (15);
-  - **(m14)** sin la condición del `mtime` → caen (16 b) y, declarada, (23, 24 h − 1 s), que depende de ella *(E-3)*;
+- [x] **T032** Mutaciones, con el censo declarado:
+  - **(m13)** el offset avanza al final → caen (15, offset) y (20);
+  - **(m14)** sin la condición del `mtime` → caen (16 b) y (23, 24 h − 1 s), y sus gemelos de `cierre_test.go`;
   - **(m15)** sin la del `timestamp` → cae (16 c);
   - **(m16)** la regla (i) mira todos los ficheros → cae (17), caso de otro fichero;
-  - **(m17)** emitir lo abierto al acabar `--run` → caen (15) y (19);
+  - **(m17)** emitir lo abierto al acabar `--run` → caen (15) ×3, (16 b, c), (17) ×2, (19), (20), (22, precondición) y (23, 24 h − 1 s);
   - **(m18)** las releídas cuentan como nuevas → cae (20);
   - **(m19)** guardar el abierto en `pendientes.json` con sus identificadores → cae (22);
-  - **(m20)** sin la regla (i) → caen (17), caso del mismo fichero, y **la co-caída declarada**
-    `TestProjectJoin_LaPeticionNuncaSeEncola/CASO_POSITIVO`, en `cmd/permea/project_test.go` *(plan R-3)*;
-  - **(m21)** no emitir nunca por T → cae (16 a). El tope (iii) es una regla aparte y (23, 24 h) sigue verde;
+  - **(m20)** sin la regla (i) → caen (17, mismo fichero), (15) ×3, (21) y `ReglaI/mismo_fichero`. *(Ejecución: `project_test.go` **no**
+    cae, porque la (iii) cierra su fixture de 2026-06-20.)*;
+  - **(m21)** no emitir nunca por T → caen (16 a), `ReglaII/a` y los dos de T029 *(por hoja: `…Actualizar…/solo_lo_posterior_al_offset`)*;
   - **(m22)** *(E-3)* quitar el tope de 24 h → cae (23, 24 h), y sólo ése;
   - **M-B4a**: el método ignora el offset pedido → cae R-B4a.
+  > Censo, transcripciones y resultado: [`soporte/registro.md`](./soporte/registro.md) §B4.
 - [ ] **T033** ✋ Puertas y commit: `007 B4: un mensaje se envia cuando esta cerrado`.
 
 ## B5 · README y CHANGELOG *(FR-020; SC-011)*
@@ -282,17 +285,19 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
 | m12 | B3 | desglose de la última | (11) |
 | m23 | B3 | *(E-4)* sin desglose cuenta aunque la escritura sea 0 | (24) |
 | m24 | B3 | *(E-4)* la primera entre las empatadas | (25) |
-| m13 | B4 | offset al final | (15) |
-| m14 | B4 | sin la condición del `mtime` | (16 b), (23, 24 h − 1 s) *(declarada, E-3)* |
+| m13 | B4 | offset al final | (15, offset), (20) |
+| m14 | B4 | sin la condición del `mtime` | (16 b), (23, 24 h − 1 s) y sus gemelos de `cierre_test.go` |
 | m15 | B4 | sin la del `timestamp` | (16 c) |
 | m16 | B4 | regla (i) entre ficheros | (17), caso de otro fichero |
-| m17 | B4 | emitir lo abierto al acabar `--run` | (15), (19) |
+| m17 | B4 | emitir lo abierto al acabar `--run` | (15) ×3, (16 b, c), (17) ×2, (19), (20), (22), (23, 24 h − 1 s) |
 | m18 | B4 | releídas como nuevas | (20) |
 | m19 | B4 | `pendientes.json` con identificadores | (22) |
-| m20 | B4 | sin la regla (i) | (17), caso del mismo fichero, + `TestProjectJoin_LaPeticionNuncaSeEncola/CASO_POSITIVO` *(declarada)* |
-| m21 | B4 | no emitir nunca por T | (16 a) |
+| m20 | B4 | sin la regla (i) | (17, mismo fichero), (15) ×3, (21), `ReglaI/mismo_fichero`; **no** `project_test.go` |
+| m21 | B4 | no emitir nunca por T | (16 a), `ReglaII/a`, los dos de T029 |
 | m22 | B4 | *(E-3)* sin el tope de 24 h | (23, 24 h) |
-| M-B4a | B4 | el método ignora el offset pedido | R-B4a |
+| M-B4a | B4 | el método ignora el offset pedido | R-B4a ×2, (15, offset), (20) |
+| M-B4b | B4 | `Size` = offset pedido | R-B4a ×2, (20) |
+| M-B4d | B4 | `FileState` con un quinto campo | (22, cuatro campos) |
 
 ## Lo que este plan de tareas NO hace
 

@@ -430,9 +430,16 @@ func TestPasada_GenerateEncolaUnoPorMensaje(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(logs, "sesion.jsonl"), []byte(linea+linea+linea), 0o600); err != nil {
 		t.Fatalf("escribir el log de prueba: %v", err)
 	}
+	// P-007 FR-010 (T029): el mtime, en el timestamp de la línea, y el reloj a T + 1 s, para que el mensaje se
+	// cierre por la regla (ii) y el test no dependa de la fecha real.
+	momento := time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
+	if err := os.Chtimes(filepath.Join(logs, "sesion.jsonl"), momento, momento); err != nil {
+		t.Fatalf("fijar el mtime: %v", err)
+	}
 
 	cfg := config.Config{LogsRoot: logs}
-	a := &agent{dir: dataDir, cfg: cfg, ictx: newIngestContext("test", cfg, "sal-de-prueba", "maquina-de-prueba")}
+	a := &agent{dir: dataDir, cfg: cfg, ictx: newIngestContext("test", cfg, "sal-de-prueba", "maquina-de-prueba"),
+		reloj: func() time.Time { return momento.Add(10*time.Minute + time.Second) }}
 	if _, _, err := a.generate(); err != nil {
 		t.Fatalf("precondición: generate() falló: %v", err)
 	}
@@ -532,6 +539,12 @@ func TestActualizar_NoReenviaNiReescribeLaCola(t *testing.T) {
 	if err := os.WriteFile(logPath, []byte(primera+segunda), 0o600); err != nil {
 		t.Fatalf("escribir el log: %v", err)
 	}
+	// P-007 FR-010 (T029): el mtime, en el timestamp de las líneas, y el reloj a T + 1 s, para que el último
+	// mensaje se cierre por la regla (ii) y el test no dependa de la fecha real.
+	momento := time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
+	if err := os.Chtimes(logPath, momento, momento); err != nil {
+		t.Fatalf("fijar el mtime: %v", err)
+	}
 	info, err := os.Stat(logPath)
 	if err != nil {
 		t.Fatalf("stat del log: %v", err)
@@ -555,7 +568,8 @@ func TestActualizar_NoReenviaNiReescribeLaCola(t *testing.T) {
 	}
 
 	cfg := config.Config{LogsRoot: logs}
-	a := &agent{dir: dataDir, cfg: cfg, ictx: newIngestContext("test", cfg, "sal-de-prueba", "maquina-de-prueba")}
+	a := &agent{dir: dataDir, cfg: cfg, ictx: newIngestContext("test", cfg, "sal-de-prueba", "maquina-de-prueba"),
+		reloj: func() time.Time { return momento.Add(10*time.Minute + time.Second) }}
 	if _, _, err := a.generate(); err != nil {
 		t.Fatalf("precondición: generate() falló: %v", err)
 	}

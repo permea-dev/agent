@@ -159,6 +159,16 @@ func TestPasada_ElResumenNoLlevaIdentificadores(t *testing.T) {
 			}
 		}
 	})
+	// (18) · P-007 FR-017, P-5 — DOS líneas: la primera, la de 006 sin cambiar un byte; la segunda, la aprobada.
+	t.Run("dos_lineas_aprobadas", func(t *testing.T) {
+		want := "pasada: 7 líneas facturables · 2 eventos · 5 repetidas del mismo mensaje · 0 sintéticas · " +
+			"0 sin identificador (no contables) · 0 con consumo distinto de la primera\n" +
+			"pasada: 0 mensajes que crecieron entre líneas · 0 en espera de cerrarse · " +
+			"0 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)"
+		if resumen != want {
+			t.Errorf("resumen =\n%s\nse esperaba, byte a byte,\n%s", resumen, want)
+		}
+	})
 	t.Run("sin_event_id", func(t *testing.T) {
 		for _, ev := range evs {
 			if strings.Contains(resumen, ev.EventID) {
