@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/permea-dev/agent/internal/event"
@@ -242,4 +244,35 @@ func ContarComprimido(st *state.Store, ruta string, p *PasadaCodex) error {
 	st.Files[ruta] = state.FileState{Path: ruta, Size: info.Size(), ModTime: info.ModTime().Unix(), Offset: info.Size()}
 	p.Comprimidos++
 	return nil
+}
+
+// HayNovedades dice si el demonio escribe la línea de Codex en este ciclo (P-008 FR-019): si hubo respuestas, ficheros en
+// formato anterior o comprimidos. Un resumen vacío cada ciclo es ruido, como en Claude Code (P-006).
+func (p *PasadaCodex) HayNovedades() bool {
+	return p.Respuestas > 0 || p.FormatoAnterior > 0 || p.Comprimidos > 0
+}
+
+// ListarCodex enumera, bajo la raíz de Codex y a cualquier profundidad, las sesiones (`.jsonl`) y los comprimidos
+// (`.zst`), cada lista en orden de recorrido (léxico). Un subdirectorio que no se puede leer se salta: su error no impide
+// leer lo demás (P-008 FR-028).
+func ListarCodex(raiz string) (sesiones, comprimidos []string, err error) {
+	err = filepath.WalkDir(raiz, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			if p == raiz {
+				return err
+			}
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		switch filepath.Ext(p) {
+		case ".jsonl":
+			sesiones = append(sesiones, p)
+		case ".zst":
+			comprimidos = append(comprimidos, p)
+		}
+		return nil
+	})
+	return sesiones, comprimidos, err
 }

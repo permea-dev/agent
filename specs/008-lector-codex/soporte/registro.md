@@ -450,3 +450,139 @@ vería ya el registro, así que no hay riesgo de contar el fichero como «format
 - **m15**: `…Raiz/vacia`: `con CODEX_HOME="": ("sessions", <nil>); se esperaba ("<hogar>/.codex/sessions", nil)`.
 - **m16**: `…Raiz/definida`: devuelve `<hogar>/.codex/sessions` en vez de `<CODEX_HOME>/sessions`.
 - **M-B4a**: `…InexistenteSinError`: `("", stat <hogar inexistente>/.codex/sessions: no such file or directory)`.
+
+## B5 · Integración
+
+### T030 · Fase 0 *(Encargo 8, 2026-10-07)*
+
+**1 · La referencia de SC-011** *(D-008-P12)*, generada **antes** de tocar `main.go`, con el binario de `HEAD` *(`c1068d6`)*:
+- **El entorno**: `env -i` con `HOME`, `USERPROFILE` y `XDG_CONFIG_HOME` temporales, `CODEX_HOME` vacía, y un `config.json` con sólo `logs_root`.
+- **El fixture**: `cmd/permea/testdata/codex/claude.jsonl`, sintético, con dos mensajes de 2026-10-01. Tienen más de 24 h, así que la regla
+  (iii) los cierra y la salida no depende del día.
+- **La normalización**: la ruta de datos se sustituye por `<DATOS>`.
+- **Resultado**: `cmd/permea/testdata/codex/referencia-run.stderr`, md5 **`17f189f03dde79100eaac3d5b32cc32a`**, `rc=0`:
+```
+Permea 0.0.1-dev
+2 eventos encolados en <DATOS>/queue.jsonl
+pasada: 2 líneas facturables · 2 eventos · 0 repetidas del mismo mensaje · 0 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 0 en espera de cerrarse · 0 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+sync omitido: sin endpoint configurado
+```
+
+**2 · El forzado de SC-015** *(D-008-P10)*: **se elige el candidato A**. Se comprobó con un test temporal en `cmd/permea`, ya borrado: la
+cola existente y vacía, y el directorio de datos en `0500`.
+
+| Paso | Resultado |
+|---|---|
+| `state.Load` *(sin `state.json`)* | `err <nil>`: un `Store` vacío |
+| `transport.Append` a la cola existente | `err <nil>`: 307 bytes escritos |
+| `st.Save` | `open <temporal>/.state-…: permission denied` |
+
+La máquina no es root *(uid 1000)*, así que el test **no** se salta aquí. Lleva `t.Skip` sólo con root o en Windows, donde los permisos POSIX
+no aplican *(R-8)*. **Candidato B**, el campo inyectable, no hace falta.
+
+**3 · El esqueleto**:
+- en `main.go`, los campos `agent.codexRaiz` y `agent.codex`, y `setup()` resuelve la ruta con `config.CodexSessionsRoot()`. Sin directorio
+  personal la deja vacía, sin error.
+- en `codex_contexto.go`, `HayNovedades()` y `ListarCodex()`, todavía vacíos.
+
+Suite verde.
+
+### T031, T034, T056, T057 y (36) · Rojos
+
+En `cmd/permea/codex_test.go` *(nuevo)* y en `internal/ingest/codex_contexto_test.go`. Los fixtures son sintéticos, en
+`cmd/permea/testdata/codex/`: `sesion` con 2 registros, `otra` con 1, y `centinelas`.
+
+```
+--- PASS: TestCodexRun_SinRaizEsLaSalidaDeLa040/codex_home_vacia · /raiz_inexistente   (23, nacen verdes; los valida m18)
+--- FAIL: TestCodexRun_SinClaudeCode                         (24) código 0 y 0 eventos codex; se esperaba 0 y 2
+--- FAIL: TestCodexGenerate_EncolaAntesDeGuardar             (25) la pasada falló al guardar y la cola tiene 0 eventos codex; se esperaban 2, encolados ANTES de guardar
+--- FAIL: TestCodexRun_LineaDeResumen                        (26) código 0; stderr: … (sin la línea codex:)
+--- FAIL: TestCodexDemonio_SoloConNovedades/predicado        (27) respuestas: HayNovedades() = false; se esperaba true (y formato_anterior, comprimidos)
+--- FAIL: TestCodexDemonio_SoloConNovedades/tick             (27) primer ciclo: … se esperaba la línea codex: sólo en el primero
+--- FAIL: TestCodexRun_SegundaPasadaCero                     (28) precondición: la primera pasada encoló 0 eventos codex; se esperaban 2
+--- FAIL: TestCodexRun_NadaDelProveedorViaja                 (31) precondición: 0 eventos codex en la cola; se esperaba 1
+--- FAIL: TestCodexActivacion_EnCadaPasada                   (32) con la carpeta creada después: err <nil>, recuentos <nil>, cola codex 0; se esperaban 2 eventos
+--- FAIL: TestCodexGenerate_FicheroIlegibleNoRompe/pasada    (33) err <nil>, state.json <nil>, claude 2, codex 0; se esperaba … el aviso … 2 y 1
+--- PASS: TestCodexGenerate_FicheroIlegibleNoRompe/segunda_pasada   (33, nace verde; lo valida m24)
+--- FAIL: TestCodexGenerate_FicheroIlegibleNoRompe/se_relee  (33) con el fichero ya legible: 0 eventos codex; se esperaban 3
+--- FAIL: TestContextoCodex_ListarRaiz                       (36, nuevo) ListarCodex = ("", "", <nil>); se esperaba ([…a.jsonl …b.jsonl], […c.jsonl.zst], nil)
+```
+
+**Razón**: el esqueleto no lee Codex.
+- **(32)** pasa por `setup()` de verdad, en el sandbox, para que m23 tenga dónde morder.
+- **(25) y (33)** llevan `t.Skip` sólo con root o en Windows *(R-8)*; aquí no se saltan.
+- **(36)** es nuevo: `ListarCodex`, el ayudante de enumeración que pide la integración, con su mutación **M-B5b**.
+
+### T032 · Verde
+
+- **`ListarCodex`**: `WalkDir` de la raíz; `.jsonl` y `.zst`, en orden. Un subdirectorio ilegible se salta.
+- **`HayNovedades`**: respuestas, formato anterior o comprimidos.
+- **`generate()`**: tras el bucle de Claude Code y antes del único `st.Save`, si `codexRaiz` existe **en esta pasada** llama a `generarCodex`
+  *(nuevo)*.
+- **`generarCodex`**:
+  - `ListarCodex`;
+  - por fichero, `LeerFicheroCodex` con el aviso a stderr, y un error de lectura → `codex: fichero omitido: %v` y siguiente fichero;
+  - `transport.Append` de cada evento, que si falla es fatal;
+  - `ContarComprimido` de cada `.zst`.
+- **`runOnce`**: la línea `codex:` tras el resumen y el aviso de Claude Code, si `a.codex != nil`.
+- **`tick`**: la misma línea, sólo si además `HayNovedades()`.
+- **Resultado**: **568 pass, 0 SKIP** *(antes, 551 y 0)*, `0 issues`, 9/9.
+
+### T033 · Comprobado, sin tocarlos
+
+`main_test.go`, `retencion_test.go`, `coste_test.go` y `project_test.go`, en verde y con `git diff 7b8c77c` vacío. Los que construyen
+`agent{…}` a mano no traen `codexRaiz`, y no leen Codex.
+
+### T035 · Censo declarado ANTES de mutar *(2026-10-07)*
+
+**Ajustes respecto a `tasks.md`, declarados aquí antes de mutar**:
+- **m18** se declara sin pánico: «con el lector inactivo, se escribe la línea con una pasada vacía».
+- **m20** tumba mucho más que (24): todos los tests de Codex **sin raíz de Claude Code** *(25, 27/tick, 28, 31 y 32)*.
+- **m24** no tumba `se_relee`: el ilegible va antes que el sano en el orden léxico, y con permisos ya se leen los dos.
+- **Nuevas**:
+  - **M-B5a**: guardar el contexto del turno en `state.json`, la opción (b) de P-2 que se rechazó;
+  - **M-B5b**: `ListarCodex` sin `.zst`;
+  - **M-B5c**: `HayNovedades` sólo con respuestas.
+
+| # | Mutación | Debe caer *(hojas)* |
+|---|---|---|
+| m17 | `st.Save` al principio de `generarCodex`, antes de encolar | `TestCodexGenerate_EncolaAntesDeGuardar` |
+| m18 | con el lector inactivo, se escribe la línea con una pasada vacía | `TestCodexRun_SinRaizEsLaSalidaDeLa040/codex_home_vacia`, `/raiz_inexistente` |
+| m19 | `tick` escribe la línea sin mirar `HayNovedades` | `TestCodexDemonio_SoloConNovedades/tick` |
+| m20 | Codex sólo si hay logs de Claude Code | `TestCodexRun_SinClaudeCode`, `TestCodexGenerate_EncolaAntesDeGuardar`, `TestCodexDemonio_SoloConNovedades/tick`, `TestCodexRun_SegundaPasadaCero`, `TestCodexRun_NadaDelProveedorViaja`, `TestCodexActivacion_EnCadaPasada` |
+| m23 | la existencia sólo en `setup()` *(`generate` no la mira)* | `TestCodexActivacion_EnCadaPasada` |
+| m24 | el error de un fichero de Codex aborta la pasada | `TestCodexGenerate_FicheroIlegibleNoRompe/pasada`, `/segunda_pasada` |
+| m25 | el fichero omitido guarda su offset al final | `TestCodexGenerate_FicheroIlegibleNoRompe/se_relee` |
+| M-B5a | *(`codex_contexto.go`)* cada turno se guarda en `state.json` con su `turn_id` | `TestCodexRun_NadaDelProveedorViaja` |
+| M-B5b | *(`codex_contexto.go`)* `ListarCodex` no enumera los `.zst` | `TestContextoCodex_ListarRaiz` |
+| M-B5c | *(`codex_contexto.go`)* `HayNovedades` sólo con respuestas | `TestCodexDemonio_SoloConNovedades/predicado` |
+
+### T036 · Resultado *(2026-10-07)*
+
+**Las diez coinciden con lo declarado**, y ninguna panicó. Se aplicaron como sustituciones exactas, se miró el resultado antes de revertir,
+y m23 *(dos sustituciones)* se revirtió en orden inverso. Los md5 volvieron tras cada una:
+- `cmd/permea/main.go` → **`070d6938b52dbd691c20aa39d125a1b1`** *(m17–m25)*;
+- `internal/ingest/codex_contexto.go` → **`3aeb390b2a7ff7dfd16f8b819aef0cb5`** *(M-B5a, M-B5b y M-B5c)*.
+
+| # | Cayó |
+|---|---|
+| m17 | `TestCodexGenerate_EncolaAntesDeGuardar` |
+| m18 | `TestCodexRun_SinRaizEsLaSalidaDeLa040/codex_home_vacia`, `/raiz_inexistente` |
+| m19 | `TestCodexDemonio_SoloConNovedades/tick` |
+| m20 | `…SinClaudeCode`, `…EncolaAntesDeGuardar`, `…SoloConNovedades/tick`, `…SegundaPasadaCero`, `…NadaDelProveedorViaja`, `…ActivacionEnCadaPasada` *(las seis declaradas)* |
+| m23 | `TestCodexActivacion_EnCadaPasada` |
+| m24 | `TestCodexGenerate_FicheroIlegibleNoRompe/pasada`, `/segunda_pasada` *(no `se_relee`, como se declaró)* |
+| m25 | `TestCodexGenerate_FicheroIlegibleNoRompe/se_relee` |
+| M-B5a | `TestCodexRun_NadaDelProveedorViaja` |
+| M-B5b | `TestContextoCodex_ListarRaiz` |
+| M-B5c | `TestCodexDemonio_SoloConNovedades/predicado` |
+
+### Un límite conocido · R-9 *(se anota; no se arregla aquí)*
+
+Si la lectura de un fichero de Codex falla **a mitad**, y no al abrirlo:
+- `LeerFicheroCodex` ya ha sumado a la `PasadaCodex` respuestas cuyos eventos no se encolan;
+- y ha marcado sus `event_id` como emitidos en la pasada.
+
+El estado de ese fichero no avanza, así que se releen en la pasada siguiente. La línea `codex:` de esa pasada cuenta de más. Va a
+`plan.md` §Riesgos como **R-9**.

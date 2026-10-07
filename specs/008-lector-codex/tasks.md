@@ -10,8 +10,8 @@
   una detrás de otra.
 - **✋**: la ejecuta **el dueño**: commits, la PR, la fusión, la etiqueta y los ensayos en Windows. Claude no hace git de escritura. El
   mensaje de cada commit va previsto, **sin tildes ni ñ**.
-- **(1)…(35)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
-  llama **M-B1a**, **M-B2a**…**M-B2e**, **M-B3a**, **M-B3b**, **M-B4a**, **M-B5a** y **M-B6a**.
+- **(1)…(36)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
+  llama **M-B1a**, **M-B2a**…**M-B2e**, **M-B3a**, **M-B3b**, **M-B4a**, **M-B5a**…**M-B5c** y **M-B6a**.
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 - Las transcripciones van a `soporte/registro.md`, que se crea en B1, y en cada tarea queda una remisión.
 
@@ -138,52 +138,39 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 - [x] **T028** Censo, **antes de mutar**, y mutaciones: **(m15)** `CODEX_HOME=""` tomada como raíz → (21/vacía); **(m16)** ignorar
   `CODEX_HOME` → (21/definida); **M-B4a** exigir que la raíz exista → (22).
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B4 · T024–T028 *(las tres coinciden)*.
-- [ ] **T029** ✋ Puertas y commit: `008 B4: raiz de Codex con CODEX_HOME`.
+- [x] **T029** ✋ *(`c1068d6`)* Puertas y commit: `008 B4: raiz de Codex con CODEX_HOME`.
 
 ## B5 · Integración *(FR-002, FR-003, FR-016, FR-019, FR-021, FR-025, FR-026, FR-028; SC-001–SC-003 por fixture, SC-006, SC-011, SC-015, SC-016, SC-018)*
 
-- [ ] **T030** Fase 0, en este orden:
-  1. **Antes de tocar `main.go`** *(E-2, D-008-P12)*: con el binario del commit anterior, el stderr de `--run` sobre el fixture de Claude
-     Code se guarda en `cmd/permea/testdata/codex/referencia-run.stderr`, con la ruta de datos sustituida por `<DATOS>`. Su md5 se
-     transcribe.
-  2. **El forzado de SC-015** *(E-2, D-008-P10)*: se prueba el candidato A *(cola creada antes y directorio de datos sin permiso de
-     escritura: `Load` pasa, `Append` pasa y `Save` falla)* y se **declara** el elegido, A o B, con la razón.
-  3. En `main.go`, `agent.codexRaiz` y `agent.codex *ingest.PasadaCodex`. La ruta se resuelve en `setup()`, y su existencia se comprueba
-     en cada pasada *(D-008-P5)*. `generate()` conserva su firma de hoy *(D-008-P4)*.
-- [ ] **T031** [P] **Rojos (23) a (28)** en `cmd/permea/codex_test.go` *(nuevo, sandbox, `CODEX_HOME` a un temporal con fixtures)*:
-  - **(23)**, SC-011: sin raíz, y con `CODEX_HOME=""`, el stderr de `--run`, con la ruta de datos sustituida por `<DATOS>`, es byte a
-    byte el fichero de referencia de T030. **Nace verde**; lo valida m18;
-  - **(24)**, SC-016: sin `~/.claude/projects`, `--run` encola los eventos de Codex y sale con 0;
-  - **(25)**, SC-015: con el forzado declarado en T030, la cola tiene los eventos y la pasada devuelve error. Con el directorio
-    restaurado, la segunda pasada los reencola con los mismos `event_id`;
-  - **(26)**: la línea `codex: respuestas …`, literal, tras el resumen de Claude Code;
-  - **(27)**: el predicado del demonio es falso sin respuestas, formato anterior ni comprimidos, y `tick()` no escribe la línea;
-  - **(28)**: la segunda `--run` da 0 eventos `codex` *(precondición: la primera da > 0)*.
-- [ ] **T032** **Verde**: Codex tras Claude Code en `generate()`, con un solo `st.Save` al final *(D-008-P6)*; la existencia de la raíz en
-  cada pasada *(FR-002)*; los errores por fichero de FR-028 *(aviso, estado sin tocar y siguiente fichero; `Append` sigue siendo fatal,
-  D-008-P11)*; y la línea en `runOnce`, y en `tick` con su predicado.
-- [ ] **T033** Comprobar y transcribir, sin tocarlos, que `main_test.go`, `retencion_test.go`, `coste_test.go` y `project_test.go` siguen
+- [x] **T030** Fase 0, en este orden:
+  1. **Antes de tocar `main.go`** *(D-008-P12)*: la referencia de SC-011, con el binario de `HEAD`, en
+     `cmd/permea/testdata/codex/referencia-run.stderr` *(md5 `17f189f0…`)*.
+  2. **El forzado de SC-015** *(D-008-P10)*: **el A**. `Load` pasa, `Append` pasa y `Save` da `permission denied`; uid 1000, sin `t.Skip`.
+  3. En `main.go`, `agent.codexRaiz`, resuelta en `setup()`, y `agent.codex`; `generate()` con su firma de hoy *(D-008-P4/P5)*.
+- [x] **T031** [P] **Rojos (23) a (28)** en `cmd/permea/codex_test.go` *(nuevo)*: **(23)** SC-011, con `CODEX_HOME` vacía y con la raíz
+  inexistente, byte a byte la referencia *(nace verde; lo valida m18)*; **(24)** SC-016, sin Claude Code; **(25)** SC-015, con el forzado A;
+  **(26)** la línea `codex:` literal tras los resúmenes, y «4 eventos encolados»; **(27)** el predicado y `tick`; **(28)** la segunda `--run`
+  da 0. **(36)** *(nuevo, Encargo 8)*: `ListarCodex`, en `codex_contexto_test.go`.
+- [x] **T032** **Verde**: `generarCodex` tras Claude Code y antes del único `st.Save` *(D-008-P6)*; la existencia de la raíz en cada pasada
+  *(FR-002)*; los errores por fichero de FR-028 *(aviso, estado sin tocar y siguiente; `Append` fatal, D-008-P11)*; la línea en `runOnce` y,
+  con `HayNovedades`, en `tick`. `ListarCodex` y `HayNovedades`, en `codex_contexto.go`. **568 pass, 0 SKIP.**
+- [x] **T033** Comprobar y transcribir, sin tocarlos, que `main_test.go`, `retencion_test.go`, `coste_test.go` y `project_test.go` siguen
   verdes.
-- [ ] **T034** **Rojo (31)**, SC-006: un fixture con centinelas en `response_id`, `session_id` y `turn_id`, **y en el nombre del fichero**.
-  Tras `--run`: ninguno en `queue.jsonl`; en `state.json`, sólo el del nombre y **dentro de su clave** *(FR-016)*. Cae primero en su
-  precondición *(la cola vacía)*.
-- [ ] **T056** *(E-2)* **Rojo (32)**, FR-002, en `cmd/permea/codex_test.go`: un mismo `agent` con `codexRaiz` apuntando a una carpeta que
-  **no existe**. La primera pasada no emite nada de Codex ni escribe la línea. Se crea la carpeta con un fixture, y la segunda pasada
-  **del mismo `agent`** emite.
-- [ ] **T057** *(E-2)* **Rojo (33)**, SC-018 y FR-028, en `cmd/permea/codex_test.go`: un fichero de Codex ilegible *(enlace roto o
-  permisos 000; se elige en la Fase 0; `t.Skip` con root o en Windows)*, junto a un fixture de Claude Code y otro de Codex sano. Salen
-  los eventos de los dos sanos, stderr lleva `codex: fichero omitido: …`, `state.json` se guarda, y una segunda pasada no reencola nada de
-  Claude Code. Subtest `se_relee`: con el fichero ya legible, sus registros salen.
-- [ ] **T035** Censo, **antes de mutar**, por hoja:
-  - **(m17)** `st.Save` antes del Append de Codex → (25): con el forzado, la cola queda vacía;
-  - **(m18)** la línea siempre → (23) ×2;
-  - **(m19)** `tick` escribe siempre → (27);
-  - **(m20)** Codex sólo si hay raíz de Claude Code → (24);
-  - **M-B5a** una clave extra en `state.json` con el `response_id` → (31);
-  - **(m23)** *(E-2)* la existencia de la raíz sólo en `setup()` → (32);
-  - **(m24)** *(E-2)* el error de un fichero de Codex aborta la pasada → (33) en sus hojas de eventos, `state.json` y segunda pasada;
-  - **(m25)** *(E-2)* el fichero omitido guarda su offset al final → (33/se_relee).
-- [ ] **T036** Mutaciones y transcripción, con md5.
+- [x] **T034** **Rojo (31)**, SC-006: centinelas en `response_id`, `session_id`, `turn_id` **y el nombre del fichero**. Tras `--run`: ninguno
+  en la cola; en `state.json`, sólo el del nombre y **dentro de su ruta** *(FR-016)*. Cae primero en su precondición.
+- [x] **T056** *(E-2)* **Rojo (32)**, FR-002: `setup()` en el sandbox con `CODEX_HOME` a una carpeta que **no existe**; la primera pasada no
+  emite; se crea la carpeta; la segunda **del mismo `agent`** emite.
+- [x] **T057** *(E-2)* **Rojo (33)**, SC-018 y FR-028: un fichero de Codex con permisos 000 junto a uno sano y a Claude Code. Salen los
+  sanos, el aviso `codex: fichero omitido: …`, `state.json` se guarda, la segunda pasada no reencola Claude Code *(nace verde; la valida m24)*,
+  y `se_relee` saca sus registros.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 · T030–T034, T056, T057 y (36).
+- [x] **T035** Censo, **antes de mutar**, por hoja: **(m17)** `st.Save` antes de encolar Codex → (25); **(m18)** la línea siempre → (23) ×2;
+  **(m19)** `tick` sin predicado → (27/tick); **(m20)** Codex sólo con logs de Claude Code → (24), (25), (27/tick), (28), (31) y (32);
+  **(m23)** la existencia sólo en `setup()` → (32); **(m24)** el error aborta la pasada → (33/pasada, /segunda_pasada); **(m25)** el omitido
+  guarda su offset → (33/se_relee); **M-B5a** el turno en `state.json` → (31); **M-B5b** sin `.zst` → (36); **M-B5c** `HayNovedades` sólo con
+  respuestas → (27/predicado).
+- [x] **T036** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 · T035, T036 *(las diez coinciden)* y R-9.
 - [ ] **T037** ✋ Puertas y commit: `008 B5: Codex en run y daemon, antes de guardar el estado`.
 
 ## B6 · `--scan` *(FR-020, FR-021; SC-013)*
@@ -232,7 +219,7 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | FR | Tareas | | SC | Tareas |
 |---|---|---|---|---|
 | 001, 002 | T025 (21, 22), T056 (32) | | 001 | T031 *(fixture)*, T047 |
-| 003 | T031 (23, 24), T019 (18) | | 002 | T019 (17), T047 |
+| 003 | T031 (23, 24, 36), T019 (18) | | 002 | T019 (17), T047 |
 | 004 | T019 (14, 18, 35), T020 | | 003 | T011 (4), T047 |
 | 005 | T019 (14, 15), T047 *(SC-014)* | | 004 | T011 (8), T047 |
 | 006 | T011 (4) | | 005 | T019 (15), T031 (28), T047 |
@@ -293,19 +280,21 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | m15 | B4 | `CODEX_HOME=""` tomada como raíz | (21/vacía) |
 | m16 | B4 | ignorar `CODEX_HOME` | (21/definida) |
 | M-B4a | B4 | exigir que la raíz exista | (22) |
-| m17 | B5 | `st.Save` antes del Append de Codex | (25), con el forzado de T030 |
+| m17 | B5 | `st.Save` antes del Append de Codex | (25), con el forzado A |
 | m18 | B5 | la línea de Codex siempre | (23) ×2 |
-| m19 | B5 | `tick` escribe siempre | (27) |
-| m20 | B5 | Codex sólo si hay raíz de Claude Code | (24) |
-| M-B5a | B5 | una clave extra en `state.json` con el `response_id` | (31) |
+| m19 | B5 | `tick` escribe siempre | (27/tick) |
+| m20 | B5 | Codex sólo si hay logs de Claude Code | (24), (25), (27/tick), (28), (31), (32) |
+| M-B5a | B5 | el contexto del turno en `state.json` *(con el `turn_id`)* | (31) |
+| M-B5b | B5 | `ListarCodex` sin `.zst` | (36) |
+| M-B5c | B5 | `HayNovedades` sólo con respuestas | (27/predicado) |
 | m23 | B5 | *(E-2)* la existencia sólo en `setup()` | (32) |
-| m24 | B5 | *(E-2)* el error de Codex aborta la pasada | (33) |
+| m24 | B5 | *(E-2)* el error de Codex aborta la pasada | (33/pasada), (33/segunda_pasada) |
 | m25 | B5 | *(E-2)* el fichero omitido guarda su offset al final | (33/se_relee) |
 | m21 | B6 | `cw5m=`/`cw1h=` en la línea de Codex | (29) |
 | m22 | B6 | sin detección de Codex en `--scan` | (29) |
 | M-B6a | B6 | todo fichero es Codex | (30) |
 
-**38 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**40 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 

@@ -296,3 +296,31 @@ func TestContextoCodex_TruncadoNoLeePrefijo(t *testing.T) {
 		t.Errorf("%d eventos, modelos %v, sin modelo %d; se esperaba 1 evento sin modelo (su turn_context va después)", len(evs), modelos(evs), p.SinModelo)
 	}
 }
+
+// (36) · FR-003, FR-018 (Encargo 8): bajo la raíz, las sesiones `.jsonl` a cualquier profundidad y los `.zst`, cada lista
+// en orden; nada más.
+func TestContextoCodex_ListarRaiz(t *testing.T) {
+	raiz := t.TempDir()
+	for _, f := range []string{"2026/10/07/a.jsonl", "2026/10/08/b.jsonl", "2026/10/07/c.jsonl.zst", "notas.txt"} {
+		ruta := filepath.Join(raiz, f)
+		if err := os.MkdirAll(filepath.Dir(ruta), 0o700); err != nil {
+			t.Fatalf("precondición: %v", err)
+		}
+		if err := os.WriteFile(ruta, []byte("x"), 0o600); err != nil {
+			t.Fatalf("precondición: %v", err)
+		}
+	}
+	sesiones, comprimidos, err := ListarCodex(raiz)
+	rel := func(rutas []string) string {
+		var r []string
+		for _, x := range rutas {
+			s, _ := filepath.Rel(raiz, x)
+			r = append(r, filepath.ToSlash(s))
+		}
+		return strings.Join(r, ",")
+	}
+	if err != nil || rel(sesiones) != "2026/10/07/a.jsonl,2026/10/08/b.jsonl" || rel(comprimidos) != "2026/10/07/c.jsonl.zst" {
+		t.Errorf("ListarCodex = (%q, %q, %v); se esperaba ([2026/10/07/a.jsonl 2026/10/08/b.jsonl], [2026/10/07/c.jsonl.zst], nil)",
+			rel(sesiones), rel(comprimidos), err)
+	}
+}

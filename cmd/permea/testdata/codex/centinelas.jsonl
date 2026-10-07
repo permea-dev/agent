@@ -1,0 +1,4 @@
+{"timestamp":"2026-10-07T00:00:00.000Z","type":"session_meta","payload":{"id":"s-CENTINELA-SESION","session_id":"s-CENTINELA-SESION","cwd":"/tmp/proyecto-codex-sintetico","cli_version":"0.160.1","source":"exec"}}
+{"timestamp":"2026-10-07T00:00:00.000Z","type":"turn_context","payload":{"turn_id":"t-CENTINELA-TURNO","model":"modelo-sintetico","cwd":"/tmp/proyecto-codex-sintetico"}}
+{"timestamp":"2026-10-07T00:00:01.000Z","type":"token_usage_record","payload":{"response_id":"r-CENTINELA-RESPUESTA-0001","session_id":"s-CENTINELA-SESION","thread_id":"s-CENTINELA-SESION","turn_id":"t-CENTINELA-TURNO","root_turn_id":"t-CENTINELA-TURNO","usage":{"input_tokens":100,"cached_input_tokens":40,"cache_write_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0,"total_tokens":110}}}
+{"timestamp":"2026-10-07T00:00:00.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100}}}}
