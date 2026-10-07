@@ -171,8 +171,8 @@ Se anotan la fecha, el commit del snapshot, la huella del zip y la salida de cad
 - [x] M1 y M2 con las referencias, y la huella de la copia igual antes y después *(C2: `984d483c12a15601`)*.
 - [x] SC-014: tres medidas ≤ 3 s, anotadas *(C2: 0,340 · 0,340 · 0,342 s sobre 115 MB)*.
 - [x] Snapshot y `strings` con los textos aprobados *(C3: `0.4.0-SNAPSHOT-9516a08`)*.
-- [ ] W1 anotado sin fallos *(C4)*.
-- [ ] `PENDIENTE` → 0 antes de fusionar *(C5)*.
+- [x] W1 anotado sin fallos *(C4, 2026-10-07)*.
+- [x] `PENDIENTE` → 0 antes de fusionar *(C5: `## 0.5.0 — 2026-10-07`)*.
 - [ ] Release y canales en `0.5.0` *(C8)*.
 - [ ] W2 anotado *(C9)*.
 - [ ] Temporales borrados.

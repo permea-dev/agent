@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.5.0 — PENDIENTE
+## 0.5.0 — 2026-10-07
 
 ### Nuevo
 - Lee también el consumo de Codex CLI, de `~/.codex/sessions` (o de `$CODEX_HOME/sessions`), si esa carpeta

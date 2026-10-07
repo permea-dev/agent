@@ -779,3 +779,54 @@ Todos con `rc=0` y `cost_avail=false`. `--scan` no dejó ningún fichero en el h
 - **El README empaquetado**, en el zip de Windows y en el tar de Linux: lleva «### Codex CLI», las 9 frases de E-5, y es **idéntico** al del
   repo.
 - **`dist/`** no aparece en `git status`: lo ignora `.gitignore`.
+
+### C4 · T049 · W1 *(hecho por el dueño el 2026-10-07, de 18:37 a 18:42, Madrid, en Windows; en sandbox y sin enrolar)*
+
+**Hechos del dueño**:
+- **El zip**: `permea_0.4.0-SNAPSHOT-9516a08_windows_amd64.zip`, en una carpeta aparte, con `APPDATA` propio. SHA-256
+  `96dfa0ee5f49312f908827ac73e0efcf3f4a4606cc51b7d5c09653af8fbe5566`, igual al de C3.
+- **Antes de pasar**: `permea.exe --version` → `0.4.0-SNAPSHOT-9516a08` · `permea.exe status` → `no enrolado` · `CODEX_HOME` vacía · la
+  carpeta de sesiones por defecto de Codex existe *(Q-6)*.
+- **El contador independiente**, lanzado desde WSL sobre la carpeta viva de Codex justo antes: 8 ficheros · 7 registros *(F6 4, F7 1, F8 2,
+  todos `gpt-6-luna`)* · F1–F4 formato anterior · F5 sin consumo.
+
+**Primera `--run`** *(2,2 s)*, stderr literal:
+```
+Permea 0.4.0-SNAPSHOT-9516a08
+6622 eventos encolados en <DATOS>\permea\queue.jsonl
+pasada: 15144 líneas facturables · 6615 eventos · 8527 repetidas del mismo mensaje · 1 sintéticas · 0 sin identificador (no contables) · 158 con consumo distinto de la primera
+pasada: 143 mensajes que crecieron entre líneas · 1 en espera de cerrarse · 0 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+1 mensajes siguen abiertos: se enviarán en la próxima pasada
+codex: respuestas 7 · eventos 7 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · ficheros en formato anterior 4 · ficheros comprimidos 0
+sync omitido: sin endpoint configurado
+```
+
+**Segunda `--run`** *(0,1 s)*, stderr literal:
+```
+Permea 0.4.0-SNAPSHOT-9516a08
+0 eventos encolados en <DATOS>\permea\queue.jsonl
+pasada: 3 líneas facturables · 0 eventos · 2 repetidas del mismo mensaje · 0 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 1 en espera de cerrarse · 3 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+1 mensajes siguen abiertos: se enviarán en la próxima pasada
+codex: respuestas 0 · eventos 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · ficheros en formato anterior 0 · ficheros comprimidos 0
+sync omitido: sin endpoint configurado
+```
+
+**Al terminar**: la cola del ensayo tenía 7 eventos con `"tool":"codex"`, y ninguno con `"cost_available":true`. La carpeta del ensayo se
+borró, y no se transmitió nada.
+
+**Comprobado aquí** *(Encargo 11, sin abrir nada del dueño)*:
+- **Aritmética**:
+  - 6622 = 6615 de Claude Code + 7 de Codex;
+  - en Claude Code, eventos + repetidas + sintéticas + en espera = facturables, tanto en la primera pasada *(6615 + 8527 + 1 + 1 = 15144)*
+    como en la segunda *(0 + 2 + 0 + 1 = 3)*;
+  - en Codex, `respuestas = eventos + repetidas + sin identificador + incoherentes` *(FR-027)* en las dos: 7 = 7 y 0 = 0.
+- **Frente al contador**: 7 respuestas = 7 registros, y 4 ficheros en formato anterior = F1–F4.
+- **Frente a C2**: las mismas dos líneas `codex:` que el `--run` doble sobre la copia congelada *(7 · 4 formato anterior, y luego todo a 0)*.
+- **Los textos**: las ocho líneas de recuentos son las aprobadas. Se reconocieron con los formatos sacados por programa de §Textos
+  aprobados de 008 *(`codex:`)* y de 007 *(las dos `pasada:` y el aviso)*.
+- **El orden** *(FR-019)*: la línea `codex:` va tras el resumen y el aviso de Claude Code, y antes de «sync omitido».
+- **Q-6**: el agente encontró las sesiones con `CODEX_HOME` vacía, así que su raíz por defecto es la de Codex.
+- **Lo de Claude Code** *(15144 · 6615 · 143 que crecen)* es el historial real de esa instalación, leído en sólo lectura, como en el W1 de 007.
+
+**Resultado: W1 sin fallos. Nada contradice C2.**
