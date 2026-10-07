@@ -11,7 +11,7 @@
 - **✋**: la ejecuta **el dueño**: commits, la PR, la fusión, la etiqueta y los ensayos en Windows. Claude no hace git de escritura. El
   mensaje de cada commit va previsto, **sin tildes ni ñ**.
 - **(1)…(34)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
-  llama **M-B2a**, **M-B5a** y **M-B6a**.
+  llama **M-B1a**, **M-B2a**, **M-B2b**, **M-B5a** y **M-B6a**.
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 - Las transcripciones van a `soporte/registro.md`, que se crea en B1, y en cada tarea queda una remisión.
 
@@ -47,7 +47,7 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 - [x] **T001** Fase 0. Transcribir la línea base sobre `7b8c77c`: 494 pass en 9 paquetes, lint 0 y la frontera sin diff. Si algo difiere,
   **se para**.
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B0 · T001.
-- [ ] **T002** ✋ Commit: `008 B0: spec ratificada (E-1, E-2), contrato, plan, tareas y quickstart`.
+- [x] **T002** ✋ *(`5f801c5`)* Commit: `008 B0: spec ratificada (E-1, E-2), contrato, plan, tareas y quickstart`.
 
 ## B1 · Identidad *(`contracts/event-id-codex.md`; FR-007; SC-006)*
 
@@ -62,38 +62,34 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
   no, se replica en el fichero nuevo *(M-1)*.
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T005 *(replicada: `hashEventID` fija `claude_code`)*.
 - [x] **T006** Censo de mutaciones, **declarado antes de mutar**, por hoja: **(m1)** `"codex"` → `"claude_code"` → (1) ×2; **(m2)** sin
-  prefijo de longitud → (1) ×2 y (2); **(m3)** vacío aceptado → (3).
+  prefijo de longitud → (1) ×2 *(no (2): compara con el vector de 006)*; **(m3)** vacío aceptado → (3). **Remate** *(Encargo 5)*:
+  **M-B1a**, derivar en el espacio de Claude Code → (1) ×2 y (2).
 - [x] **T007** Mutaciones y transcripción, con md5.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T006 *(m2 sin la co-caída de (2), declarado antes de mutar)* y T007.
-- [ ] **T008** ✋ Puertas y commit: `008 B1: event_id de Codex con espacio de nombres propio`.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T006 *(m2 sin la co-caída de (2), declarado antes de mutar)*, T007 y
+  > §Remate de B1 · M-B1a.
+- [x] **T008** ✋ *(`7800d3b`)* Puertas y commit: `008 B1: event_id de Codex con espacio de nombres propio`.
 
 ## B2 · Una línea *(FR-006, FR-009, FR-010, FR-012, FR-013, FR-015, FR-016, FR-027; SC-004, SC-008)*
 
-- [ ] **T009** Fase 0: en `internal/ingest/codex.go` *(nuevo)*, `ContextoCodex` *(sal, máquina, dev, org, versión, resolutor, `cwd` y
-  modelo del turno)*, `ClaseCodex` *(evento, sin identificador, incoherente)* y `LineaCodex(line, ctx)`, que devuelve `nil`. La suite sigue
-  verde.
-- [ ] **T010** Fixtures **sintéticos** en `internal/ingest/testdata/codex/`, con identificadores `r-0000…` y partidas inventadas o
+- [x] **T009** Fase 0: en `internal/ingest/codex.go` *(nuevo)*, `ContextoCodex` *(el `Context` de Claude Code y `DelTurno`, que da el
+  modelo y el `cwd` del turno)*, `ClaseCodex` y `LineaCodex(line, ctx)`, que no clasifica nada. La suite sigue verde.
+- [x] **T010** Fixtures **sintéticos** en `internal/ingest/testdata/codex/`, con identificadores `r-0000…` y partidas inventadas o
   publicadas en `descubrimiento.md` *(13 831 / 11 008 / 0 / 5)*.
-- [ ] **T011** [P] **Rojos (4) a (10)** en `internal/ingest/codex_linea_test.go` *(nuevo)*:
-  - **(4)**: 13 831 / 11 008 / 0 / 5 → `tokens_input` 2 823, `tokens_cache_read` 11 008, `tokens_output` 5;
-  - **(5)**, SC-008: 100 / 40 / 60 / 10 → 0 / 60 / 40 / 10;
-  - **(6)**: caché + escritura > entrada → clase «incoherente» y sin evento;
-  - **(7)**: sin `response_id`, o vacío → «sin identificador» y sin evento;
-  - **(8)**: `tool = "codex"`, `cost_usd = 0` y `cost_available = false`;
-  - **(9)**: `occurred_at` = la marca de la línea;
-  - **(10)**: `session_ref` = `event.Ref(sal, session_id)`, con `session_id` ≠ `thread_id` en el fixture.
-- [ ] **T012** **Verde**: `LineaCodex` decodifica `type`, `timestamp` y `payload.{response_id, session_id, turn_id, usage}`. Aplica
-  FR-010 y la clasificación de D-008-P9, y construye el evento con `event.Ref` y el resolutor. **No** llama a `internal/pricing`.
-- [ ] **T013** Verde de nacimiento, con su mutación: **(FR-016)** campo a campo, el evento no contiene ni `response_id` ni `session_id`
-  ni `turn_id` *(centinelas en el fixture)*.
-- [ ] **T014** Censo, **antes de mutar**, por hoja:
-  - **(m4)** sin restar la escritura → (5);
-  - **(m5)** `cost_available = true` → (8);
-  - **(m6)** el incoherente se emite → (6);
-  - **(m7)** `session_ref` del `thread_id` → (10);
-  - **(m8)** `occurred_at` = ahora → (9);
-  - **M-B2a** `session_ref` = `session_id` sin sal → (10) y T013.
-- [ ] **T015** Mutaciones y transcripción, con md5.
+- [x] **T011** [P] **Rojos (4) a (10)** en `internal/ingest/codex_linea_test.go` *(nuevo)*: **(4)** 13 831 / 11 008 / 0 / 5 → 2 823 / 0 /
+  11 008 / 5, y la hoja `otra_linea_no_es_registro` *(FR-006; nace verde, la valida M-B2b)*; **(5)** SC-008, 100 / 40 / 60 / 10 → 0 / 60 /
+  40 / 10; **(6)** incoherente, con tres hojas *(E-3: caché + escritura > entrada · sin `usage` · partida negativa)*; **(7)** sin
+  `response_id`, o vacío; **(8)** `tool`, coste 0 y `cost_available = false`; **(9)** `occurred_at` = la marca; **(10)** `session_ref` =
+  `event.Ref(sal, session_id)`, con `session_id` ≠ `thread_id` ≠ `turn_id`.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T011.
+- [x] **T012** **Verde**: `LineaCodex` decodifica primero `{type, timestamp, payload}` en crudo, y sólo un registro decodifica su payload.
+  Aplica FR-010 y la clasificación de D-008-P9 con E-3, y construye el evento con `event.Ref` y el resolutor. **No** llama a `internal/pricing`.
+- [x] **T013** Verde de nacimiento, escrito tras T012: **(FR-016)** el evento no contiene ningún centinela del fixture. Lo valida M-B2a.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T012 y T013.
+- [x] **T014** Censo, **antes de mutar**, por hoja: **(m4)** sin restar la escritura → (5); **(m5)** `cost_available = true` → (8);
+  **(m6)** el incoherente se emite *(declarada sin pánico: «sin `usage`» se toma a cero)* → (6) ×3; **(m7)** `session_ref` del `thread_id`
+  → (10); **(m8)** `occurred_at` = ahora → (9); **M-B2a** `session_ref` sin sal → (10) y T013; **M-B2b** sin la guarda del tipo → (4/otra_linea).
+- [x] **T015** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T014 y T015 *(las siete coinciden)*.
 - [ ] **T016** ✋ Puertas y commit: `008 B2: una linea de Codex es un evento sin coste`.
 
 ## B3 · Contexto y estado *(FR-004, FR-005, FR-008, FR-011, FR-014, FR-017, FR-018, FR-027, FR-029; SC-005, SC-007, SC-009, SC-010, SC-017)*
@@ -276,14 +272,16 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | # | Bloque | Mutación | Debe caer *(y sólo eso)* |
 |---|---|---|---|
 | m1 | B1 | `"codex"` → `"claude_code"` | (1) ×2 |
-| m2 | B1 | sin prefijo de longitud | (1) ×2, (2) |
+| m2 | B1 | sin prefijo de longitud | (1) ×2 |
 | m3 | B1 | `response_id` vacío aceptado | (3) |
+| M-B1a | B1 | derivar en el espacio de Claude Code | (1) ×2, (2) |
 | m4 | B2 | `tokens_input` sin restar la escritura | (5) |
 | m5 | B2 | `cost_available = true` | (8) |
-| m6 | B2 | el incoherente se emite | (6) |
+| m6 | B2 | el incoherente se emite *(«sin `usage`» a cero)* | (6) ×3 *(E-3)* |
 | m7 | B2 | `session_ref` del `thread_id` | (10) |
 | m8 | B2 | `occurred_at` = ahora | (9) |
 | M-B2a | B2 | `session_ref` = `session_id` sin sal | (10), T013 |
+| M-B2b | B2 | sin la guarda del tipo | (4/otra_linea_no_es_registro) |
 | m9 | B3 | siempre el modelo vigente | (11) |
 | m10 | B3 | sin prefijo *(empezar en el offset)* | (14), (15, segunda pasada) |
 | m11 | B3 | sin repetidas | (16), (19) |
@@ -306,7 +304,7 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | m22 | B6 | sin detección de Codex en `--scan` | (29) |
 | M-B6a | B6 | todo fichero es Codex | (30) |
 
-**30 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**32 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 
