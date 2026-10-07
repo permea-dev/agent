@@ -173,7 +173,7 @@ Se anotan la fecha, el commit del snapshot, la huella del zip y la salida de cad
 - [x] Snapshot y `strings` con los textos aprobados *(C3: `0.4.0-SNAPSHOT-9516a08`)*.
 - [x] W1 anotado sin fallos *(C4, 2026-10-07)*.
 - [x] `PENDIENTE` → 0 antes de fusionar *(C5: `## 0.5.0 — 2026-10-07`)*.
-- [ ] Release y canales en `0.5.0` *(C8)*.
-- [ ] W2 anotado *(C9)*.
-- [ ] Temporales borrados.
-- [ ] Nota para la plataforma: la fila de `gpt-6-luna` *(Dependencias)*.
+- [x] Release y canales en `0.5.0` *(C8, 2026-10-07)*.
+- [x] W2 anotado *(C9, 2026-10-07: la plataforma = SC-001; sólo lo nuevo, +2828)*.
+- [x] Temporales borrados *(0 `/tmp/permea-008-*`)*.
+- [x] Nota para la plataforma: la fila de `gpt-6-luna` *(Dependencias)*, anotada en `spec.md` §Cierre. La fila va en un encargo aparte.

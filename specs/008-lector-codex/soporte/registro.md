@@ -830,3 +830,96 @@ borró, y no se transmitió nada.
 - **Lo de Claude Code** *(15144 · 6615 · 143 que crecen)* es el historial real de esa instalación, leído en sólo lectura, como en el W1 de 007.
 
 **Resultado: W1 sin fallos. Nada contradice C2.**
+
+### C6 · T051 · Fusión *(el dueño, 2026-10-07)*
+
+- El PR **#5**, fusionado con merge commit **`40bb2c1`**. La rama `008-lector-codex`, borrada en local y en remoto.
+- Sobre `main`: `go test -count=1 ./...` → 9 paquetes `ok` · `grep -c PENDIENTE CHANGELOG.md` → 0 · encabezado `## 0.5.0 — 2026-10-07`.
+- El PR no tiene checks en este repo *(deuda D-006-6)*.
+
+### C7 · T052 · Etiqueta *(el dueño)*
+
+- `git tag -a v0.5.0` sobre `40bb2c1` y `git push origin v0.5.0`. El workflow `release` terminó en `success`.
+- **La release**: publicada el `2026-10-07T16:50:50Z`, `draft=false`, `prerelease=false`, con seis assets: `permea_0.5.0_checksums.txt` y los cinco
+  paquetes.
+
+### C8 · T053 · Canales *(el orquestador, con descarga anónima, 2026-10-07)*
+
+- **Los cinco paquetes**: `sha256sum -c` del fichero de sumas, OK en todos.
+
+| Paquete | SHA-256 |
+|---|---|
+| `permea_0.5.0_darwin_amd64.tar.gz` | `1068a0858ea70151d1bda5aca83722eadb2fff6c807933923734fa1cd17e2a14` |
+| `permea_0.5.0_darwin_arm64.tar.gz` | `51b0ae907d7cfc4f7009da7f83dceab52f7268ba5724141447455ae47be8406e` |
+| `permea_0.5.0_linux_amd64.tar.gz` | `b68c34086e0736f0238655933fc030e405d8512ab5e0d17b3c9dd36556ed8728` |
+| `permea_0.5.0_linux_arm64.tar.gz` | `6ed5ddc80a0634802ec9df481c8de2054bde1d61a99f6870993959f66dd6d293` |
+| `permea_0.5.0_windows_amd64.zip` | `8d2bed8e57c8dd939da9a3c9a1c89a21fb9ba6e93c06a9671f4d379e8fee8076` |
+
+- **Scoop** *(el `permea.json` del bucket)*: `0.5.0`, con la huella del zip de Windows. **El cask de Homebrew**: `0.5.0`, con las cuatro huellas.
+- **El binario de Linux, en un entorno aislado**: `--version` → `0.5.0`; `status` → `no enrolado`.
+- **Los textos aprobados**: una aparición cada uno en el binario de Linux y en `permea.exe`. Son la línea `codex:` *(en sus dos mitades)*,
+  `codex: fichero omitido: %v` y la línea `evento:` de Codex.
+- **El README empaquetado**: idéntico en el zip y en el tar, con «### Codex CLI» y las frases de E-5.
+
+**Comprobado aquí** *(Encargo 12, sólo lectura)*:
+- **`gh release view v0.5.0`**:
+  - `tagName` y `name` `v0.5.0`, `isDraft=false`, `isPrerelease=false`;
+  - publicada el `2026-10-07T16:50:50Z`, por `github-actions[bot]`;
+  - seis assets: el fichero de sumas y los cinco paquetes.
+- **La etiqueta**: `git cat-file -t v0.5.0` → `tag` *(anotada)*, y `v0.5.0^{commit}` → `40bb2c1`.
+- **El fichero de sumas publicado**: descargado a un temporal y borrado después. Sus cinco huellas son **idénticas** a las de la tabla
+  *(`diff` vacío)*.
+
+**Coincide.**
+
+### C9 · T054 · W2 *(el dueño, 2026-10-07, de 18:54 a 19:00, Madrid; la instalación real de Windows, enrolada)*
+
+- **La plataforma, antes**: 0 eventos con `tool = codex`.
+- **La actualización**: `scoop update permea`, de 0.4.0 a 0.5.0, con la huella comprobada por Scoop. `permea --version` → `0.5.0`, y
+  `permea status` → enrolado.
+
+**Primera `--run`**, stderr literal:
+```
+Permea 0.5.0
+335 eventos encolados en <DATOS>\permea\queue.jsonl
+pasada: 799 líneas facturables · 328 eventos · 470 repetidas del mismo mensaje · 0 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 1 en espera de cerrarse · 3 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+1 mensajes siguen abiertos: se enviarán en la próxima pasada
+codex: respuestas 7 · eventos 7 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · ficheros en formato anterior 4 · ficheros comprimidos 0
+335 eventos transmitidos y confirmados
+```
+
+**La plataforma, después** *(una sola fila, de la organización de pruebas del dueño)*:
+- `tool` `codex` · `agent_version` `0.5.0` · 7 eventos con 7 `event_id` distintos;
+- `tokens_input` 21 779 · `tokens_cache_creation` 0 · `tokens_cache_read` 86 272 · `tokens_output` 330;
+- 0 con `cost_available` · coste 0,000000 · modelo `gpt-6-luna` · `occurred_at` de 09:19:34 a 09:25:14 UTC;
+- el simulacro de avisos de la plataforma: 0 avisos y 0 destinatarios.
+
+**Sólo lo nuevo** *(paso 5 del quickstart)*: el dueño lanzó una respuesta de Codex, que imprimió «tokens used» **2828**, y después:
+```
+Permea 0.5.0
+24 eventos encolados en <DATOS>\permea\queue.jsonl
+pasada: 45 líneas facturables · 23 eventos · 21 repetidas del mismo mensaje · 0 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 1 en espera de cerrarse · 2 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+1 mensajes siguen abiertos: se enviarán en la próxima pasada
+codex: respuestas 1 · eventos 1 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · ficheros en formato anterior 0 · ficheros comprimidos 0
+24 eventos transmitidos y confirmados
+```
+
+**La plataforma, al final**: 8 eventos con 8 `event_id` distintos · 24 602 / 0 / 97 280 / 335 · 0 con coste.
+
+**La otra máquina del dueño** *(WSL)*: actualizada con `install.sh`, con la suma verificada, y `permea --version` → `0.5.0`. Allí no hay
+Codex.
+
+**Comprobado aquí** *(aritmética y textos, sin abrir nada del dueño)*:
+- **Encolados**: 335 = 328 de Claude Code + 7 de Codex, y 24 = 23 + 1. Lo transmitido es igual a lo encolado en las dos pasadas.
+- **Claude Code**: eventos + repetidas + sintéticas + sin identificador + en espera = facturables, 328 + 470 + 0 + 0 + 1 = **799**, y 23 + 21 +
+  0 + 0 + 1 = **45**.
+- **Codex**: `respuestas = eventos + repetidas + sin identificador + incoherentes` en las dos: 7 = 7 y 1 = 1. «Sin modelo» ≤ eventos.
+- **La plataforma, tras la primera pasada** *(21 779 / 0 / 86 272 / 330, 7 eventos y `gpt-6-luna`)*: son **exactamente** las sumas de SC-001
+  medidas en C2 sobre la copia congelada.
+- **Los incrementos**: +2 823 / 0 / +11 008 / +5. Entrada + escritura + salida = **2828**, lo que imprimió Codex. Son las mismas partidas que F7.
+- **Los textos**: las ocho líneas de recuentos son las aprobadas. Se reconocieron con los formatos sacados por programa de §Textos aprobados
+  de 008 *(`codex:`)* y de 007 *(las dos `pasada:` y el aviso)*.
+
+**Resultado: W2 sin fallos. Nada contradice las medidas de C2 ni de W1.**

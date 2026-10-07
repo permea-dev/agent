@@ -1,6 +1,6 @@
 # 008 · «Lector de Codex» — Especificación
 
-**Feature Branch**: `008-lector-codex` · **Created**: 2026-10-07 · **Status**: **Ratificada** el 2026-10-07, 12:16 (Madrid) · **Cabeza de partida**: `7b8c77c` *(0.4.0)* · **Enmiendas**: E-1 a E-5
+**Feature Branch**: `008-lector-codex` · **Created**: 2026-10-07 · **Status**: **Cerrada** el 2026-10-07 y publicada como `0.5.0` *(ratificada el 2026-10-07, 12:16, Madrid; §Cierre)* · **Cabeza de partida**: `7b8c77c` *(0.4.0)* · **Enmiendas**: E-1 a E-5
 **Input**: las decisiones del dueño `D-1`…`D-3` · las decisiones de método del orquestador `M-1`…`M-9` · el descubrimiento del 07-10 y la
 FASE 0 *(`soporte/descubrimiento.md`, sobre la **copia congelada** de 8 sesiones, F1…F8)* · la fuente pública de Codex, etiqueta
 `rust-v0.160.1` · el contrato nuevo `contracts/event-id-codex.md`.
@@ -366,6 +366,50 @@ de línea; se comprueban con `grep -F` sobre el texto con los saltos de línea n
   reales**: hoy, `gpt-6-luna`. `gpt-5.3-codex` no ha producido ningún evento *(sus turnos de F5 y F6 fallaron)*. Hasta entonces, los eventos
   de Codex llegan con el coste ciego y señalizado *(E-1)*.
 - **006**: el esquema del `event_id`, sin tocarlo. **007**: `Recorrer`, que se usa tal cual.
+
+## Cierre *(2026-10-07)*
+
+**Cerrada y publicada como `0.5.0`.** El PR #5 se fusionó con merge commit `40bb2c1`, y la etiqueta anotada `v0.5.0` va sobre `40bb2c1`. Los
+canales y los dos ensayos en Windows: `soporte/registro.md` §Cierre C1–C9.
+
+| SC | Dónde se acreditó | |
+|---|---|:--:|
+| **SC-001** | **C2**: `--scan` fichero a fichero = el contador *(7 · 21 779 / 0 / 86 272 / 330)*. **W2**: la plataforma da las mismas sumas tras la primera pasada | ✅ |
+| **SC-002** | **B3** (17), **B6** (37). **C2**: F1–F4 en formato anterior, F5 a 0. **W1** y **W2**: «ficheros en formato anterior 4» | ✅ |
+| **SC-003** | **B2** (4). **C2**: 2828 en F7 y 4117 en F8. **W2**: el incremento de una respuesta nueva da entrada + salida = 2828, lo que imprimió Codex | ✅ |
+| **SC-004** | **B2** (8), m5. **C2**: la cola, 7 de 7 sin coste. **W1**: 0 con `cost_available`. **W2**: 0 con coste en la plataforma | ✅ |
+| **SC-005** | **B3** (15), **B5** (28). **C2** y **W1**: la segunda pasada, 0. **W2**: sólo lo nuevo, 1 respuesta | ✅ |
+| **SC-006** | **B1**: vectores, con m1–m3 y M-B1a. **B5** (31): centinelas, con M-B5a. **W2**: 8 eventos, 8 `event_id` distintos | ✅ |
+| **SC-007** | **B3** (16), m11. Sin muestra real de bifurcación | ✅ |
+| **SC-008** | **B2** (5), m4. Sin muestra real: la escritura de caché vale 0 en todos los registros vistos | ✅ |
+| **SC-009** | **B3** (11)–(13), con m9. **C2**: `gpt-6-luna` ×7, el de la compactación por el vigente. **W2**: `gpt-6-luna` | ✅ |
+| **SC-010** | **B3** (14), m10. **C2**: en SC-014, el registro nuevo sacó el modelo del prefijo | ✅ |
+| **SC-011** | **B5** (23): byte a byte frente a la referencia del binario anterior, con m18 | ✅ |
+| **SC-012** | Las puertas de cada bloque. **C1**: 574 pass, 0 SKIP, lint 0, frontera con 0 bytes y los 494 anteriores sin tocar | ✅ |
+| **SC-013** | **B5** (26), **B6** (29), y el `cmp` de **B7**. **C3** y **C8**: `strings` de los dos binarios. **W1** y **W2**: los textos, literales | ✅ |
+| **SC-014** | **B3**: 0,25 s *(la función)*. **C2**: 0,340 · 0,340 · 0,342 s, con el binario entero sobre 115 MB | ✅ |
+| **SC-015** | **B5** (25), con el forzado A de D-008-P10 y m17 | ✅ |
+| **SC-016** | **B5** (24), con m20 | ✅ |
+| **SC-017** | **B3** (19), con m11. **C2**, **W1** y **W2**: la identidad de FR-027 se cumple en todas las líneas `codex:` | ✅ |
+| **SC-018** | **B5** (33), con m24 y m25 | ✅ |
+
+**18 / 18.** **41 mutaciones**, todas con la caída declarada antes de mutar; **37 rojos**; 494 → 574 tests.
+
+**Desviaciones declaradas**:
+- **B6 y B7 van en un solo commit**: decisión del orquestador, porque B7 son sólo textos aprobados.
+- **SC-015 y SC-018 dependen de permisos POSIX** *(R-8)*: llevan `t.Skip` con root o en Windows. En la máquina de la línea base no se saltan.
+- **SC-014 se midió en Linux.** En Windows, W1 dio 2,2 s y 0,1 s por pasada entera *(Claude Code incluido)*.
+- **D-008-P8 y R-2 se corrigieron tras B6**: en `--scan` de Codex sólo la primera línea pasa por el tope de 1 MiB.
+
+**Límites que quedan**:
+- **R-9**: si la lectura de un fichero de Codex falla a mitad, la línea `codex:` de esa pasada cuenta de más.
+- **El demonio** repite `codex: fichero omitido: …` en cada ciclo mientras un fichero siga ilegible.
+- **Q-4**, sin muestra: el modelo de una compactación tras un cambio de modelo a la baja.
+- **El error de `--scan`** con una línea de más de 1 MiB *(`bufio.Scanner: token too long`)* no dice ni el fichero ni el motivo.
+- **El README** conserva el ejemplo `PERMEA_VERSION=v0.4.0` *(l. 32)*.
+
+**Nota para la plataforma**: la fila de tarifas de `gpt-6-luna`, el único modelo visto en eventos reales, va en un encargo aparte. Hasta
+entonces, esos eventos llegan sin coste: ciegos y señalizados.
 
 ## Registro de enmiendas
 

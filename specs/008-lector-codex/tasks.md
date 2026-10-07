@@ -210,11 +210,13 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre · C4 *(2026-10-07, sin fallos: 7 eventos codex, 4 en formato anterior; la segunda, 0)*.
 - [x] **T050** **C5** · El cuerpo del PR y la fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0; `## 0.5.0 — 2026-10-07`)*. ✋ Commit
   `008 C5: fecha de la 0.5.0 en el CHANGELOG`.
-- [ ] **T051** ✋ **C6** · Fusión del PR con merge commit.
-- [ ] **T052** ✋ **C7** · `git tag -a v0.5.0` sobre `main` y `git push origin v0.5.0`.
-- [ ] **T053** **C8** · Los tres canales en `0.5.0` y `strings` del binario publicado *(SC-013)*.
-- [ ] **T054** ✋ **C9 · W2** *(quickstart §W2)*: `scoop update`, `--run` y, en la plataforma, eventos `codex` = las respuestas nuevas del
+- [x] **T051** ✋ **C6** · Fusión del PR con merge commit *(PR #5, `40bb2c1`)*.
+- [x] **T052** ✋ **C7** · `git tag -a v0.5.0` sobre `main` y `git push origin v0.5.0` *(sobre `40bb2c1`; `release` en `success`)*.
+- [x] **T053** **C8** · Los tres canales en `0.5.0` y `strings` del binario publicado *(SC-013)*. *(El orquestador; `gh release view`,
+  la etiqueta y las sumas, comprobados en el Encargo 12.)*
+- [x] **T054** ✋ **C9 · W2** *(quickstart §W2)*: `scoop update`, `--run` y, en la plataforma, eventos `codex` = las respuestas nuevas del
   contador.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre · C6–C9 *(W2, 2026-10-07: 7 eventos codex = SC-001; sólo lo nuevo, +1 con 2828)*.
 
 ## Dependencias
 
