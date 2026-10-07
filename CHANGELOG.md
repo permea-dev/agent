@@ -3,6 +3,26 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
+## 0.5.0 — PENDIENTE
+
+### Nuevo
+- Lee también el consumo de Codex CLI, de `~/.codex/sessions` (o de `$CODEX_HOME/sessions`), si esa carpeta
+  existe. Cada respuesta del modelo es un evento con `tool = codex`.
+  (`specs/008-lector-codex/spec.md`, FR-001, FR-002, FR-006)
+- Los eventos de Codex llevan sus tokens y su modelo, sin coste: el coste lo calcula la plataforma.
+  (`specs/008-lector-codex/spec.md`, FR-010, FR-011, FR-013)
+
+### Sin cambios
+- Claude Code se lee exactamente como en la 0.4.0. Sin carpeta de Codex, la salida no cambia.
+  (`specs/008-lector-codex/spec.md`, FR-021, FR-023)
+
+### Limitaciones conocidas
+- Sólo se leen las sesiones de Codex 0.153.0 o posterior. Las anteriores se cuentan como «formato anterior»
+  y no se envían.
+  (`specs/008-lector-codex/spec.md`, FR-017; D-2)
+- Los ficheros comprimidos de Codex (`.zst`) no se leen; se cuentan.
+  (`specs/008-lector-codex/spec.md`, FR-018)
+
 ## 0.4.0 — 2026-10-07
 
 ### Cambia

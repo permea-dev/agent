@@ -172,6 +172,14 @@ servidor**, sobre lo que ya llegó.
 - **Windows, PowerShell 5.1**: al redirigir la salida a un fichero (`2>`, `>`), las tildes pueden
   verse mal. Es la codificación de PowerShell, y no afecta a lo que se mide ni a lo que se envía.
 
+### Codex CLI
+
+Si existe `~/.codex/sessions` (o `$CODEX_HOME/sessions`), el agente lee también el consumo de Codex CLI.
+Cada respuesta del modelo es un evento con `tool = codex`, sus tokens y su modelo. El coste no lo calcula
+el agente: los eventos de Codex salen con `cost_available = false`, y el coste lo pone la plataforma
+cuando tenga las tarifas de esos modelos. Hace falta Codex 0.153.0 o posterior; las sesiones anteriores
+se cuentan como «formato anterior» y no se envían. Si la carpeta no existe, no cambia nada.
+
 ## Coste y tarifas
 
 El coste se calcula **en local**, en **USD**, con una tabla empaquetada en el binario

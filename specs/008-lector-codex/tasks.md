@@ -10,8 +10,8 @@
   una detrás de otra.
 - **✋**: la ejecuta **el dueño**: commits, la PR, la fusión, la etiqueta y los ensayos en Windows. Claude no hace git de escritura. El
   mensaje de cada commit va previsto, **sin tildes ni ñ**.
-- **(1)…(36)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
-  llama **M-B1a**, **M-B2a**…**M-B2e**, **M-B3a**, **M-B3b**, **M-B4a**, **M-B5a**…**M-B5c** y **M-B6a**.
+- **(1)…(37)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
+  llama **M-B1a**, **M-B2a**…**M-B2e**, **M-B3a**, **M-B3b**, **M-B4a**, **M-B5a**…**M-B5c**, **M-B6a** y **M-B6b**.
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 - Las transcripciones van a `soporte/registro.md`, que se crea en B1, y en cada tarea queda una remisión.
 
@@ -171,25 +171,29 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
   respuestas → (27/predicado).
 - [x] **T036** Mutaciones y transcripción, con md5.
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 · T035, T036 *(las diez coinciden)* y R-9.
-- [ ] **T037** ✋ Puertas y commit: `008 B5: Codex en run y daemon, antes de guardar el estado`.
+- [x] **T037** ✋ *(`d350165`)* Puertas y commit: `008 B5: Codex en run y daemon, antes de guardar el estado`.
 
 ## B6 · `--scan` *(FR-020, FR-021; SC-013)*
 
-- [ ] **T038** [P] **Rojos (29) y (30)** en `cmd/permea/codex_test.go`:
-  - **(29)**: `--scan` de un fichero de Codex → una línea `evento:` por evento, literal *(spec §Textos aprobados)*, y la línea de resumen;
-  - **(30)**: `--scan` de un fixture de Claude Code → la salida de la 0.4.0. **Nace verde**; lo valida M-B6a.
-- [ ] **T039** **Verde**: `dryRun` lee la primera línea y bifurca *(D-008-P8)*.
-- [ ] **T040** Censo, **antes de mutar**, y mutaciones: **(m21)** `cw5m=`/`cw1h=` en la línea de Codex → (29); **(m22)** sin detección →
-  (29); **M-B6a** todo fichero es Codex → (30).
-- [ ] **T041** ✋ Puertas y commit: `008 B6: scan de una sesion de Codex`.
+- [x] **T038** [P] **Rojos (29) y (30)** en `cmd/permea/codex_test.go`, con los textos leídos de la spec por programa: **(29)** una línea
+  `evento:` aprobada por evento, la línea `codex:` y nada en disco *(`nada_en_disco` nace verde; la valida M-B6b)*; **(30)** Claude Code →
+  byte a byte la referencia del binario anterior *(nace verde; la valida M-B6a)*. **(37)** *(nuevo)*: formato anterior → 0 eventos y la cuenta.
+- [x] **T039** **Verde**: `dryRun` lee la primera línea con el mismo `Scanner` de 1 MiB y bifurca a `dryRunCodex`, con `LeerFicheroCodex`
+  sobre un estado en memoria *(D-008-P8)*.
+- [x] **T040** Censo, **antes de mutar**, y mutaciones: **(m21)** `cw5m=`/`cw1h=` en la línea de Codex → (29/lineas_evento); **(m22)** sin
+  detección → (29/lineas_evento, /resumen) y (37); **M-B6a** todo fichero es Codex → (30) y los cuatro `TestScan_*` de Claude Code;
+  **M-B6b** `dryRunCodex` guarda su estado → (29/nada_en_disco).
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B6 y B7 · T038–T040 *(las cuatro coinciden)*.
+- [ ] **T041** ✋ Puertas y commit: **un solo commit con B7** *(decisión del orquestador, Encargo 9)*, ver T045.
 
 ## B7 · README y CHANGELOG *(FR-023, FR-024; SC-013)*
 
-- [ ] **T042** **Rojo**, transcrito: `grep -c '^## 0.5.0' CHANGELOG.md` → 0; `grep -c '^### Codex CLI' README.md` → 0.
-- [ ] **T043** `README.md`: la sección aprobada, literal, tras la de Claude Code.
-- [ ] **T044** `CHANGELOG.md`: `## 0.5.0 — PENDIENTE` encima de la 0.4.0, con el cuerpo **sacado por programa** de spec §Textos aprobados.
-  Comprobación: `cmp` de los dos cuerpos, sin diferencias. `grep -c PENDIENTE CHANGELOG.md` → 1.
-- [ ] **T045** ✋ Puertas y commit: `008 B7: README y CHANGELOG de la 0.5.0`.
+- [x] **T042** **Rojo**, transcrito: `grep -c '^## 0.5.0' CHANGELOG.md` → 0; `grep -c '^### Codex CLI' README.md` → 0.
+- [x] **T043** `README.md`: la sección aprobada, literal y **sacada por programa**, al final de «Modos de ejecución», tras lo de Claude Code.
+- [x] **T044** `CHANGELOG.md`: `## 0.5.0 — PENDIENTE` encima de la 0.4.0, con el cuerpo **sacado por programa** de spec §Textos aprobados.
+  `cmp` de los dos textos *(README y CHANGELOG)*, sin diferencias. `grep -c PENDIENTE CHANGELOG.md` → 1.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B6 y B7 · T042–T044.
+- [ ] **T045** ✋ Puertas y commit de B6 y B7: `008 B6 y B7: scan de Codex, README y CHANGELOG de la 0.5.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
 
@@ -233,10 +237,10 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | 014 | T019 (20) | | 013 | T031 (26), T038 (29), T044, T048, T053 |
 | 015 | T011 (10) | | 014 | T047 |
 | 016 | T013, T034 (31) | | 015 | T031 (25) |
-| 017 | T019 (17) | | 016 | T031 (24) |
+| 017 | T019 (17), T038 (37) | | 016 | T031 (24) |
 | 018 | T019 (18) | | 017 | T019 (19) |
 | 019 | T031 (26, 27) | | | |
-| 020 | T038 (29) | | | |
+| 020 | T038 (29, 37) | | | |
 | 021 | T031 (23), T038 (30) | | | |
 | 022 | puertas de cada bloque, T046 | | | |
 | 023 | T044, T046 | | | |
@@ -290,11 +294,12 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | m23 | B5 | *(E-2)* la existencia sólo en `setup()` | (32) |
 | m24 | B5 | *(E-2)* el error de Codex aborta la pasada | (33/pasada), (33/segunda_pasada) |
 | m25 | B5 | *(E-2)* el fichero omitido guarda su offset al final | (33/se_relee) |
-| m21 | B6 | `cw5m=`/`cw1h=` en la línea de Codex | (29) |
-| m22 | B6 | sin detección de Codex en `--scan` | (29) |
-| M-B6a | B6 | todo fichero es Codex | (30) |
+| m21 | B6 | `cw5m=`/`cw1h=` en la línea de Codex | (29/lineas_evento) |
+| m22 | B6 | sin detección de Codex en `--scan` | (29/lineas_evento), (29/resumen), (37) |
+| M-B6a | B6 | todo fichero es Codex | (30) y los cuatro `TestScan_*` de Claude Code |
+| M-B6b | B6 | `dryRunCodex` guarda su estado | (29/nada_en_disco) |
 
-**40 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**41 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 

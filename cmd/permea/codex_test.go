@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -331,4 +333,96 @@ func TestCodexGenerate_FicheroIlegibleNoRompe(t *testing.T) {
 			t.Errorf("con el fichero ya legible: %d eventos codex; se esperaban 3 (1 + sus 2, porque su offset no avanzó)", n)
 		}
 	})
+}
+
+// ═══ P-008 B6 · `--scan` DE UNA SESIÓN DE CODEX ════════════════════════════════════════════════════
+//
+// Los textos aprobados se leen de `spec.md` §Textos aprobados POR PROGRAMA: el test no los teclea.
+
+// textoAprobado devuelve la línea del bloque de código que sigue al título dado en spec §Textos aprobados.
+func textoAprobado(t *testing.T, titulo string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "..", "specs", "008-lector-codex", "spec.md"))
+	if err != nil {
+		t.Fatalf("precondición: leer la spec: %v", err)
+	}
+	s := string(b)
+	i := strings.Index(s, titulo)
+	if i < 0 {
+		t.Fatalf("precondición: la spec no tiene %q", titulo)
+	}
+	resto := s[i:]
+	a := strings.Index(resto, "```\n") + len("```\n")
+	return resto[a : a+strings.Index(resto[a:], "\n")]
+}
+
+// patronDe convierte un formato de Printf en una expresión regular que lo reconoce entero.
+func patronDe(formato string) *regexp.Regexp {
+	p := regexp.QuoteMeta(formato)
+	for verbo, grupo := range map[string]string{`%s`: `(\S+)`, `%d`: `(-?\d+)`, `%\.4f`: `(-?[0-9]+\.[0-9]{4})`, `%t`: `(true|false)`} {
+		p = strings.ReplaceAll(p, verbo, grupo)
+	}
+	return regexp.MustCompile("^" + p + "$")
+}
+
+// (29) · FR-020, SC-013: una línea `evento:` aprobada por evento, la línea `codex:` de resumen, y nada en disco.
+func TestCodexScan_EventosYResumen(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	fichero := filepath.Join(t.TempDir(), "rollout-a.jsonl")
+	escribir(t, fichero, fixtureB5(t, "sesion.jsonl"))
+	codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", fichero)
+	if codigo != 0 {
+		t.Fatalf("código %d; stderr:\n%s", codigo, stderr)
+	}
+	t.Run("lineas_evento", func(t *testing.T) {
+		patron := patronDe(textoAprobado(t, "**Línea de `--scan` para Codex**"))
+		lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+		if len(lineas) != 2 {
+			t.Fatalf("%d líneas en stdout; se esperaban 2:\n%s", len(lineas), stdout)
+		}
+		for _, l := range lineas {
+			m := patron.FindStringSubmatch(l)
+			if m == nil {
+				t.Fatalf("la línea no es la aprobada:\n%s\npatrón %s", l, patron)
+			}
+			if got := strings.Join(m[1:9], " "); got != "codex modelo-sintetico 60 10 0 40 0.0000 false" {
+				t.Errorf("tool, modelo, in, out, cw, cr, cost y cost_avail = %q; se esperaba codex modelo-sintetico 60 10 0 40 0.0000 false", got)
+			}
+		}
+	})
+	t.Run("resumen", func(t *testing.T) {
+		if want := fmt.Sprintf(textoAprobado(t, "**Resumen de Codex**"), 2, 2, 0, 0, 0, 0, 0, 0); !strings.Contains(stderr, want+"\n") {
+			t.Errorf("stderr no lleva la línea aprobada %q:\n%s", want, stderr)
+		}
+	})
+	t.Run("nada_en_disco", func(t *testing.T) {
+		for _, f := range []string{"state.json", "queue.jsonl"} {
+			if _, err := os.Stat(filepath.Join(dataDir, f)); !os.IsNotExist(err) {
+				t.Errorf("--scan dejó %s en el directorio de datos (err %v)", f, err)
+			}
+		}
+	})
+}
+
+// (30) · FR-021: `--scan` de un fichero de Claude Code da la salida de la 0.4.0, byte a byte (referencia generada con el
+// binario anterior, T038). Nace verde; lo valida M-B6a.
+func TestCodexScan_ClaudeCodeComoLa040(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", filepath.Join("testdata", "codex", "claude.jsonl"))
+	if codigo != 0 || stdout != string(fixtureB5(t, "referencia-scan-claude.stdout")) ||
+		stderr != string(fixtureB5(t, "referencia-scan-claude.stderr")) {
+		t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nno es la salida de la 0.4.0", codigo, stdout, stderr)
+	}
+}
+
+// (37) · FR-017, FR-020 (Encargo 9): `--scan` de una sesión en formato anterior no da eventos y la cuenta en el resumen.
+func TestCodexScan_FormatoAnterior(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	fichero := filepath.Join(t.TempDir(), "rollout-anterior.jsonl")
+	escribir(t, fichero, fixtureB5(t, "anterior.jsonl"))
+	codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", fichero)
+	want := fmt.Sprintf(textoAprobado(t, "**Resumen de Codex**"), 0, 0, 0, 0, 0, 0, 1, 0)
+	if codigo != 0 || stdout != "" || !strings.Contains(stderr, want+"\n") {
+		t.Errorf("código %d; stdout %q; stderr:\n%s\nse esperaban 0 eventos y %q", codigo, stdout, stderr, want)
+	}
 }

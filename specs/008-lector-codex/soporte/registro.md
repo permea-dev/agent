@@ -586,3 +586,89 @@ Si la lectura de un fichero de Codex falla **a mitad**, y no al abrirlo:
 
 El estado de ese fichero no avanza, así que se releen en la pasada siguiente. La línea `codex:` de esa pasada cuenta de más. Va a
 `plan.md` §Riesgos como **R-9**.
+
+## B6 y B7 · `--scan`, README y CHANGELOG *(un solo commit: decisión del orquestador, Encargo 9; B7 son sólo textos aprobados)*
+
+### T038 · Antes de tocar `dryRun`: la referencia de (30)
+
+El binario de `HEAD` *(`d350165`)* corrió `--scan` sobre `cmd/permea/testdata/codex/claude.jsonl`, en `env -i` con hogar temporal y sin
+escribir nada en él. Salida: `referencia-scan-claude.stdout` *(md5 **`d7c4ec34cfdda7840f1c04ac85574376`**)* y `referencia-scan-claude.stderr`
+*(**`a801c6a071fa180029e7fcc886f75355`**)*.
+
+### T038 · Rojos, en `cmd/permea/codex_test.go`
+
+Los formatos aprobados se leen de `spec.md` §Textos aprobados **por programa** *(`textoAprobado`, `patronDe`)*: el test no los teclea.
+
+```
+--- FAIL: TestCodexScan_EventosYResumen/lineas_evento    (29) 1 líneas en stdout; se esperaban 2 (stdout vacío: hoy la sesión pasa por el camino de Claude Code)
+--- FAIL: TestCodexScan_EventosYResumen/resumen          (29) stderr no lleva la línea aprobada "codex: respuestas 2 · eventos 2 · …"
+--- PASS: TestCodexScan_EventosYResumen/nada_en_disco    (29) nace verde; la valida M-B6b
+--- PASS: TestCodexScan_ClaudeCodeComoLa040              (30) nace verde; la valida M-B6a
+--- FAIL: TestCodexScan_FormatoAnterior                  (37, nuevo) código 0; stdout ""; stderr sin «ficheros en formato anterior 1»
+```
+
+**(37)** es nuevo *(Encargo 9)*: `--scan` de una sesión en formato anterior, con el fixture `anterior.jsonl`.
+
+### T039 · Verde
+
+- **`dryRun`**: llama antes a `esSesionCodex`. Esta lee la primera línea **con el mismo `Scanner` de 1 MiB** y el mismo error si se pasa; si es
+  `session_meta`, sigue por `dryRunCodex` *(nuevas las dos)*.
+- **`dryRunCodex`**: `LeerFicheroCodex` sobre `state.New()`, un estado sólo en memoria que **nunca se guarda**. Imprime la línea `evento:`
+  aprobada, «N eventos generados (dry-run, nada transmitido)» y la línea `codex:`.
+- **`main.go`** importa `encoding/json`.
+- **Resultado**: los cinco tests y hojas, en PASS; `0 issues`; suite verde.
+
+**La salida literal sobre `cmd/permea/testdata/codex/sesion.jsonl`** *(binario de la rama, hogar temporal)*:
+```
+Permea 0.0.1-dev
+evento: tool=codex model=modelo-sintetico in=60 out=10 cw=0 cr=40 cost=$0.0000 cost_avail=false project_ref=b6b7efa8… event_id=cb0457c5f1897e1408679f6a3194375e
+evento: tool=codex model=modelo-sintetico in=60 out=10 cw=0 cr=40 cost=$0.0000 cost_avail=false project_ref=b6b7efa8… event_id=7d0a8c7b06895d3ffbe79b5061be5021
+2 eventos generados (dry-run, nada transmitido)
+codex: respuestas 2 · eventos 2 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · ficheros en formato anterior 0 · ficheros comprimidos 0
+```
+
+**Líneas de más de 1 MiB** *(medido, sin cambiar nada)*:
+- **Claude Code**: `error: bufio.Scanner: token too long`, como hoy.
+- **Codex**:
+  - si la de más de 1 MiB es la **primera** línea, el mismo error, porque `esSesionCodex` usa el mismo `Scanner`;
+  - si está **a mitad**, se lee sin error, porque `LeerFicheroCodex` no tiene tope, como en `--run`.
+
+### T040 · Censo declarado ANTES de mutar *(2026-10-07)*
+
+**Ajustes respecto a `tasks.md`, declarados aquí antes de mutar**:
+- **m22** tumba también `resumen` y (37).
+- **M-B6a** tumba, además de (30), **los cuatro tests de `--scan` de Claude Code** de 006 y 007. `TestScan_LineaConCuatroPartidasYEventID` cae
+  en su precondición, antes de sus dos hojas.
+- **Nueva**: **M-B6b**, que valida `nada_en_disco`, nacida verde.
+
+| # | Mutación *(en `cmd/permea/main.go`)* | Debe caer *(hojas)* |
+|---|---|---|
+| m21 | la línea de Codex lleva `cw5m=0 cw1h=0` | `TestCodexScan_EventosYResumen/lineas_evento` |
+| m22 | sin detección *(`esSesionCodex` devuelve siempre `false`)* | `TestCodexScan_EventosYResumen/lineas_evento`, `/resumen`, `TestCodexScan_FormatoAnterior` |
+| M-B6a | todo fichero es Codex *(devuelve siempre `true`)* | `TestCodexScan_ClaudeCodeComoLa040`, `TestScan_UnEventoPorMensaje`, `TestScan_LineaConCuatroPartidasYEventID` *(precondición)*, `TestScan_LineaConDesgloseDeLaEscritura`, `TestScan_LaSalidaQueCreceValeSuMaximo` |
+| M-B6b | `dryRunCodex` guarda su estado en el directorio de datos | `TestCodexScan_EventosYResumen/nada_en_disco` |
+
+`TestRetirada_LasExcepcionesDeD0045` también lanza `--scan`, pero sólo mira el código de salida. **No debe caer.**
+
+**Resultado: las cuatro coinciden**, y ninguna panicó. Se miró el resultado antes de revertir. El md5 de `cmd/permea/main.go` volvió a
+**`265363f236397fa45d31d4c727d1748e`** tras cada una. `TestRetirada_LasExcepcionesDeD0045` siguió verde con M-B6a.
+- **m21**: `…/lineas_evento`.
+- **m22**: `…/lineas_evento`, `…/resumen`, `TestCodexScan_FormatoAnterior`.
+- **M-B6a**: `TestCodexScan_ClaudeCodeComoLa040`, `TestScan_LineaConDesgloseDeLaEscritura`, `TestScan_LaSalidaQueCreceValeSuMaximo`,
+  `TestScan_UnEventoPorMensaje`, `TestScan_LineaConCuatroPartidasYEventID` *(en su precondición, sin hojas)*.
+- **M-B6b**: `…/nada_en_disco`.
+
+### T042–T044 · README y CHANGELOG
+
+**Rojo**, por `grep`: `^## 0.5.0` en `CHANGELOG.md` → 0; `^### Codex CLI` en `README.md` → 0.
+
+**Cómo se insertaron**: los dos bloques **se sacaron por programa** de `spec.md` §Textos aprobados *(«**README**» y «**CHANGELOG `0.5.0`**»)*:
+- `### Codex CLI` va al final de «Modos de ejecución», antes de «Coste y tarifas». El README no tiene una sección propia de Claude Code, y
+  ésa es la que lo describe;
+- `## 0.5.0 — PENDIENTE` va encima de la 0.4.0.
+
+```
+$ cmp <«### Codex CLI» de README.md> <bloque README de la spec>          → sin diferencias (7 líneas)
+$ cmp <«## 0.5.0 — PENDIENTE» de CHANGELOG.md> <bloque de la spec>       → sin diferencias (19 líneas)
+$ grep -c PENDIENTE CHANGELOG.md                                          → 1
+```
