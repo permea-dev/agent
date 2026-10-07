@@ -1,0 +1,2 @@
+{"timestamp":"2026-10-07T00:00:00.000Z","type":"session_meta","payload":{"id":"s-sintetica-raiz","session_id":"s-sintetica-raiz","cli_version":"0.160.1","source":"exec","cwd":"/tmp/sesion-cortada"}}
+{"timestamp":"2026-10-07T00:00:00.000Z","type":"turn_context","payload":{"turn_id":"t-1","model":"modelo-a","cwd":"/tmp/turno-a"}}

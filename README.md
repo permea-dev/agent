@@ -1,9 +1,9 @@
 # Permea — medidor de coste de IA (local-first, multi-herramienta)
 
-Agente local que lee los logs de uso de herramientas de IA, calcula coste **en local**
-y transmite al backend de equipo **únicamente metadato derivado** — nunca contenido.
-Funciona sin conexión: los eventos pendientes se persisten y se transmiten **exactamente
-una vez** al recuperarse la red.
+Agente local que lee los logs de uso de herramientas de IA (Claude Code y Codex CLI), calcula
+**en local** el coste de Claude Code y transmite al backend de equipo **únicamente metadato
+derivado** — nunca contenido. Funciona sin conexión: los eventos pendientes se persisten y se
+transmiten **exactamente una vez** al recuperarse la red.
 
 ## Garantía de frontera
 `internal/event/event.go` define un struct CERRADO: el único dato que puede salir de
@@ -68,8 +68,8 @@ Los mismos tres pasos que muestra `permea help`:
 
 **3. Medir y enviar.**
 
-> ⚠️ **La primera pasada envía todo el historial que conserve Claude Code**, no sólo lo que uses a
-> partir de ahora. Las siguientes envían sólo lo nuevo.
+> ⚠️ **La primera pasada envía todo el historial que conserven Claude Code y Codex CLI**, no sólo lo
+> que uses a partir de ahora. Las siguientes envían sólo lo nuevo.
 
     permea --run       # mide y envía una vez
     permea --daemon    # o lo deja en marcha: mide y envía cada cierto tiempo
@@ -139,7 +139,7 @@ servidor**, sobre lo que ya llegó.
 
 ## Modos de ejecución
 
-    permea --scan <fichero.jsonl>   # prueba en seco: un evento por mensaje, sin tocar estado ni cola
+    permea --scan <fichero.jsonl>   # prueba en seco: un evento por mensaje (por respuesta, en Codex), sin tocar estado ni cola
     permea --run                    # una pasada: escanea, encola y drena al backend
     permea --daemon                 # bucle continuo: cada sync_interval genera y transmite
 
@@ -154,14 +154,16 @@ servidor**, sobre lo que ya llegó.
   siguiente.
 - **Al final de cada pasada, dos líneas por stderr con sólo recuentos**: lo leído y lo emitido; y los
   mensajes que crecieron entre líneas, los que esperan a cerrarse, las líneas releídas, las tardías y
-  las que no traen el desglose de la caché.
+  las que no traen el desglose de la caché. Con Codex activo, una tercera línea, `codex: …`, con sus
+  recuentos.
 - **`--scan`** imprime por evento las cuatro partidas de tokens (`in=`, `out=`, `cw=`, `cr=`), el
   desglose de la escritura de caché por duración (`cw5m=`, `cw1h=`), el coste y el `event_id`. Como
-  lee un fichero completo, cierra todos sus mensajes al final.
-- **`--run`** hace una pasada: descubre los logs de Claude Code, lee lo nuevo por offset, encola de
-  forma durable en `queue.jsonl` lo que está cerrado y, si hay `endpoint` configurado, drena la cola
-  por HTTPS autenticado. Lo que sigue abierto se queda para la pasada siguiente, y lo avisa: «N
-  mensajes siguen abiertos: se enviarán en la próxima pasada».
+  lee un fichero completo, cierra todos sus mensajes al final. En una sesión de Codex la línea no lleva
+  `cw5m=` ni `cw1h=`, y el coste es 0.
+- **`--run`** hace una pasada: descubre los logs de Claude Code y las sesiones de Codex, lee lo nuevo
+  por offset, encola de forma durable en `queue.jsonl` lo que está cerrado y, si hay `endpoint`
+  configurado, drena la cola por HTTPS autenticado. Lo que sigue abierto se queda para la pasada
+  siguiente, y lo avisa: «N mensajes siguen abiertos: se enviarán en la próxima pasada».
 - **`--daemon`** repite lo anterior cada `sync_interval`; un mensaje en espera se cierra a su hora
   aunque su fichero no crezca, y el resumen sólo se escribe en los ciclos con novedades. Errores de
   red/5xx se reintentan con backoff acotado (máx. 5 reintentos, tope 5 min) y el lote permanece en
@@ -172,9 +174,17 @@ servidor**, sobre lo que ya llegó.
 - **Windows, PowerShell 5.1**: al redirigir la salida a un fichero (`2>`, `>`), las tildes pueden
   verse mal. Es la codificación de PowerShell, y no afecta a lo que se mide ni a lo que se envía.
 
+### Codex CLI
+
+Si existe `~/.codex/sessions` (o `$CODEX_HOME/sessions`), el agente lee también el consumo de Codex CLI.
+Cada respuesta del modelo es un evento con `tool = codex`, sus tokens y su modelo. El coste no lo calcula
+el agente: los eventos de Codex salen con `cost_available = false`, y el coste lo pone la plataforma
+cuando tenga las tarifas de esos modelos. Hace falta Codex 0.153.0 o posterior; las sesiones anteriores
+se cuentan como «formato anterior» y no se envían. Si la carpeta no existe, no cambia nada.
+
 ## Coste y tarifas
 
-El coste se calcula **en local**, en **USD**, con una tabla empaquetada en el binario
+El coste de Claude Code se calcula **en local**, en **USD**, con una tabla empaquetada en el binario
 (`internal/pricing`): **17 modelos con cinco cifras** cada uno —entrada, salida, escritura de caché a
 5 minutos, escritura de caché a 1 hora y lectura de caché—, espejo exacto del catálogo de tarifas de
 la plataforma (`permea-dev/permea-platform` · `backend/config/pricing.php` · `8f147d1`).
@@ -188,6 +198,7 @@ la plataforma (`permea-dev/permea-platform` · `backend/config/pricing.php` · `
   tarifa entera a **1 hora**. Es la misma hipótesis que declara el catálogo de la plataforma.
 - **Limitación 2**: el **«modo rápido»** no se distingue; un evento en modo rápido quedaría
   infravalorado.
+- **Codex**: el agente no calcula su coste; lo pone la plataforma (ver «Codex CLI»).
 
 ## Configuración y rutas por SO
 
@@ -229,7 +240,7 @@ La versión del binario (`agent_version` en el evento) se inyecta con
 ### Estructura
     cmd/permea        punto de entrada (subcomandos enroll/status/project join + modos scan/run/daemon)
     internal/event    LA FRONTERA (struct cerrado del evento)
-    internal/ingest   lectores por herramienta (claude_code) + tests de frontera
+    internal/ingest   lectores por herramienta (claude_code, codex) + tests de frontera
     internal/pricing  cálculo de coste local (tabla empaquetada)
     internal/state    escaneo incremental idempotente
     internal/transport cliente HTTPS + cola offline + entrega exactamente-una-vez

@@ -59,6 +59,8 @@ func Sandbox(t *testing.T) string {
 	t.Setenv("HOME", hogar)
 	t.Setenv("USERPROFILE", hogar)
 	t.Setenv("XDG_CONFIG_HOME", configuracion)
+	// P-008 M-9: sin esto, un test de proceso heredaría el CODEX_HOME del desarrollador y leería sus sesiones reales.
+	t.Setenv("CODEX_HOME", "")
 
 	base, err := os.UserConfigDir()
 	if err != nil {

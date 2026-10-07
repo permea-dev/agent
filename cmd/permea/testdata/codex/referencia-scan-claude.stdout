@@ -1,0 +1,2 @@
+evento: tool=claude_code model=claude-opus-5-5 in=10 out=5 cw=0 cw5m=0 cw1h=0 cr=0 cost=$0.0001 cost_avail=true project_ref=e61bf777… event_id=4252765525c0591f0e86a3b4733c2ac7
+evento: tool=claude_code model=claude-opus-5-5 in=10 out=7 cw=0 cw5m=0 cw1h=0 cr=0 cost=$0.0002 cost_avail=true project_ref=e61bf777… event_id=faddd60d8a75407e7d94ad1c3bb95d48

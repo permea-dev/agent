@@ -10,6 +10,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -170,6 +171,12 @@ type agent struct {
 	// reloj da la hora contra la que se cierran los mensajes por espera (P-007 FR-010). Nil es time.Now; los
 	// tests lo fijan por código, nunca por entorno ni por bandera.
 	reloj func() time.Time
+	// codexRaiz es la RUTA de las sesiones de Codex (P-008 FR-001), resuelta una vez en `setup()`. Si existe se
+	// mira en cada pasada (FR-002, E-2). Vacía —un `agent` construido a mano en un test— significa que no se lee
+	// Codex (plan D-008-P5).
+	codexRaiz string
+	// codex son los recuentos de Codex de la última pasada; nil si el lector no estuvo activo (plan D-008-P4).
+	codex *ingest.PasadaCodex
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -208,10 +215,16 @@ func setup() (*agent, error) {
 	if err != nil {
 		return nil, err
 	}
+	// P-008 FR-001, FR-002: sin directorio personal no hay raíz de Codex, y el lector queda inactivo sin error.
+	codexRaiz, err := config.CodexSessionsRoot()
+	if err != nil {
+		codexRaiz = ""
+	}
 	return &agent{
-		dir:  dir,
-		cfg:  cfg,
-		ictx: newIngestContext(version, cfg, salt, machineID),
+		dir:       dir,
+		cfg:       cfg,
+		ictx:      newIngestContext(version, cfg, salt, machineID),
+		codexRaiz: codexRaiz,
 	}, nil
 }
 
@@ -314,10 +327,57 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
+	// P-008: Codex, tras Claude Code y ANTES del único `st.Save` (FR-025, plan D-008-P6). La ruta se resolvió en
+	// `setup()`; si existe se mira en CADA pasada, porque el demonio vive días y Codex puede instalarse después (FR-002, E-2).
+	a.codex = nil
+	if a.codexRaiz != "" {
+		if info, err := os.Stat(a.codexRaiz); err == nil && info.IsDir() {
+			n, err := a.generarCodex(st, ictx)
+			total += n
+			if err != nil {
+				return total, pasada, err
+			}
+		}
+	}
+
 	if err := st.Save(statePath); err != nil {
 		return total, pasada, err
 	}
 	return total, pasada, nil
+}
+
+// generarCodex lee la raíz de Codex y ENCOLA sus eventos (P-008 B5). Los errores son POR FICHERO (FR-028, plan
+// D-008-P11): un fichero que no se puede leer se omite con un aviso, su estado queda como estaba —la pasada siguiente lo
+// relee— y se sigue con el siguiente, sin impedir guardar el estado de los demás. Encolar sigue siendo fatal, como hoy.
+func (a *agent) generarCodex(st *state.Store, ictx ingest.Context) (int, error) {
+	pc := ingest.NuevaPasadaCodex()
+	a.codex = pc
+	sesiones, comprimidos, err := ingest.ListarCodex(a.codexRaiz)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "codex: fichero omitido: %v\n", err)
+		return 0, nil
+	}
+	base := ingest.ContextoCodex{Context: ictx}
+	total := 0
+	for _, ruta := range sesiones {
+		evs, err := ingest.LeerFicheroCodex(st, ruta, base, pc, os.Stderr) // FR-029: el aviso de línea corrupta, a stderr
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "codex: fichero omitido: %v\n", err)
+			continue
+		}
+		for _, ev := range evs {
+			if err := transport.Append(a.dir, ev); err != nil {
+				return total, err
+			}
+			total++
+		}
+	}
+	for _, ruta := range comprimidos {
+		if err := ingest.ContarComprimido(st, ruta, pc); err != nil {
+			fmt.Fprintf(os.Stderr, "codex: fichero omitido: %v\n", err)
+		}
+	}
+	return total, nil
 }
 
 // sync drena la cola pendiente hacia el backend por HTTPS (US2, T030). Sin endpoint
@@ -347,6 +407,9 @@ func runOnce() error {
 	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
 	if aviso := pasada.AvisoDeAbiertos(); aviso != "" {
 		fmt.Fprintln(os.Stderr, aviso) // P-007 FR-014: lo abierto sale en la próxima pasada
+	}
+	if a.codex != nil {
+		fmt.Fprintln(os.Stderr, a.codex.Resumen()) // P-008 FR-019: con el lector activo en esta pasada
 	}
 
 	if a.cfg.Endpoint == "" {
@@ -408,6 +471,9 @@ func (a *agent) tick() error {
 		if pasada.HayNovedades() {
 			fmt.Fprintln(os.Stderr, pasada.Resumen())
 		}
+		if a.codex != nil && a.codex.HayNovedades() {
+			fmt.Fprintln(os.Stderr, a.codex.Resumen()) // P-008 FR-019: sólo con novedades
+		}
 	}
 
 	if a.cfg.Endpoint == "" {
@@ -436,6 +502,14 @@ func (a *agent) tick() error {
 // imprimirlo en local no revela nada que no salga ya por la frontera. Los identificadores del
 // proveedor NUNCA se imprimen.
 func dryRun(path string) error {
+	// P-008 FR-020, P-8: una sesión de Codex se reconoce por su primera línea y se lee como Codex.
+	codex, err := esSesionCodex(path)
+	if err != nil {
+		return err
+	}
+	if codex {
+		return dryRunCodex(path)
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -480,5 +554,52 @@ func dryRun(path string) error {
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", n)
 	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
+	return nil
+}
+
+// esSesionCodex dice si la primera línea del fichero es un `session_meta` de Codex (P-008 P-8): Claude Code no escribe
+// ninguno. Se lee con el mismo tope de 1 MiB que el `--scan` de Claude Code, y con el mismo error si se pasa (R-2).
+func esSesionCodex(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = f.Close() }() // solo lectura
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
+	if !sc.Scan() {
+		return false, sc.Err()
+	}
+	var primera struct {
+		Type string `json:"type"`
+	}
+	if json.Unmarshal(sc.Bytes(), &primera) != nil {
+		return false, nil // no es JSON: lo trata el camino de Claude Code, como hoy
+	}
+	return primera.Type == "session_meta", nil
+}
+
+// dryRunCodex imprime los eventos de una sesión de Codex sin tocar estado ni cola (P-008 FR-020). Aplica las MISMAS
+// reglas que la emisión (`LeerFicheroCodex`), sobre un estado sólo en memoria que nunca se guarda. La línea `evento:` es
+// la aprobada (§Textos aprobados): la de Claude Code sin `cw5m=` ni `cw1h=`, que en Codex no existen.
+func dryRunCodex(path string) error {
+	pc := ingest.NuevaPasadaCodex()
+	ctx := ingest.ContextoCodex{Context: ingest.Context{Salt: "dry-run-salt", MachineID: "local", DevID: "dev-local",
+		OrgID: "org-local", AgentVersion: version}}
+	evs, err := ingest.LeerFicheroCodex(state.New(), path, ctx, pc, os.Stderr)
+	if err != nil {
+		return err
+	}
+	for _, ev := range evs {
+		ref := ev.ProjectRef
+		if len(ref) > 8 {
+			ref = ref[:8] + "…"
+		}
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
+			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
+	}
+	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", len(evs))
+	fmt.Fprintln(os.Stderr, pc.Resumen()) // P-008 FR-020: el resumen de Codex
 	return nil
 }
