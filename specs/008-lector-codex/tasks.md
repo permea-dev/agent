@@ -10,8 +10,8 @@
   una detrás de otra.
 - **✋**: la ejecuta **el dueño**: commits, la PR, la fusión, la etiqueta y los ensayos en Windows. Claude no hace git de escritura. El
   mensaje de cada commit va previsto, **sin tildes ni ñ**.
-- **(1)…(34)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
-  llama **M-B1a**, **M-B2a**, **M-B2b**, **M-B5a** y **M-B6a**.
+- **(1)…(35)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
+  llama **M-B1a**, **M-B2a**…**M-B2e**, **M-B3a**, **M-B3b**, **M-B5a** y **M-B6a**.
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 - Las transcripciones van a `soporte/registro.md`, que se crea en B1, y en cada tarea queda una remisión.
 
@@ -89,45 +89,39 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
   **(m6)** el incoherente se emite *(declarada sin pánico: «sin `usage`» se toma a cero)* → (6) ×3; **(m7)** `session_ref` del `thread_id`
   → (10); **(m8)** `occurred_at` = ahora → (9); **M-B2a** `session_ref` sin sal → (10) y T013; **M-B2b** sin la guarda del tipo → (4/otra_linea).
 - [x] **T015** Mutaciones y transcripción, con md5.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T014 y T015 *(las siete coinciden)*.
-- [ ] **T016** ✋ Puertas y commit: `008 B2: una linea de Codex es un evento sin coste`.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T014 y T015 *(las siete coinciden)*, y §Remate de B2 *(E-4: cuatro
+  > hojas en (6), la partida ausente, M-B2c, M-B2d y M-B2e)*.
+- [x] **T016** ✋ *(`ed97b2e`)* Puertas y commit: `008 B2: una linea de Codex es un evento sin coste`.
 
 ## B3 · Contexto y estado *(FR-004, FR-005, FR-008, FR-011, FR-014, FR-017, FR-018, FR-027, FR-029; SC-005, SC-007, SC-009, SC-010, SC-017)*
 
-- [ ] **T017** Fase 0: en `internal/ingest/codex_contexto.go` *(nuevo)*, `PasadaCodex` con los ocho recuentos y `Resumen()` *(texto
-  aprobado)*; `LeerFicheroCodex(st *state.Store, ruta string, …)`, que usa `Recorrer` con `fijar` = lo leído y aún no emite; y
-  `ContarComprimido(st, ruta)`. Compila, y la suite sigue verde.
-- [ ] **T018** Fixtures sintéticos: dos turnos con modelos distintos; `thread_settings_applied` cambiando de modelo **dentro** de un turno
-  *(para m9)*; una compactación sin `turn_context`; un fichero sin ningún modelo; un formato anterior *(sólo `token_count`)* y uno mixto;
-  una reanudación cortada en dos mitades; dos ficheros con el mismo registro *(bifurcación)*; una línea corrupta; un `.zst` cualquiera.
-- [ ] **T019** [P] **Rojos (11) a (20)** en `internal/ingest/codex_contexto_test.go` *(nuevo)*:
-  - **(11)**: modelo del `turn_context` del turno, no el vigente;
-  - **(12)**: la compactación lleva el vigente;
-  - **(13)**: sin modelo → `model` vacío y «sin modelo» = 1;
-  - **(14)**, SC-010: dos pasadas cortadas tras el `turn_context` dan el mismo modelo, `project_ref` y `session_ref` que una;
-  - **(15)**, SC-005: la reanudación en dos pasadas da 1 + 3 eventos, sin repetir;
-  - **(16)**, SC-007: un evento y «repetidas» = 1;
-  - **(17)**, FR-017: el formato anterior da 0 eventos y 1 fichero; el mixto da sus eventos y 0 ficheros; sin consumo, 0 y 0;
-  - **(18)**, FR-018: el `.zst` cuenta 1 en la primera pasada, 0 en la segunda y 1 si cambia su tamaño;
-  - **(19)**, SC-017: `respuestas 5 · eventos 2 · repetidas 1 · sin identificador 1 · incoherentes 1 · sin modelo 1`, y la identidad de
-    FR-027;
-  - **(20)**, FR-014: el `cwd` del turno, y si falta, el de `session_meta`.
-- [ ] **T055** *(E-2)* **Rojo (34)**, FR-029, en `codex_contexto_test.go`, con el aviso hacia un `io.Writer` inyectado: una línea que pasa
-  el filtro y no decodifica, en la parte nueva, da **un** aviso `skip (línea corrupta): …`, no cuenta en «respuestas», y el registro
-  siguiente sale. En la pasada siguiente, con la línea ya en el prefijo, **ningún** aviso.
-- [ ] **T020** **Verde**: el prefijo con el filtro de bytes *(D-008-P1)*; el modelo de FR-011 y el `cwd` de FR-014; el formato de FR-017,
-  sobre el fichero entero; la clasificación de D-008-P9, con el conjunto de `event_id` de la pasada; el `.zst` como entrada de `state.json`
-  *(D-008-P2)*; y la línea corrupta de FR-029, con su aviso sólo en la parte nueva *(D-008-P11)*. `state.json` sigue con cuatro campos.
-- [ ] **T021** Censo, **antes de mutar**, por hoja:
-  - **(m9)** siempre el vigente → (11);
-  - **(m10)** sin prefijo → (14) y (15, segunda pasada);
-  - **(m11)** sin repetidas → (16) y (19);
-  - **(m12)** el `.zst` en cada pasada → (18, segunda);
-  - **(m13)** formato anterior por «hay `token_count`» → (17, mixto);
-  - **(m14)** `cwd` siempre de `session_meta` → (20);
-  - **(m26)** *(E-2)* la línea corrupta corta el fichero → (34);
-  - **(m27)** *(E-2)* el aviso también en el prefijo → (34/segunda pasada).
-- [ ] **T022** Mutaciones y transcripción, con md5.
+- [x] **T017** Fase 0: en `internal/ingest/codex_contexto.go` *(nuevo)*, `PasadaCodex` con los ocho recuentos y `Resumen()` *(texto
+  aprobado)*; `LeerFicheroCodex(st, ruta, base, p, avisos io.Writer)`, que usa `Recorrer` con `fijar` = lo leído y aún no emite; y
+  `ContarComprimido(st, ruta, p)`. Compila, y la suite sigue verde.
+- [x] **T018** Fixtures sintéticos *(21, en `testdata/codex/contexto/`)*: dos turnos; un ajuste de modelo **dentro** de un turno *(para m9)*;
+  una compactación; sin modelo; formato anterior, mixto y sin consumo; una reanudación y un corte en dos mitades; una bifurcación; la
+  cuenta de SC-017; `cwd` y sin `cwd`; una línea corrupta; un fichero largo y su versión truncada; un `.zst`.
+- [x] **T019** [P] **Rojos (11) a (20)** en `internal/ingest/codex_contexto_test.go` *(nuevo)*: **(11)** el modelo del turno, no el vigente;
+  **(12)** la compactación, el vigente; **(13)** sin modelo, vacío y contado; **(14)** SC-010, dos pasadas = una; **(15)** SC-005, la
+  reanudación en dos pasadas da 1 + 3, iguales a una; **(16)** SC-007, un evento y una repetida; **(17)** FR-017, anterior, mixto y sin
+  consumo *(nace verde; la valida M-B3b)*; **(18)** FR-018, el `.zst` cuenta 1, 0 y 1 *(la segunda nace verde; la valida m12)*; **(19)**
+  SC-017, el resumen literal y la identidad de FR-027; **(20)** FR-014, el `cwd` del turno, el de `session_meta` y, *(E-4)*, sin `cwd` →
+  `project_ref` vacío. **(35)** *(Encargo 6, nuevo)*: un fichero truncado se relee sin prefijo.
+- [x] **T055** *(E-2)* **Rojo (34)**, FR-029, en `codex_contexto_test.go`, con el aviso hacia un `io.Writer` inyectado: una línea corrupta en
+  la parte nueva da **un** aviso `skip (línea corrupta): …`, no cuenta en «respuestas», y el registro siguiente sale. En la pasada
+  siguiente, con la línea ya en el prefijo, **ningún** aviso.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 · T019, T055 y (35).
+- [x] **T020** **Verde**: el prefijo con el filtro de bytes *(D-008-P1)*, y el contexto también con la parte nueva; el modelo de FR-011 y el
+  `cwd` de FR-014; el formato de FR-017, sobre el fichero entero; la clasificación de D-008-P9, con el conjunto de `event_id` de la pasada;
+  el `.zst` como entrada de `state.json` *(D-008-P2)*; y la línea corrupta de FR-029, con su aviso sólo en la parte nueva *(D-008-P11)*.
+  `state.json` sigue con cuatro campos. Medida informativa de SC-014: ~0,25 s.
+- [x] **T021** Censo, **antes de mutar**, por hoja: **(m9)** siempre el vigente → (11/ajuste); **(m10)** sin prefijo → (14) y (15/segunda);
+  **(m11)** sin repetidas → (16) y (19); **(m12)** el `.zst` en cada pasada → (18/segunda); **(m13)** formato anterior por «hay
+  `token_count`» → (17/mixto); **(m14)** `cwd` siempre de `session_meta` → (20/del_turno); **(m26)** la línea corrupta corta el fichero →
+  (34) ×2; **(m27)** el aviso también en el prefijo → (34/segunda); **M-B3a** el truncado lee prefijo → (35); **M-B3b** sin registros =
+  formato anterior → (17/sin_consumo).
+- [x] **T022** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 · T020, T021, T022 *(las diez coinciden)*, la medida de SC-014 y FR-029.
 - [ ] **T023** ✋ Puertas y commit: `008 B3: contexto entre pasadas, formato y recuentos de Codex`.
 
 ## B4 · Raíz y activación *(FR-001, FR-002; M-9)*
@@ -238,7 +232,7 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 |---|---|---|---|---|
 | 001, 002 | T025 (21, 22), T056 (32) | | 001 | T031 *(fixture)*, T047 |
 | 003 | T031 (23, 24), T019 (18) | | 002 | T019 (17), T047 |
-| 004 | T019 (14, 18), T020 | | 003 | T011 (4), T047 |
+| 004 | T019 (14, 18, 35), T020 | | 003 | T011 (4), T047 |
 | 005 | T019 (14, 15), T047 *(SC-014)* | | 004 | T011 (8), T047 |
 | 006 | T011 (4) | | 005 | T019 (15), T031 (28), T047 |
 | 007 | T004 (1–3) | | 006 | T004, T034 (31) |
@@ -282,14 +276,19 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | m8 | B2 | `occurred_at` = ahora | (9) |
 | M-B2a | B2 | `session_ref` = `session_id` sin sal | (10), T013 |
 | M-B2b | B2 | sin la guarda del tipo | (4/otra_linea_no_es_registro) |
-| m9 | B3 | siempre el modelo vigente | (11) |
+| M-B2c | B2 | *(E-4)* sin fecha válida devuelve error | (6/sin_timestamp), (6/timestamp_mal_formado) |
+| M-B2d | B2 | *(E-4)* una partida ausente es incoherente | `PartidaAusenteValeCero` |
+| M-B2e | B2 | *(E-4)* el payload que no decodifica devuelve error | (6/payload_no_decodifica) |
+| m9 | B3 | siempre el modelo vigente | (11/ajuste_dentro_del_turno) |
 | m10 | B3 | sin prefijo *(empezar en el offset)* | (14), (15, segunda pasada) |
 | m11 | B3 | sin repetidas | (16), (19) |
 | m12 | B3 | el `.zst` en cada pasada | (18, segunda) |
 | m13 | B3 | formato anterior por «hay `token_count`» | (17, mixto) |
 | m14 | B3 | `cwd` siempre de `session_meta` | (20) |
-| m26 | B3 | *(E-2)* la línea corrupta corta el fichero | (34) |
+| m26 | B3 | *(E-2)* la línea corrupta corta el fichero | (34) ×2 |
 | m27 | B3 | *(E-2)* el aviso también en el prefijo | (34/segunda pasada) |
+| M-B3a | B3 | el truncado lee prefijo | (35) |
+| M-B3b | B3 | sin registros = formato anterior | (17/sin_consumo) |
 | m15 | B4 | `CODEX_HOME=""` tomada como raíz | (21/vacía) |
 | m16 | B4 | ignorar `CODEX_HOME` | (21/definida) |
 | m17 | B5 | `st.Save` antes del Append de Codex | (25), con el forzado de T030 |
@@ -304,7 +303,7 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | m22 | B6 | sin detección de Codex en `--scan` | (29) |
 | M-B6a | B6 | todo fichero es Codex | (30) |
 
-**32 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**37 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 

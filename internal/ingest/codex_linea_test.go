@@ -94,6 +94,11 @@ func TestLineaCodex_Incoherente(t *testing.T) {
 		{"cache_y_escritura_mayores_que_la_entrada", "incoherente_cache_mayor.jsonl"},
 		{"sin_usage", "incoherente_sin_usage.jsonl"},
 		{"partida_negativa", "incoherente_negativa.jsonl"},
+		// E-4: con `type = token_usage_record`, cualquier defecto de sus datos es incoherente, no corrupto.
+		{"sin_timestamp", "incoherente_sin_timestamp.jsonl"},
+		{"timestamp_mal_formado", "incoherente_timestamp_mal_formado.jsonl"},
+		{"partida_no_numerica", "incoherente_partida_no_numerica.jsonl"},
+		{"payload_no_decodifica", "incoherente_payload_no_decodifica.jsonl"},
 	} {
 		t.Run(c.hoja, func(t *testing.T) {
 			ev, clase, err := LineaCodex(lineaDeFixture(t, c.fixture), contextoCodexDePrueba())
@@ -101,6 +106,15 @@ func TestLineaCodex_Incoherente(t *testing.T) {
 				t.Errorf("(%v, clase %d, %v); se esperaba (nil, Incoherente, nil)", ev, clase, err)
 			}
 		})
+	}
+}
+
+// E-4 · Una partida AUSENTE vale 0, como en Codex (`#[serde(default)]`), y el registro se emite.
+func TestLineaCodex_PartidaAusenteValeCero(t *testing.T) {
+	ev := leerEventoCodex(t, "registro_partida_ausente.jsonl")
+	got := [4]int{ev.TokensInput, ev.TokensCacheCreation, ev.TokensCacheRead, ev.TokensOutput}
+	if want := [4]int{60, 0, 40, 10}; got != want {
+		t.Errorf("100 / 40 / (sin escritura) / 10 → %v; se esperaba %v", got, want)
 	}
 }
 

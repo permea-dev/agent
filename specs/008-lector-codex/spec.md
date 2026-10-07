@@ -1,6 +1,6 @@
 # 008 · «Lector de Codex» — Especificación
 
-**Feature Branch**: `008-lector-codex` · **Created**: 2026-10-07 · **Status**: **Ratificada** el 2026-10-07, 12:16 (Madrid) · **Cabeza de partida**: `7b8c77c` *(0.4.0)* · **Enmiendas**: E-1, E-2, E-3
+**Feature Branch**: `008-lector-codex` · **Created**: 2026-10-07 · **Status**: **Ratificada** el 2026-10-07, 12:16 (Madrid) · **Cabeza de partida**: `7b8c77c` *(0.4.0)* · **Enmiendas**: E-1, E-2, E-3, E-4
 **Input**: las decisiones del dueño `D-1`…`D-3` · las decisiones de método del orquestador `M-1`…`M-9` · el descubrimiento del 07-10 y la
 FASE 0 *(`soporte/descubrimiento.md`, sobre la **copia congelada** de 8 sesiones, F1…F8)* · la fuente pública de Codex, etiqueta
 `rust-v0.160.1` · el contrato nuevo `contracts/event-id-codex.md`.
@@ -185,7 +185,10 @@ FASE 0 *(`soporte/descubrimiento.md`, sobre la **copia congelada** de 8 sesiones
 - **FR-027** *(la cuenta del resumen — Q-1 (a))*: en cada pasada, `respuestas = eventos + repetidas + sin identificador + incoherentes`.
   «Sin modelo» es un **subconjunto** de «eventos». Un registro con `cached_input_tokens + cache_write_input_tokens > input_tokens` no se
   emite y se cuenta como «incoherente». *(E-3)* También es «incoherente» un registro **sin `usage`** y uno con **alguna partida negativa**
-  *(de las cuatro de FR-010)*. El orden de clasificación es sin identificador → incoherente → repetida → evento *(`DECIDÍ YO`)*.
+  *(de las cuatro de FR-010)*. *(E-4)* Establecido `type = "token_usage_record"`, cualquier defecto de sus datos lo hace «incoherente»
+  *(sin `timestamp` o mal formado, payload que no decodifica, partida no numérica)*, salvo que el payload se lea y no traiga `response_id`:
+  entonces es «sin identificador». Una partida **ausente** vale 0, como en Codex, y se emite. El orden de clasificación es sin
+  identificador → incoherente → repetida → evento *(`DECIDÍ YO`)*.
 - **FR-028** *(Codex no rompe a Claude Code — E-2)*: hoy cualquier error en `generate()` devuelve antes de `st.Save`
   *(`cmd/permea/main.go:304-306,317`)*. Un error al **leer** un fichero de Codex *(el stat, el prefijo o `Recorrer`)* **DEBE**:
   - escribir en stderr el texto aprobado `codex: fichero omitido: %v`;
@@ -199,7 +202,8 @@ FASE 0 *(`soporte/descubrimiento.md`, sobre la **copia congelada** de 8 sesiones
     *(`cmd/permea/main.go:282`)*;
   - en el prefijo releído, se ignora en silencio, para no repetir el aviso en cada ciclo.
 
-  No cuenta en «respuestas» y no corta el fichero.
+  No cuenta en «respuestas» y no corta el fichero. *(E-4)* «Corrupta» es **sólo** la línea cuya envoltura no es JSON válido, es decir,
+  la línea de la que no se puede leer su `type`.
 
 ### Key Entities
 - **Registro de Codex**: una línea `token_usage_record` con `response_id`, `turn_id`, `session_id`, la marca y las partidas de `usage`.
@@ -359,3 +363,4 @@ se cuentan como «formato anterior» y no se envían. Si la carpeta no existe, n
 | **E-1** | 2026-10-07 | **Enmienda del orquestador.** **(1)** P-2 y FR-005 **por resultado**, con el mecanismo en el plan y **SC-014**, de coste: ≤ 3 s sobre ≥ 100 MB. **(2)** FR-016, SC-006 y el contrato: **la excepción de la ruta** en `state.json`. **(3)** Nuevos **FR-025** y **SC-015**, del orden de escritura; **FR-026** y **SC-016**, de Codex sin Claude Code. **(4)** **FR-027** y **SC-017**: la cuenta del resumen, con «incoherentes». **(5)** Dependencias: sólo identificadores vistos. **(6)** Edge case de los subagentes. **(7)** **M-9**: Q-3 (a) como decisión de método, `sandbox.go` en el censo de código | Que P-2 se juzgue por su efecto y su coste; que la privacidad declare lo que queda en local; y que no falten la durabilidad, la instalación sin Claude Code ni la cuenta del resumen |
 | **E-2** | 2026-10-07 | **Enmienda del orquestador.** **(1)** FR-002: la activación se evalúa **en cada pasada**. **(2)** Nuevos **FR-028** y **SC-018**: un error de lectura de un fichero de Codex se omite con `codex: fichero omitido: %v` *(a §Textos aprobados)*, sin avanzar su offset ni cortar la pasada; encolar sigue siendo fatal. **(3)** Nuevo **FR-029**: la línea corrupta, con aviso sólo en la parte nueva. **(4)** SC-015: un forzado en el que `Load` pasa y `Save` falla, porque «`state.json` como directorio» hace fallar `Load` antes de encolar. **(5)** SC-011: un fichero de referencia generado con el commit anterior | El demonio vive días; un fichero de Codex no debe tumbar a Claude Code; y dos SC necesitaban un instrumento que sí mida |
 | **E-3** | 2026-10-07 | **Enmienda del orquestador.** «Incoherente» *(FR-027, Q-1)* cubre también un `token_usage_record` **sin `usage`** y uno con **alguna partida negativa**: no se emite y se cuenta. El rojo (6) gana una hoja por caso *(caché + escritura > entrada · sin `usage` · partida negativa)*, y m6 debe tumbar las tres | Que un registro roto no viaje como evento con ceros, ni con negativos que resten en la plataforma |
+| **E-4** | 2026-10-07 | **Enmienda del orquestador.** «Corrupta» *(FR-029)* es sólo la línea cuya envoltura no es JSON válido. Con `type = "token_usage_record"`, cualquier defecto de sus datos la hace «incoherente» *(FR-027)*: sin `timestamp` o mal formado, payload que no decodifica, partida no numérica. Una partida **ausente** vale 0 y se emite. Sin ningún `cwd`, el evento sale con `project_ref` vacío, como hoy en Claude Code *(`internal/event/event.go:40-43`)*. Hojas nuevas en el rojo (6), un test para la partida ausente y la hoja «sin `cwd`» en (20) | Que un registro defectuoso se cuente, no se pierda como «corrupto», y que las dos clases signifiquen una sola cosa |

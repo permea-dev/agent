@@ -187,3 +187,176 @@ md5 de `codex.go` volvió a **`1aa5b6e4480ac4db3bf9faefda7bcc5d`** tras cada una
 | m8 | `TestLineaCodex_MomentoDelRegistro` | `occurred_at = <ahora>; se esperaba 2026-10-07 00:00:01.25 +0000 UTC` |
 | M-B2a | `…SesionDelRegistro`, `…NingunIdentificadorDelProveedorEnElEvento` | `session_ref = "s-sintetica-raiz"` · `el evento lleva un identificador del proveedor: {… "session_ref":"s-CENTINELA-SESION" …}` |
 | M-B2b | `…UnRegistroEsUnEvento/otra_linea_no_es_registro` | `una línea turn_context: (<nil>, clase 2, <nil>); se esperaba (nil, NoEsRegistro, nil)` |
+
+### Remate de B2 · Enmienda E-4 *(Encargo 6, 2026-10-07; registrada en `spec.md`)*
+
+**Rojos**: cuatro hojas nuevas en (6), y un test nuevo. Fixtures sintéticos nuevos en `testdata/codex/`.
+
+```
+--- FAIL: TestLineaCodex_Incoherente/sin_timestamp           (<nil>, clase 0, unexpected end of JSON input); se esperaba (nil, Incoherente, nil)
+--- FAIL: TestLineaCodex_Incoherente/timestamp_mal_formado   (<nil>, clase 0, parsing time "ayer por la tarde" as "2006-01-02T15:04:05Z07:00": …); se esperaba (nil, Incoherente, nil)
+--- FAIL: TestLineaCodex_Incoherente/partida_no_numerica     (<nil>, clase 0, json: cannot unmarshal string into Go struct field usoCodex.usage.input_tokens of type int64); …
+--- FAIL: TestLineaCodex_Incoherente/payload_no_decodifica   (<nil>, clase 0, json: cannot unmarshal array into Go value of type ingest.registroCodex); …
+--- PASS: TestLineaCodex_PartidaAusenteValeCero              (nace verde: el decodificado de Go ya da 0; lo valida M-B2d)
+```
+
+**Verde**:
+- `registroCodex.Usage` pasa a `json.RawMessage`, y se decodifica aparte con `usoDe`.
+- Orden: envoltura *(si falla, error = corrupta)* → tipo → payload *(si no decodifica, incoherente)* → `response_id` *(sin identificador)* →
+  `timestamp` *(si falla, incoherente)* → `usage` *(ausente, `null` o que no decodifica, incoherente)* → coherencia.
+- Todos los `TestLineaCodex_*` en PASS *(20 líneas PASS entre tests y hojas)*. `0 issues` y 9/9.
+
+**Censo declarado ANTES de mutar**:
+
+| # | Mutación *(en `internal/ingest/codex.go`)* | Debe caer *(hojas)* |
+|---|---|---|
+| M-B2c | sin fecha válida devuelve error *(`return nil, NoEsRegistro, err`)* | `TestLineaCodex_Incoherente/sin_timestamp`, `/timestamp_mal_formado` |
+| M-B2d | una partida ausente es incoherente *(`usoDe` exige `cache_write_input_tokens` en el crudo)* | `TestLineaCodex_PartidaAusenteValeCero` |
+| M-B2e | el payload que no decodifica devuelve error | `TestLineaCodex_Incoherente/payload_no_decodifica` |
+
+**Resultado: las tres coinciden.** Reversión por edición inversa, y el md5 de `codex.go` es **`2e674096168e779136ae77647d10c4ca`** antes y
+después de cada una.
+- **M-B2c**: `…/sin_timestamp` *(`unexpected end of JSON input`)* y `…/timestamp_mal_formado` *(`parsing time "ayer por la tarde" …`)*.
+- **M-B2d** *(dos sustituciones, revertidas en orden inverso)*: `…PartidaAusenteValeCero`, `clase 3, evento <nil>; se esperaba un evento`.
+- **M-B2e**: `…/payload_no_decodifica`, `json: cannot unmarshal array into Go value of type ingest.registroCodex`.
+
+## B3 · Contexto y estado
+
+### T017 · Fase 0
+
+`internal/ingest/codex_contexto.go` *(nuevo)*:
+- `PasadaCodex`, con los ocho recuentos y `Resumen()` *(el texto aprobado)*;
+- `LeerFicheroCodex(st, ruta, base, p, avisos io.Writer)`, que recorre con `Recorrer` y `fijar` = lo leído, sin emitir;
+- `ContarComprimido(st, ruta, p)`, que no cuenta.
+
+Suite verde. **De paso**: en la primera escritura de `Resumen()` el hueco de «repetidas» llevaba otra expresión; se corrigió antes de
+seguir y antes de cualquier test.
+
+### T018 · Fixtures sintéticos, en `internal/ingest/testdata/codex/contexto/`
+
+21 ficheros, generados por programa, con turnos, modelos *(`modelo-a`, `-b`, `-z`)* y directorios *(`/tmp/…-sintetico`)* inventados:
+- dos turnos; un ajuste de modelo dentro del turno; una compactación; sin modelo;
+- formato anterior, mixto y sin consumo;
+- una reanudación en dos mitades; un corte tras el `turn_context`;
+- una bifurcación en dos ficheros; la cuenta de SC-017;
+- el `cwd` y «sin `cwd`»;
+- una línea corrupta en dos mitades;
+- un fichero largo y su versión truncada;
+- un `.zst` de bytes inventados.
+
+### T019, T055 y (35) · Rojos, en `internal/ingest/codex_contexto_test.go` *(nuevo)*
+
+**Una corrección del propio test antes de dar los rojos por buenos**: en la primera ejecución, `ReanudacionEnDosPasadas` panicó
+*(`entera[:1]` sobre una referencia vacía)*, y `ContextoEntrePasadas` pasó comparando 0 con 0. `deUnaVez` exige ahora, como
+precondición, los eventos que trae el fixture.
+
+```
+--- FAIL: TestContextoCodex_ModeloDelTurno/dos_turnos               modelos []; se esperaba [modelo-a modelo-b]
+--- FAIL: TestContextoCodex_ModeloDelTurno/ajuste_dentro_del_turno  modelos []; se esperaba el del turno, [modelo-a], no el vigente (modelo-b)
+--- FAIL: TestContextoCodex_CompactacionLlevaElVigente              modelos []; se esperaba [modelo-a modelo-b]: la compactación, el vigente
+--- FAIL: TestContextoCodex_SinModelo                               0 eventos, modelos [], sin modelo 0; se esperaba 1 evento con modelo vacío y sin modelo = 1
+--- FAIL: TestContextoCodex_ContextoEntrePasadas                    precondición: leyendo de una vez salen 0 eventos; el fixture trae 1
+--- FAIL: TestContextoCodex_ReanudacionEnDosPasadas                 precondición: leyendo de una vez salen 0 eventos; el fixture trae 4
+--- FAIL: TestContextoCodex_BifurcacionUnEvento                     0 eventos y 0 repetidas; se esperaba 1 y 1
+--- FAIL: TestContextoCodex_Formatos/anterior · /mixto              0 eventos y 0 en formato anterior; se esperaba 0 y 1 · … 1 y 0
+--- PASS: TestContextoCodex_Formatos/sin_consumo                    (nace verde; la valida M-B3b)
+--- FAIL: TestContextoCodex_ComprimidoUnaVez/primera · /tras_cambiar   comprimidos = 0; se esperaba 1
+--- PASS: TestContextoCodex_ComprimidoUnaVez/segunda                (nace verde; la valida m12)
+--- FAIL: TestContextoCodex_CuentaDelResumen                        resumen: got "codex: respuestas 0 · eventos 0 · …"
+--- FAIL: TestContextoCodex_Cwd                                     precondición: 0 eventos; se esperaban 2
+--- FAIL: TestContextoCodex_LineaCorrupta/primera_pasada            0 avisos, 0 eventos, 0 respuestas; se esperaba 1, 1 y 1
+--- FAIL: TestContextoCodex_LineaCorrupta/segunda_pasada            avisos "" y 0 eventos; … se esperaba ningún aviso y 1 evento
+--- FAIL: TestContextoCodex_TruncadoNoLeePrefijo                    precondición: la primera pasada dio 0 eventos; se esperaba 1
+```
+
+**Razón**: la Fase 0 no emite, no cuenta y no reconstruye contexto.
+
+**(35) es nuevo** *(Encargo 6)*: «un fichero truncado o rotado no lee prefijo». En el fichero nuevo, el `turn_context` va **después** de
+su registro: leído como prefijo, le daría un modelo que todavía no tenía.
+
+### T020 · Verde
+
+- **D-008-P1**: un fichero sin bytes nuevos no se abre. El prefijo `[0, offset)` se lee con el filtro de cinco marcadores, sólo si
+  `0 < offset < tamaño`; truncado o rotado, sin prefijo. El contexto se actualiza también con la parte nueva.
+- **FR-011 y FR-014**: el turno, y si falta, el vigente o el `cwd` de `session_meta`. Sin ningún `cwd`, `project_ref` vacío *(E-4)*.
+- **FR-017**: formato anterior = `token_count` con `info` y ningún registro, sobre el fichero entero *(prefijo y parte nueva)*.
+- **D-008-P9**: la clasificación, con los `event_id` emitidos en la pasada *(repetidas)*.
+- **D-008-P2**: el `.zst`, como entrada de `state.json` con cuatro campos y `Offset = Size`.
+- **FR-029**:
+  - el aviso va a un `io.Writer` que da quien llama, con el texto de `cmd/permea/main.go:282`;
+  - sale sólo por la parte nueva;
+  - en el prefijo, silencio.
+- **Resultado**: los 27 tests y hojas de B3, en **PASS**; `gofmt` aplicado; `0 issues`; 9/9.
+
+### T021 · Censo declarado ANTES de mutar *(2026-10-07)*
+
+**Ajustes respecto a `tasks.md`, declarados aquí antes de mutar**:
+- **m9** sólo tumba `ajuste_dentro_del_turno`: en `dos_turnos` el vigente coincide con el del turno.
+- **m26** tumba **las dos** hojas de (34): el error no deja avanzar el estado, y la segunda pasada vuelve a encontrar la línea en la parte
+  nueva.
+- **Nuevas**:
+  - **M-B3a**, el truncado lee prefijo, valida (35);
+  - **M-B3b**, «sin registros es formato anterior», valida `Formatos/sin_consumo`, que nació verde.
+
+| # | Mutación *(en `internal/ingest/codex_contexto.go`)* | Debe caer *(hojas)* |
+|---|---|---|
+| m9 | `delTurno` da siempre el vigente | `TestContextoCodex_ModeloDelTurno/ajuste_dentro_del_turno` |
+| m10 | sin prefijo *(no se llama a `leerPrefijoCodex`)* | `TestContextoCodex_ContextoEntrePasadas`, `TestContextoCodex_ReanudacionEnDosPasadas/segunda` |
+| m11 | sin repetidas *(siempre se emite)* | `TestContextoCodex_BifurcacionUnEvento`, `TestContextoCodex_CuentaDelResumen` |
+| m12 | el `.zst` cuenta en cada pasada | `TestContextoCodex_ComprimidoUnaVez/segunda` |
+| m13 | formato anterior = «hay `token_count`» | `TestContextoCodex_Formatos/mixto` |
+| m14 | `cwd` siempre de `session_meta` | `TestContextoCodex_Cwd/del_turno` |
+| m26 | la línea corrupta corta el fichero *(el callback devuelve el error)* | `TestContextoCodex_LineaCorrupta/primera_pasada`, `/segunda_pasada` |
+| m27 | el aviso también en el prefijo | `TestContextoCodex_LineaCorrupta/segunda_pasada` |
+| M-B3a | el truncado lee prefijo *(condición `offset > 0`)* | `TestContextoCodex_TruncadoNoLeePrefijo` |
+| M-B3b | sin registros = formato anterior | `TestContextoCodex_Formatos/sin_consumo` |
+
+### T022 · Resultado *(2026-10-07)*
+
+**Las diez coinciden con lo declarado.** Ninguna panicó. Se aplicaron como sustituciones exactas, se miró el resultado antes de revertir, y
+las de varias sustituciones *(m27, tres)* se revirtieron en orden inverso. El md5 de `codex_contexto.go` volvió a
+**`ad738316cf40cbb6266b4eae85d25ecb`** tras cada una.
+
+| # | Cayó | Mensaje |
+|---|---|---|
+| m9 | `…ModeloDelTurno/ajuste_dentro_del_turno` | `modelos [modelo-b]; se esperaba el del turno, [modelo-a]` |
+| m10 | `…ContextoEntrePasadas`, `…ReanudacionEnDosPasadas/segunda` | modelo `""` y proyecto `""` frente a `modelo-a` y el proyecto de una vez · la compactación, con proyecto `""` *(perdió el `cwd` de `session_meta`)* |
+| m11 | `…BifurcacionUnEvento`, `…CuentaDelResumen` | `2 eventos y 0 repetidas; se esperaba 1 y 1` · el resumen cambia |
+| m12 | `…ComprimidoUnaVez/segunda` | `comprimidos = 1; se esperaba 0` |
+| m13 | `…Formatos/mixto` | `1 eventos y 1 en formato anterior; se esperaba 1 y 0` |
+| m14 | `…Cwd/del_turno` | `project_ref = "34a3acaf…"; se esperaba el del cwd del turno, "05725fcd…"` |
+| m26 | `…LineaCorrupta/primera_pasada`, `/segunda_pasada` | `LeerFicheroCodex(s.jsonl): unexpected end of JSON input` ×2 |
+| m27 | `…LineaCorrupta/segunda_pasada` | `avisos "skip (línea corrupta): unexpected end of JSON input\n" …; se esperaba ningún aviso` |
+| M-B3a | `…TruncadoNoLeePrefijo` | `1 eventos, modelos [modelo-z], sin modelo 0; se esperaba 1 evento sin modelo` |
+| M-B3b | `…Formatos/sin_consumo` | `0 eventos y 1 en formato anterior; se esperaba 0 y 0` |
+
+### Medida informativa de SC-014 *(no es puerta de B3; 2026-10-07)*
+
+**Cómo**:
+- Un fichero sintético de **105 013 608 B**, con 20 745 líneas y 1 497 registros, generado en `mktemp -d /tmp/permea-008-XXXXXX`.
+- Contenido: un `session_meta` con 20 KB de instrucciones inventadas, y por turno un `turn_context`, de 10 a 40 líneas de 400 B a 18 KB y
+  de 1 a 3 registros.
+- La medida, con un test **temporal** en `codex_contexto_test.go`: una lectura entera con `LeerFicheroCodex` y, tres veces, «añadir 1
+  registro y leer».
+- Al terminar, el test se quitó, y el md5 del fichero volvió a ser el de antes *(`a2f5abb860c0e29182796f8e1f3caf1e`, tras quitar una línea en
+  blanco sobrante)*. El temporal se borró tras comprobar el prefijo.
+
+| | Tiempo | Resultado |
+|---|---:|---|
+| Lectura entera | 306 ms | 1 497 eventos |
+| Medida 1 | **250 ms** | 1 evento, `modelo-sintetico` *(el del turno, sacado del prefijo)* |
+| Medida 2 | **239 ms** | 1 evento |
+| Medida 3 | **260 ms** | 1 evento |
+
+**Máquina**: 16 hilos, Intel Core i5-13400, ext4 en WSL, con la caché de páginas caliente.
+
+**Es la función de biblioteca, no el `--run` entero**: falta el arranque del proceso y la lectura de Claude Code. La medida de SC-014 que
+cuenta es la del quickstart, en C2. Con ~0,25 s queda margen frente a los 3 s.
+
+### FR-029 · cómo sale el aviso
+
+- **Por un `io.Writer`** que recibe `LeerFicheroCodex`, con el texto de `cmd/permea/main.go:282` *(`skip (línea corrupta): <error>`)*.
+- **Por qué un `io.Writer` y no un retorno**: `internal/ingest` no escribe en stderr por su cuenta, el aviso sale en el orden en que se
+  lee, y B5 sólo tiene que pasar `os.Stderr`. Un retorno obligaría a cada llamante a reconstruir el orden y el texto.
+- **Un `nil`** calla el aviso.
+- **En el prefijo** no se avisa nunca *(T055, m27)*.

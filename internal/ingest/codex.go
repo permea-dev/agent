@@ -57,21 +57,34 @@ type lineaCodex struct {
 	Payload   json.RawMessage `json:"payload"`
 }
 
-// registroCodex es lo que se lee del payload de un `token_usage_record`.
+// registroCodex es lo que se lee del payload de un `token_usage_record`. `usage` se guarda en crudo y se
+// decodifica aparte, para que un defecto suyo no impida saber si hay `response_id` (E-4: sin identificador va antes).
 type registroCodex struct {
-	ResponseID string `json:"response_id"`
-	SessionID  string `json:"session_id"`
-	TurnID     string `json:"turn_id"`
-	// Puntero para distinguir «no viene» de «viene a cero» (E-3: sin `usage` es incoherente).
-	Usage *usoCodex `json:"usage"`
+	ResponseID string          `json:"response_id"`
+	SessionID  string          `json:"session_id"`
+	TurnID     string          `json:"turn_id"`
+	Usage      json.RawMessage `json:"usage"`
 }
 
-// usoCodex son las cuatro partidas de FR-010, tal como las escribe Codex (`TokenUsage`, i64).
+// usoCodex son las cuatro partidas de FR-010, tal como las escribe Codex (`TokenUsage`, i64). Una partida
+// ausente vale 0, como en Codex (`#[serde(default)]`; E-4).
 type usoCodex struct {
 	Entrada   int64 `json:"input_tokens"`
 	Cache     int64 `json:"cached_input_tokens"`
 	Escritura int64 `json:"cache_write_input_tokens"`
 	Salida    int64 `json:"output_tokens"`
+}
+
+// usoDe decodifica `usage`. `ok == false` si no viene, es `null` o no decodifica (una partida no numérica).
+func usoDe(crudo json.RawMessage) (*usoCodex, bool) {
+	if len(crudo) == 0 || string(crudo) == "null" {
+		return nil, false
+	}
+	var u usoCodex
+	if err := json.Unmarshal(crudo, &u); err != nil {
+		return nil, false
+	}
+	return &u, true
 }
 
 // coherente dice si las partidas se pueden usar (FR-027, E-3): ninguna negativa, y la caché y la escritura
@@ -86,11 +99,12 @@ func (u *usoCodex) coherente() bool {
 	return u.Cache+u.Escritura <= u.Entrada
 }
 
-// LineaCodex lee una línea de una sesión de Codex. Devuelve su clase y, si es `EventoCodex`, su evento. Un
-// error es una línea que no se puede decodificar: quien lee decide qué hacer con ella (P-008 FR-029).
+// LineaCodex lee una línea de una sesión de Codex. Devuelve su clase y, si es `EventoCodex`, su evento.
 //
-// Clasifica en el orden de FR-027: sin identificador → incoherente → evento. Las repetidas las cuenta quien
-// lee el fichero, porque sólo él conoce la pasada.
+// Un error es SÓLO una línea «corrupta»: su envoltura no es JSON válido y no se puede leer su `type` (P-008
+// FR-029, E-4). Quien lee decide qué hacer con ella. Establecido que es un registro, cualquier defecto de sus
+// datos lo clasifica, no lo rompe (FR-027, E-3, E-4), en este orden: sin identificador → incoherente →
+// evento. Las repetidas las cuenta quien lee el fichero, porque sólo él conoce la pasada.
 func LineaCodex(line []byte, ctx ContextoCodex) (*event.Event, ClaseCodex, error) {
 	var l lineaCodex
 	if err := json.Unmarshal(line, &l); err != nil {
@@ -99,28 +113,27 @@ func LineaCodex(line []byte, ctx ContextoCodex) (*event.Event, ClaseCodex, error
 	if l.Type != tipoRegistroCodex {
 		return nil, NoEsRegistro, nil
 	}
-	var momento time.Time
-	if err := json.Unmarshal(l.Timestamp, &momento); err != nil {
-		return nil, NoEsRegistro, err
-	}
 	var r registroCodex
 	if err := json.Unmarshal(l.Payload, &r); err != nil {
-		return nil, NoEsRegistro, err
+		return nil, Incoherente, nil // E-4: el payload no decodifica
 	}
-
 	id, ok := derivarEventIDCodex(r.ResponseID)
 	if !ok {
 		return nil, SinIdentificador, nil
 	}
-	if !r.Usage.coherente() {
-		return nil, Incoherente, nil
+	var momento time.Time
+	if err := json.Unmarshal(l.Timestamp, &momento); err != nil {
+		return nil, Incoherente, nil // E-4: sin `timestamp`, o mal formado
+	}
+	u, ok := usoDe(r.Usage)
+	if !ok || !u.coherente() {
+		return nil, Incoherente, nil // E-3: sin `usage`, negativa o que no cabe; E-4: no numérica
 	}
 
 	var modelo, cwd string
 	if ctx.DelTurno != nil {
 		modelo, cwd = ctx.DelTurno(r.TurnID)
 	}
-	u := r.Usage
 	ev := event.Event{
 		SchemaVersion:       event.SchemaVersion,
 		AgentVersion:        ctx.AgentVersion,
