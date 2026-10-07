@@ -44,23 +44,27 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 
 ## B0 · Documentos
 
-- [ ] **T001** Fase 0. Transcribir la línea base sobre `7b8c77c`: 494 pass en 9 paquetes, lint 0 y la frontera sin diff. Si algo difiere,
+- [x] **T001** Fase 0. Transcribir la línea base sobre `7b8c77c`: 494 pass en 9 paquetes, lint 0 y la frontera sin diff. Si algo difiere,
   **se para**.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B0 · T001.
 - [ ] **T002** ✋ Commit: `008 B0: spec ratificada (E-1, E-2), contrato, plan, tareas y quickstart`.
 
 ## B1 · Identidad *(`contracts/event-id-codex.md`; FR-007; SC-006)*
 
-- [ ] **T003** Fase 0: en `internal/ingest/codex_eventid.go` *(nuevo)*, `derivarEventIDCodex(responseID string) (string, bool)`, que
+- [x] **T003** Fase 0: en `internal/ingest/codex_eventid.go` *(nuevo)*, `derivarEventIDCodex(responseID string) (string, bool)`, que
   devuelve `"", false`. La suite sigue verde.
-- [ ] **T004** **Rojos (1), (2) y (3)** en `internal/ingest/codex_eventid_test.go` *(nuevo)*:
+- [x] **T004** **Rojos (1), (2) y (3)** en `internal/ingest/codex_eventid_test.go` *(nuevo)*:
   - **(1)**: los dos vectores del contrato, byte a byte;
   - **(2)**: el vector del espacio de Claude Code, como literal *(`128d67bd…`)*, es distinto del de Codex para el mismo valor;
   - **(3)**: `response_id` vacío → `ok = false`.
-- [ ] **T005** **Verde**: la derivación del contrato. Reutiliza `hashEventID` sólo si su firma lo permite **sin tocar `eventid.go`**; si
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T004 *((3) nace verde; la valida m3)*.
+- [x] **T005** **Verde**: la derivación del contrato. Reutiliza `hashEventID` sólo si su firma lo permite **sin tocar `eventid.go`**; si
   no, se replica en el fichero nuevo *(M-1)*.
-- [ ] **T006** Censo de mutaciones, **declarado antes de mutar**, por hoja: **(m1)** `"codex"` → `"claude_code"` → (1) ×2; **(m2)** sin
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T005 *(replicada: `hashEventID` fija `claude_code`)*.
+- [x] **T006** Censo de mutaciones, **declarado antes de mutar**, por hoja: **(m1)** `"codex"` → `"claude_code"` → (1) ×2; **(m2)** sin
   prefijo de longitud → (1) ×2 y (2); **(m3)** vacío aceptado → (3).
-- [ ] **T007** Mutaciones y transcripción, con md5.
+- [x] **T007** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T006 *(m2 sin la co-caída de (2), declarado antes de mutar)* y T007.
 - [ ] **T008** ✋ Puertas y commit: `008 B1: event_id de Codex con espacio de nombres propio`.
 
 ## B2 · Una línea *(FR-006, FR-009, FR-010, FR-012, FR-013, FR-015, FR-016, FR-027; SC-004, SC-008)*
