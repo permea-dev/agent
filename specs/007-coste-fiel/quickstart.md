@@ -199,19 +199,21 @@ PY
 **Al terminar**: `huella` de las dos copias, igual que al empezar, y después `rm -rf "$T"`. Sólo se transcriben a `tasks.md` los recuentos
 y las sumas.
 
-## W1 · Ensayo en Windows ANTES de la etiqueta *(C4 · ✋ el dueño)*
+## W1 · Ensayo en Windows ANTES de la etiqueta *(C4 · ✋ el dueño · en sandbox, E-7)*
 
-Con el `permea_*_windows_amd64.zip` de `goreleaser release --snapshot --clean`, que no publica nada.
+Con el `permea_*_windows_amd64.zip` de `goreleaser release --snapshot --clean`, que no publica nada. **En sandbox**: un directorio de
+datos aparte *(la variable `APPDATA` de esa consola)* y **sin enrolar**. Un binario sin publicar no escribe en producción, y la
+instalación real queda intacta para W2.
 
 | Paso | Comando (PowerShell) | Esperado |
 |---|---|---|
 | 1 | `.\permea.exe --version` | la del snapshot, **ni** `0.0.1-dev` **ni** `0.3.0`. **Si no, se para y no se lanza nada más** |
-| 2 | `.\permea.exe status` | enrolado, token configurado |
-| 3 | `.\permea.exe --scan <un log de subagente>` | tantos `evento:` como mensajes del contador, y `cw5m=`/`cw1h=` en cada línea |
-| 4 | `.\permea.exe --run` | primera línea del resumen como la de 0.3.0; segunda con «N en espera de cerrarse»; y el aviso de `--run` si N > 0 |
-| 5 | > 10 min **sin usar Claude Code**, y `.\permea.exe --run` | «en espera» baja a 0 y salen esos N. Si no baja, el `mtime` de NTFS **no** se comporta como se espera *(R-1, R-2)*, y se para |
+| 2 | `$env:APPDATA = "<un directorio aparte>"` y `.\permea.exe status` | «no enrolado». **Si no, se para y no se lanza ningún `--run`** |
+| 3 | `.\permea.exe --run`, en la misma consola | la primera pasada, sobre el historial completo: primera línea del resumen como la de 0.3.0; segunda con «N en espera de cerrarse»; el aviso de `--run` si N > 0; y `sync omitido: sin endpoint configurado`. El resumen se contrasta con las referencias de C2 *(los que crecen y las sintéticas de la copia -windows)* |
+| 4 | > 10 min **sin usar Claude Code**, y `.\permea.exe --run` | «en espera» baja a 0 y salen esos N, releídos del log. Si no baja, el `mtime` de NTFS **no** se comporta como se espera *(R-1, R-2)*, y se para |
 
-Se anotan la fecha, el commit del snapshot, la huella del zip y el resultado de cada paso. Si falla un paso, no hay etiqueta.
+Se anotan la fecha, el commit del snapshot, la huella del zip y la salida de cada paso. Si falla un paso, no hay etiqueta.
+**Hecho el 2026-10-06, sin fallos** *(`soporte/registro.md` §Cierre C4)*.
 
 ## W2 · Ensayo final *(C9 · ✋ el dueño)*
 

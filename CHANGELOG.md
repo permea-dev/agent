@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.4.0 — PENDIENTE
+## 0.4.0 — 2026-10-07
 
 ### Cambia
 - El coste de la escritura de caché usa su duración: la de 5 minutos a su tarifa y la de 1 hora a la suya (el doble de la entrada).

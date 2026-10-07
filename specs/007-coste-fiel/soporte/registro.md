@@ -697,3 +697,50 @@ queda ningún `/tmp/permea-007-*`.
 ficheros que parecen binarios. Sobre la salida de `strings` daba 0 coincidencias sin avisar. Las comprobaciones de SC-011 se hicieron con
 `command grep -a` *(GNU grep)*. Las medidas anteriores con `grep` fueron sobre texto, y sus cuentas coincidieron con las de `awk` o
 Python. Las de C2, además, fueron sobre las salidas de `--scan`: `grep -c '^evento:'` dio lo mismo que `awk`.
+
+### C4 · T041 · W1 *(hecho por el dueño el 2026-10-06, de 21:47 a 22:04, Madrid, en Windows; en sandbox, E-7)*
+
+**Lo que se probó y cómo**:
+- **Zip**: `permea_0.3.0-SNAPSHOT-07904af_windows_amd64.zip`. SHA-256 comprobado:
+  `897FFDD170E4F52E9D73912DA8DAEC4052D8E9F75F670BF5B4F6C7F91CD8DE1F`. Es el de C3, en mayúsculas.
+- **Sandbox** *(E-7)*: un directorio de datos aparte *(la variable `APPDATA` de esa consola)*, sin enrolar.
+- `--version` → `0.3.0-SNAPSHOT-07904af` · `status` → `no enrolado`.
+- Antes de la primera pasada, un mensaje nuevo con Claude Code en Windows.
+
+**Primera pasada** *(21:50)*, salida literal:
+```
+Permea 0.3.0-SNAPSHOT-07904af
+6154 eventos encolados en <directorio de datos del ensayo>\permea\queue.jsonl
+pasada: 14041 líneas facturables · 6154 eventos · 7883 repetidas del mismo mensaje · 2 sintéticas · 0 sin identificador (no contables) · 158 con consumo distinto de la primera
+pasada: 143 mensajes que crecieron entre líneas · 2 en espera de cerrarse · 0 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+2 mensajes siguen abiertos: se enviarán en la próxima pasada
+sync omitido: sin endpoint configurado
+```
+
+**Segunda pasada** *(22:04, 14 minutos después, sin usar Claude Code en Windows entre medias)*, salida literal:
+```
+Permea 0.3.0-SNAPSHOT-07904af
+2 eventos encolados en <directorio de datos del ensayo>\permea\queue.jsonl
+pasada: 3 líneas facturables · 2 eventos · 1 repetidas del mismo mensaje · 0 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 0 en espera de cerrarse · 3 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+sync omitido: sin endpoint configurado
+```
+
+**Lectura del dueño**:
+- Las cuentas cierran: 6154 + 7883 + 2 + 2 = 14041.
+- Los 143 que crecen son los de la copia.
+- Los 2 abiertos salieron en la pasada siguiente, releídos del log.
+- La regla (ii) funciona en NTFS.
+- Nada se transmitió.
+
+**Contraste con C2** *(E-7: sustituye al `--scan` contra el contador)*. La pasada lee el historial completo de esa instalación, no la copia
+-windows, así que las líneas y los mensajes no tienen por qué coincidir:
+
+| | Copia -windows *(C2)* | Primera pasada de W1 |
+|---|---:|---:|
+| mensajes que crecen | 143 | 143 |
+| sintéticas | 2 | 2 |
+| líneas facturables | 13 869 | 14041 |
+| mensajes / eventos | 6 074 | 6154 eventos + 2 en espera |
+
+**Resultado: W1 sin fallos.** Los cuatro pasos de quickstart §W1 *(E-7)* dieron lo esperado.

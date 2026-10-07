@@ -1,6 +1,6 @@
 # Tasks: 007 · «Coste fiel»
 
-**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1 a E-5)* · [plan.md](./plan.md) ·
+**Feature**: `007-coste-fiel` · **Fecha**: 2026-10-06 · [spec.md](./spec.md) *(E-1 a E-7)* · [plan.md](./plan.md) ·
 [contracts/tarifas.md](./contracts/tarifas.md) · [quickstart.md](./quickstart.md)
 **Base**: `222c824`. **Línea base a preservar**: `go test -count=1 ./...` → **9 paquetes ok, 432 pass, 0 fail**; `golangci-lint run` → **0**.
 Ambas medidas el 2026-10-06.
@@ -226,9 +226,9 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   `env -i`; SC-001, SC-002, SC-003 y SC-005 contra las referencias de la spec; huella después, igual; temporales borrados.
 - [x] **T040** **C3** · `goreleaser release --snapshot --clean`; SHA-256 del zip de Windows; `strings` del binario contiene los textos
   aprobados *(SC-011)*.
-- [ ] **T041** ✋ **C4 · W1** *(quickstart §W1)*: `--version` primero; sólo después `status`, `--scan` y los dos `--run` separados por
-  más de T. Se anota cada paso.
-- [ ] **T042** **C5** · Cuerpo del PR y fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0)*. ✋ commit
+- [x] **T041** ✋ **C4 · W1** *(quickstart §W1; en sandbox, E-7)*: `--version` primero; sólo después `status` → «no enrolado» y los dos
+  `--run` separados por más de T. Se anota cada paso. *(2026-10-06, sin fallos: `soporte/registro.md` §Cierre C4.)*
+- [x] **T042** **C5** · Cuerpo del PR y fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0; `## 0.4.0 — 2026-10-07`)*. ✋ commit
   `007 C5: fecha de la 0.4.0 en el CHANGELOG`.
 - [ ] **T043** ✋ **C6** · Fusión del PR con merge commit.
 - [ ] **T044** ✋ **C7** · `git tag -a v0.4.0` sobre `main` y `git push origin v0.4.0`.
