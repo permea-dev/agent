@@ -360,3 +360,93 @@ cuenta es la del quickstart, en C2. Con ~0,25 s queda margen frente a los 3 s.
   lee, y B5 sólo tiene que pasar `os.Stderr`. Un retorno obligaría a cada llamante a reconstruir el orden y el texto.
 - **Un `nil`** calla el aviso.
 - **En el prefijo** no se avisa nunca *(T055, m27)*.
+
+### Comprobación de forma contra la copia congelada *(Encargo 7, Fase previa, 2026-10-07)*
+
+**Por qué**: los fixtures de B3 son sintéticos, y el contador comparte con el agente la ruta del modelo de `thread_settings_applied`
+*(`payload.thread_settings.model`)*. Se mide **con el código del agente**: `contextoFichero.aprender`, línea a línea con un contexto nuevo, y
+`LeerFicheroCodex` en un estado vacío y sin encolar.
+
+**Instrumento**: un test temporal, `internal/ingest/zz_forma_temporal_test.go`, que sólo imprime recuentos y modelos. Se **borró** al
+terminar, y el árbol quedó limpio. La copia congelada se leyó en su sitio, con huella **`984d483c12a15601`** *(8 ficheros)* antes y después.
+
+| F | `session_meta` *(con `cwd`)* | `turn_context` *(`turn_id` / modelo / `cwd`)* | `thread_settings_applied` *(con modelo)* | Orden registro / `token_count` |
+|---|---|---|---|---|
+| F1–F4 | 1 *(1)* cada uno | 54, 14, 47, 20 *(todos con los tres)* | 0 | sólo `token_count` |
+| F5 | 1 *(1)* | 1 *(1 / 1 / 1)* | 0 | — |
+| F6 | 1 *(1)* | 5 *(5 / 5 / 5)* | **8 *(8)***: `gpt-5.3-codex` ×1, `gpt-6-luna` ×7 | R C R C R C R C |
+| F7 | 1 *(1)* | 1 *(1 / 1 / 1)* | 0 | R C |
+| F8 | 1 *(1)* | 1 *(1 / 1 / 1)* | 0 | R C R C |
+
+**El agente extrae el dato del 100 % de las líneas de contexto**. Ningún `thread_settings_applied` quedó sin modelo, así que no hubo que
+listar campos.
+
+**`LeerFicheroCodex`, frente al contador** *(descubrimiento §FASE 0 (f))*:
+
+| F | Agente: eventos · entrada / escritura / lectura / salida · modelos | Contador | |
+|---|---|---|---|
+| F1–F4 | 0 · formato anterior = 1 cada uno | 0 · anterior | ✅ |
+| F5 | 0 · ni anterior ni comprimido | 0 · sin consumo | ✅ |
+| F6 | 4 · 15 076 / 0 / 51 200 / 88 · `gpt-6-luna` ×4 | 4 · 15 076 / 0 / 51 200 / 88 · `gpt-6-luna` ×4 | ✅ |
+| F7 | 1 · 2 823 / 0 / 11 008 / 5 · `gpt-6-luna` | igual | ✅ |
+| F8 | 2 · 3 880 / 0 / 24 064 / 237 · `gpt-6-luna` ×2 | igual | ✅ |
+
+**El orden**: en F6, F7 y F8 el `token_usage_record` de cada respuesta va **antes** que su `token_count`. Una pasada que cayera entre los dos
+vería ya el registro, así que no hay riesgo de contar el fichero como «formato anterior» por ese orden.
+
+**Resultado: la forma de los fixtures es la de los ficheros reales. Se sigue con B4.**
+
+## B4 · Raíz y activación
+
+### T024 · Fase 0
+
+`internal/config/codex.go` *(nuevo)*: `CodexSessionsRoot() (string, error)`, que devuelve `"", nil`. Suite verde.
+
+### T025 · Rojos, en `internal/config/codex_test.go` *(nuevo)*
+
+```
+--- FAIL: TestCodexSessionsRoot_Raiz/definida              CodexSessionsRoot() = ("", <nil>); se esperaba ("<temporal>/sessions", nil)
+--- FAIL: TestCodexSessionsRoot_Raiz/vacia                 con CODEX_HOME="": ("", <nil>); se esperaba ("<hogar>/.codex/sessions", nil)
+--- FAIL: TestCodexSessionsRoot_Raiz/ausente               sin CODEX_HOME: ("", <nil>); se esperaba ("<hogar>/.codex/sessions", nil)
+--- FAIL: TestCodexSessionsRoot_InexistenteSinError        con la raíz inexistente: ("", <nil>); se esperaba ("<hogar inexistente>/.codex/sessions", nil)
+```
+
+**Razón**: la Fase 0 no resuelve nada. Las rutas son temporales del test.
+
+**Cómo se hace cada caso**:
+- **«ausente»**: `t.Setenv` y después `os.Unsetenv`, de modo que `t.Setenv` la restaura al terminar.
+- **En (21)**: se crea la carpeta `sessions`, para que sólo **(22)** pruebe la raíz inexistente *(E-2)*.
+
+### T026 · Verde
+
+- **`CodexSessionsRoot()`**: `CODEX_HOME` no vacía → `<valor>/sessions`; si no, `os.UserHomeDir()` + `.codex/sessions`. **Sin mirar si
+  existe** *(E-2)*.
+- **`internal/testutil/sandbox.go`** *(M-9)*: una línea, `t.Setenv("CODEX_HOME", "")`, con su comentario.
+- **Resultado**: los 4 tests y hojas, en PASS; `0 issues`; 9/9.
+
+### T027 · Comprobado, sin tocarlo
+
+- **`sandbox_test.go`** sigue verde *(sus 4 tests)*, y `git diff 7b8c77c -- internal/testutil/sandbox_test.go` está vacío.
+- **`os.Getenv` de producción**:
+  ```
+  $ grep -rn 'os.Getenv' --include=*.go cmd internal | grep -v _test
+  internal/config/codex.go:19:	if propia := os.Getenv("CODEX_HOME"); propia != "" {
+  ```
+  **Una línea.** La primera vez salieron **dos**, porque el comentario nombraba `os.Getenv` literalmente; se reformuló *(«la ÚNICA lectura de
+  una variable de entorno en producción»)*.
+
+### T028 · Censo declarado ANTES de mutar *(2026-10-07)*
+
+**Nueva**: **M-B4a**, «exigir que la raíz exista», valida E-2 en (22).
+
+| # | Mutación *(en `internal/config/codex.go`)* | Debe caer *(hojas)* |
+|---|---|---|
+| m15 | `CODEX_HOME=""` tomada como raíz *(`os.LookupEnv` en vez de «no vacía»)* | `TestCodexSessionsRoot_Raiz/vacia` |
+| m16 | ignorar `CODEX_HOME` *(`os.Getenv("CODEX_HOME")` → `""`)* | `TestCodexSessionsRoot_Raiz/definida` |
+| M-B4a | exigir que la raíz exista *(un `os.Stat` en la rama del hogar)* | `TestCodexSessionsRoot_InexistenteSinError` |
+
+**Resultado: las tres coinciden**, y ninguna tumbó nada fuera de lo declarado en la suite entera. Reversión por edición inversa, y el md5 de
+`internal/config/codex.go` es **`fdc32b1c024af448d021800a85cd5752`** antes y después de cada una.
+- **m15**: `…Raiz/vacia`: `con CODEX_HOME="": ("sessions", <nil>); se esperaba ("<hogar>/.codex/sessions", nil)`.
+- **m16**: `…Raiz/definida`: devuelve `<hogar>/.codex/sessions` en vez de `<CODEX_HOME>/sessions`.
+- **M-B4a**: `…InexistenteSinError`: `("", stat <hogar inexistente>/.codex/sessions: no such file or directory)`.

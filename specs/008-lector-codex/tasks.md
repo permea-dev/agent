@@ -11,7 +11,7 @@
 - **✋**: la ejecuta **el dueño**: commits, la PR, la fusión, la etiqueta y los ensayos en Windows. Claude no hace git de escritura. El
   mensaje de cada commit va previsto, **sin tildes ni ñ**.
 - **(1)…(35)** son los rojos y **(m1)…(m27)** las mutaciones de `plan.md` §Bloques, con la misma numeración. Lo propio de este fichero se
-  llama **M-B1a**, **M-B2a**…**M-B2e**, **M-B3a**, **M-B3b**, **M-B5a** y **M-B6a**.
+  llama **M-B1a**, **M-B2a**…**M-B2e**, **M-B3a**, **M-B3b**, **M-B4a**, **M-B5a** y **M-B6a**.
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 - Las transcripciones van a `soporte/registro.md`, que se crea en B1, y en cada tarea queda una remisión.
 
@@ -122,21 +122,22 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
   formato anterior → (17/sin_consumo).
 - [x] **T022** Mutaciones y transcripción, con md5.
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 · T020, T021, T022 *(las diez coinciden)*, la medida de SC-014 y FR-029.
-- [ ] **T023** ✋ Puertas y commit: `008 B3: contexto entre pasadas, formato y recuentos de Codex`.
+- [x] **T023** ✋ *(`82da9d6`)* Puertas y commit: `008 B3: contexto entre pasadas, formato y recuentos de Codex`.
 
 ## B4 · Raíz y activación *(FR-001, FR-002; M-9)*
 
-- [ ] **T024** Fase 0: `config.CodexSessionsRoot() (string, error)` en `internal/config/codex.go` *(nuevo)*, que devuelve `"", nil`.
-- [ ] **T025** [P] **Rojos (21) y (22)** en `internal/config/codex_test.go` *(nuevo)*, con `t.Setenv`:
-  - **(21)**, tres subtests: `CODEX_HOME` definida → `<valor>/sessions`; vacía → `<home>/.codex/sessions`; ausente → lo mismo;
-  - **(22)** *(E-2)*: con una raíz inexistente se devuelve la ruta igual, sin error. La activación no se decide aquí, sino en cada pasada
-    *(FR-002, (32))*.
-- [ ] **T026** **Verde**: el único `os.Getenv` de producción *(D-008-P7)*. En `internal/testutil/sandbox.go`, `t.Setenv("CODEX_HOME", "")`
+- [x] **T024** Fase 0: `config.CodexSessionsRoot() (string, error)` en `internal/config/codex.go` *(nuevo)*, que devuelve `"", nil`.
+  *(Antes, la Fase previa del Encargo 7: la forma de los fixtures frente a la copia congelada; cuadra. Registro §B3, «comprobación de forma».)*
+- [x] **T025** [P] **Rojos (21) y (22)** en `internal/config/codex_test.go` *(nuevo)*, con `t.Setenv`: **(21)** tres subtests, `CODEX_HOME`
+  definida → `<valor>/sessions`, vacía → `<home>/.codex/sessions`, ausente → lo mismo; **(22)** *(E-2)* una raíz inexistente se devuelve
+  igual, sin error *(la activación se decide en cada pasada, FR-002, (32))*.
+- [x] **T026** **Verde**: el único `os.Getenv` de producción *(D-008-P7)*. En `internal/testutil/sandbox.go`, `t.Setenv("CODEX_HOME", "")`
   *(M-9)*.
-- [ ] **T027** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde. Y `grep -rn 'os.Getenv' --include=*.go cmd internal
+- [x] **T027** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde. Y `grep -rn 'os.Getenv' --include=*.go cmd internal
   | grep -v _test` → 1.
-- [ ] **T028** Censo, **antes de mutar**, y mutaciones: **(m15)** `CODEX_HOME=""` tomada como raíz → (21/vacía); **(m16)** ignorar
-  `CODEX_HOME` → (21/definida).
+- [x] **T028** Censo, **antes de mutar**, y mutaciones: **(m15)** `CODEX_HOME=""` tomada como raíz → (21/vacía); **(m16)** ignorar
+  `CODEX_HOME` → (21/definida); **M-B4a** exigir que la raíz exista → (22).
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B4 · T024–T028 *(las tres coinciden)*.
 - [ ] **T029** ✋ Puertas y commit: `008 B4: raiz de Codex con CODEX_HOME`.
 
 ## B5 · Integración *(FR-002, FR-003, FR-016, FR-019, FR-021, FR-025, FR-026, FR-028; SC-001–SC-003 por fixture, SC-006, SC-011, SC-015, SC-016, SC-018)*
@@ -291,6 +292,7 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | M-B3b | B3 | sin registros = formato anterior | (17/sin_consumo) |
 | m15 | B4 | `CODEX_HOME=""` tomada como raíz | (21/vacía) |
 | m16 | B4 | ignorar `CODEX_HOME` | (21/definida) |
+| M-B4a | B4 | exigir que la raíz exista | (22) |
 | m17 | B5 | `st.Save` antes del Append de Codex | (25), con el forzado de T030 |
 | m18 | B5 | la línea de Codex siempre | (23) ×2 |
 | m19 | B5 | `tick` escribe siempre | (27) |
@@ -303,7 +305,7 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 | m22 | B6 | sin detección de Codex en `--scan` | (29) |
 | M-B6a | B6 | todo fichero es Codex | (30) |
 
-**37 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**38 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 
