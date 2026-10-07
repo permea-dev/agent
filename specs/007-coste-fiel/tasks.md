@@ -230,11 +230,12 @@ grep -rnE '\.(go|md|jsonl|json|sh|yaml|yml):[0-9]+|[(`]:[0-9]+' --include='*.go'
   `--run` separados por más de T. Se anota cada paso. *(2026-10-06, sin fallos: `soporte/registro.md` §Cierre C4.)*
 - [x] **T042** **C5** · Cuerpo del PR y fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0; `## 0.4.0 — 2026-10-07`)*. ✋ commit
   `007 C5: fecha de la 0.4.0 en el CHANGELOG`.
-- [ ] **T043** ✋ **C6** · Fusión del PR con merge commit.
-- [ ] **T044** ✋ **C7** · `git tag -a v0.4.0` sobre `main` y `git push origin v0.4.0`.
-- [ ] **T045** **C8** · Los tres canales en `0.4.0` *(release, Scoop y cask)*, y `strings` del binario publicado *(SC-011)*.
-- [ ] **T046** ✋ **C9 · W2** *(quickstart §W2)*: Scoop, `--run`, recuento en la plataforma con «en espera» descontado; tras T, otro `--run`
-  que cuadre con todos.
+- [x] **T043** ✋ **C6** · Fusión del PR con merge commit *(2026-10-07: PR #4, `03ae23c`)*.
+- [x] **T044** ✋ **C7** · `git tag -a v0.4.0` sobre `main` y `git push origin v0.4.0` *(sobre `03ae23c`; `release` en verde)*.
+- [x] **T045** **C8** · Los tres canales en `0.4.0` *(release, Scoop y cask)*, y `strings` del binario publicado *(SC-011)*. *(Hecho por
+  el orquestador; `gh release view` y los checksums, comprobados en el Encargo 13.)*
+- [x] **T046** ✋ **C9 · W2** *(quickstart §W2)*: Scoop, `--run`, recuento en la plataforma con «en espera» descontado; tras T, otro `--run`
+  que cuadre con todos. *(2026-10-07; contraste declarado: transmitidos = plataforma y coste recalculado. `soporte/registro.md` §Cierre C9.)*
 
 ## Dependencias
 

@@ -744,3 +744,98 @@ sync omitido: sin endpoint configurado
 | mensajes / eventos | 6 074 | 6154 eventos + 2 en espera |
 
 **Resultado: W1 sin fallos.** Los cuatro pasos de quickstart §W1 *(E-7)* dieron lo esperado.
+
+### C6 · T043 · Fusión *(el dueño, 2026-10-07)*
+
+- El PR #4, fusionado con merge commit **`03ae23c`**. La rama remota se borró tras `MERGED`.
+- Sobre `main`: 9 paquetes ok, lint 0 y `PENDIENTE` 0.
+
+### C7 · T044 · Etiqueta *(el dueño, 2026-10-07)*
+
+- La etiqueta anotada **`v0.4.0`**, sobre `03ae23c`.
+- El flujo `release` terminó en verde *(GoReleaser, 56 s)*.
+
+### C8 · T045 · Canales *(el orquestador, 2026-10-07, con una descarga anónima de lo publicado)*
+
+- **Los cinco archivos de la release**: `sha256sum -c` del fichero de checksums, OK en todos.
+
+| Archivo | SHA-256 |
+|---|---|
+| `permea_0.4.0_darwin_amd64.tar.gz` | `f9342465600fc70612fadcc954a0d3e497e90e2e43a739e792a7e6d5f90e99a8` |
+| `permea_0.4.0_darwin_arm64.tar.gz` | `c2bb79812f45b5d44623ad1b661c3ddaa0524a42f6374f2c68dae8d35a162602` |
+| `permea_0.4.0_linux_amd64.tar.gz` | `e31041de11d0ad9b71bda82bd18552a6a42d58ae614ad258d0f72327e22fc883` |
+| `permea_0.4.0_linux_arm64.tar.gz` | `6e5a7cd0fee4a33c6b575dce894d88558eb6045a9caac900986778f678f174a1` |
+| `permea_0.4.0_windows_amd64.zip` | `0f360e0397c13ebb080e5d84a604ea06f330d3452ba16d24cde5fc3acf8c27e0` |
+
+- **Scoop**: el manifiesto, en `0.4.0`, con el hash del zip de Windows. **Homebrew**: el cask, en `0.4.0`, con los cuatro hashes de macOS
+  y Linux.
+- **El binario de Linux publicado, en sandbox**: `--version` → `0.4.0`; `status` → `no enrolado`; `help` → 41 líneas.
+- **SC-011**: la segunda línea del resumen, el aviso de `--run` y `cw=%d cw5m=%d cw1h=%d cr=%d` aparecen **una** vez en el ejecutable de
+  Linux y **una** en el de Windows.
+- **El README empaquetado** es el de la 0.4.0: 17 modelos y `8f147d1`, sin «Limitación conocida» ni «Limitación 1».
+
+**Comprobado aquí** *(Encargo 13, sólo lectura)*:
+- `gh release view v0.4.0`:
+  - título `v0.4.0`, etiqueta `v0.4.0`, `draft: false`, `prerelease: false`;
+  - autor `github-actions[bot]`, creada `2026-10-07T08:02:42Z` y publicada `2026-10-07T08:03:47Z`;
+  - seis assets: el fichero de checksums y los cinco archivos de arriba;
+  - el changelog de la release lista los commits de `222c824` a `03ae23c`.
+- El fichero `permea_0.4.0_checksums.txt` publicado, descargado a un temporal y borrado después, trae **los mismos cinco hashes**
+  *(`diff` vacío)*.
+- En el repo, `git cat-file -t v0.4.0` → `tag` *(anotada)*, y apunta a `03ae23c`.
+
+**Coincide con lo del orquestador.**
+
+### C9 · T046 · W2 *(el dueño, 2026-10-07, en la instalación real de Windows, enrolada)*
+
+- `scoop update permea`: de 0.3.0 a 0.4.0, con el hash comprobado por Scoop.
+- `permea --version` → `0.4.0`. `permea status` → enrolado, token configurado.
+
+**Primera pasada** *(10:10, Madrid)*, salida literal:
+```
+Permea 0.4.0
+1005 eventos encolados en <directorio de datos>\queue.jsonl
+pasada: 2290 líneas facturables · 1005 eventos · 1283 repetidas del mismo mensaje · 1 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 1 en espera de cerrarse · 0 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+1 mensajes siguen abiertos: se enviarán en la próxima pasada
+1005 eventos transmitidos y confirmados
+```
+En la plataforma, eventos de la versión `0.4.0` a las 08:11:27 UTC: 1005 eventos · entrada 2038 · salida 1169812 · escritura 4210955 ·
+lectura 412521097 · coste 139.619963 · con coste 1005.
+
+**Segunda pasada** *(10:26, Madrid; Claude Code seguía en uso en otra carpeta)*, salida literal:
+```
+Permea 0.4.0
+45 eventos encolados en <directorio de datos>\queue.jsonl
+pasada: 108 líneas facturables · 45 eventos · 62 repetidas del mismo mensaje · 0 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 1 en espera de cerrarse · 2 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+1 mensajes siguen abiertos: se enviarán en la próxima pasada
+45 eventos transmitidos y confirmados
+```
+En la plataforma, a las 08:26:29 UTC: 1050 eventos · entrada 2128 · salida 1234124 · escritura 4294409 · lectura 428932769 · coste
+144.856529 · con coste 1050.
+
+**Lectura del orquestador**:
+- La primera pasada envió sólo lo posterior al offset de la 0.3.0 *(FR-019)*.
+- 1005 + 1283 + 1 + 1 = 2290, y 45 + 62 + 1 = 108.
+- La plataforma = lo transmitido en las dos pasadas *(1005, y 1005 + 45)*.
+- El mensaje en espera de la primera salió en la segunda, releído del log.
+- El incremento de coste, 5,236566, es exactamente el de `claude-opus-5-5` con la escritura a 1 hora sobre los incrementos de tokens
+  *(90 de entrada, 64 312 de salida, 83 454 de escritura y 16 411 672 de lectura)*.
+
+> ⚠️ **Declarado**: el quickstart pedía contrastar W2 con el contador independiente y con «en espera» a 0 tras 10 minutos. No se hizo
+> así: la instalación estaba en uso *(siempre quedó 1 mensaje abierto)*, y el contraste fue transmitidos = plataforma, más el coste
+> recalculado. El contador independiente quedó acreditado en C2 sobre las copias, con el mismo código, y «en espera → 0», en W1.
+
+**WSL** *(10:28, Madrid)*:
+- `install.sh` con el checksum verificado, `0.4.0`, enrolado.
+- Una pasada de 1841 líneas facturables · 816 eventos · 1025 repetidas · 0 en espera.
+- «816 eventos transmitidos y confirmados».
+
+**Comprobado aquí** *(aritmética sobre las cifras de arriba, en `Decimal`)*:
+- Los incrementos de la plataforma son 90 · 64 312 · 83 454 · 16 411 672, y 1050 − 1005 = 45 eventos.
+- (90 × 4 + 64 312 × 20 + 83 454 × 8 + 16 411 672 × 0,2) / 10⁶ = **5,2365664** USD, con la tabla del contrato para `claude-opus-5-5`
+  *(entrada, salida, escritura a 1 h y lectura)*. Redondeado a 6 decimales es **5,236566** = 144,856529 − 139,619963.
+- 1005 + 1283 + 1 + 1 = 2290 · 45 + 62 + 1 = 108 · y, en WSL, 816 + 1025 = 1841.
+
+**Resultado: W2 sin fallos**, con el contraste declarado arriba.

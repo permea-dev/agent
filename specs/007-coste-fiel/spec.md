@@ -1,6 +1,6 @@
 # 007 · «Coste fiel» — Especificación
 
-**Feature Branch**: `007-coste-fiel` · **Created**: 2026-10-06 · **Status**: Ratificada el 2026-10-06 *(E-2)* · **Cabeza de partida**: `222c824` · **Enmiendas**: E-1 a E-7
+**Feature Branch**: `007-coste-fiel` · **Created**: 2026-10-06 · **Status**: **Cerrada y publicada como `0.4.0`** el 2026-10-07 *(ratificada el 2026-10-06, E-2; §Cierre)* · **Cabeza de partida**: `222c824` · **Enmiendas**: E-1 a E-7
 **Input**: las decisiones del dueño `D-1`…`D-3` · el descubrimiento del 06-10 *(`soporte/descubrimiento.md`; las referencias, desde E-1,
 sobre la **copia del dueño 2026-10-06-wsl** y la **copia del dueño 2026-10-06-windows**)* · el «Hallazgo de W2» de 006 *(`specs/006-medicion-fiel/spec.md:377-389`)* · el catálogo de la plataforma
 `permea-dev/permea-platform` · `backend/config/pricing.php` · **`8f147d1`** *(P-031, en producción desde el 2026-10-06)*.
@@ -294,6 +294,47 @@ orquestador, 2026-10-06. Q-5: resuelta por la medida *(E-1)*.
 ## Dependencias
 - **Plataforma `8f147d1`**: el catálogo que se replica *(D-3)*. Ver N-6 para la enmienda de su cabecera.
 - **006**: FR-005 y FR-033 se **sustituyen** por FR-009 a FR-013 y FR-021. FR-009 *(no reenviar)* se conserva. El contrato `tarifas.md` se sustituye *(FR-008)*.
+
+## Cierre *(2026-10-07)*
+
+**Cerrada y publicada como `0.4.0`.** El PR #4 se fusionó con merge commit `03ae23c`, y la etiqueta anotada `v0.4.0` va sobre
+`03ae23c`. Los canales y los dos ensayos en Windows: `soporte/registro.md` §Cierre C1–C9.
+
+| SC | Evidencia | |
+|---|---|:--:|
+| **SC-001** | **B3**, los tests del máximo. **C2**, copia -wsl: 10 121 mensajes · 26 392 · 11 713 955 · 32 765 802 · 4 499 158 833; el agente = el contador = la referencia | ✅ |
+| **SC-002** | **B3**: rojos (9) y (10), con m9 «primera» y m10 «última». **C2**, copia -windows: 6 074 · 12 206 · **6 723 801** *(6 635 290 con «primera»)* · 22 307 249 *(971 559 / 21 335 690)* · 2 423 738 410, y los 143 suman 89 817. **W1**: los 143 que crecen, en la primera pasada | ✅ |
+| **SC-003** | **B3**: (14), validado por m11. **C2**: 10 121 eventos = 10 121 mensajes, y 0 `event_id` repetidos | ✅ |
+| **SC-004** | **B2**: rojo (3), con 1,1775756 y 1,2146106; m4 cruza las tarifas y cae | ✅ |
+| **SC-005** | **C2** *(E-6, en `Decimal`)*: `coste_distinto=0` en las dos copias, con 31 y 18 empates y `sin_tarifa=0`; el reparto de -wsl, 247 506 / 32 518 296. **W2**: el incremento de coste en la plataforma, 5,236566, recalculado con la tabla | ✅ |
+| **SC-006** | **B4**: (15), en dos procesos, validado por m13, m17, m20 y M-B4a. **W1** y **W2**: lo que quedó en espera salió en la pasada siguiente, releído del log | ✅ |
+| **SC-007** | **B4**: (16) y (23), con m14, m15, m21 y m22. **W1**: la regla (ii) cierra en NTFS | ✅ |
+| **SC-008** | **B4**: (17), mismo fichero y otro, con m16 y m20 | ✅ |
+| **SC-009** | **B4**: (22), con m19 y M-B4d. **C1**, y las puertas de cada encargo de cierre: la frontera, sin diff contra `222c824` | ✅ |
+| **SC-010** | **B1**: rojos de T005, con m1, m2 y m3 | ✅ |
+| **SC-011** | **B4**: (18), el resumen. **B5**: `cmp` del CHANGELOG. **C3**: `strings` del snapshot. **C8**: los textos, una vez en el ejecutable publicado de Linux y en el de Windows. **C5**: el cuerpo del CHANGELOG, por `cmp`, igual que el aprobado | ✅ |
+| **SC-012** | Las puertas de cada bloque. **C1**: 494 pass y lint 0. **C6**: 9 paquetes ok y lint 0 sobre `main` | ✅ |
+
+**12 / 12.**
+
+> ⚠️ **Declarado en W2** *(C9)*: el quickstart pedía contrastar W2 con el contador independiente y con «en espera» a 0 tras 10 minutos.
+> No se hizo así: la instalación estaba en uso *(siempre quedó 1 mensaje abierto)*, y el contraste fue transmitidos = plataforma, más el
+> coste recalculado. El contador independiente quedó acreditado en C2 sobre las copias, con el mismo código, y «en espera → 0», en W1.
+
+**Enmiendas** *(§Registro de enmiendas)*:
+- **E-1**: referencias en las copias del dueño, y Q-3 (d).
+- **E-2**: ratificación.
+- **E-3**: el tope de 24 h y las citas del CHANGELOG.
+- **E-4**: `SinDesglose` sólo con escritura, y el empate.
+- **E-5**: el censo de las mutaciones, por hoja.
+- **E-6**: SC-005 en `Decimal`.
+- **E-7**: W1 en sandbox.
+
+**Lo que queda fuera de este repo**:
+- **La cabecera de `pricing.php@8f147d1:32-35`**, en la plataforma *(N-6)*. Dice que el agente «0.3.0» tarifa la caché a 5 minutos;
+  para los eventos de la 0.4.0 ya no es cierto. Necesita su encargo en la plataforma.
+- **Ficha: la concordancia de «1 mensajes siguen abiertos»** *(W2)*. Es el texto aprobado, literal *(P-5, SC-011)*, con N = 1. Es
+  cosmético: cambiarlo exige enmendar §Textos aprobados y volver a comprobar SC-011.
 
 ## Registro de enmiendas
 

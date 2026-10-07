@@ -225,14 +225,17 @@ Se anotan la fecha, el commit del snapshot, la huella del zip y la salida de cad
 5. Tras > 10 min sin usar Claude Code, otro `--run`. El recuento debe cuadrar con todos, y la salida de la ventana coincidir con
    el **máximo** del contador.
 
-## Checklist de cierre
+## Checklist de cierre *(cerrado el 2026-10-07)*
 
-- [ ] Puertas en verde *(C1)*.
-- [ ] M1–M4 con las referencias, y las huellas de las copias iguales antes y después *(C2)*.
-- [ ] Snapshot y `strings` con los textos aprobados *(C3)*.
-- [ ] W1 anotado sin fallos *(C4)*.
-- [ ] `PENDIENTE` → 0 antes de fusionar *(C5)*.
-- [ ] Release y canales en `0.4.0` *(C8)*.
-- [ ] W2 anotado *(C9)*.
-- [ ] Temporales borrados.
-- [ ] Nota para la plataforma: la cabecera de `pricing.php` *(N-6)*.
+- [x] Puertas en verde *(C1)*.
+- [x] M1–M4 con las referencias, y las huellas de las copias iguales antes y después *(C2)*.
+- [x] Snapshot y `strings` con los textos aprobados *(C3)*.
+- [x] W1 anotado sin fallos *(C4)*.
+- [x] `PENDIENTE` → 0 antes de fusionar *(C5)*.
+- [x] Release y canales en `0.4.0` *(C8)*.
+- [x] W2 anotado *(C9)*. ⚠️ **Nota**: no se contrastó con el contador ni con «en espera» a 0 tras 10 minutos, porque la instalación
+  estaba en uso y siempre quedó 1 mensaje abierto. El contraste fue transmitidos = plataforma, más el coste recalculado. El contador quedó
+  acreditado en C2, y «en espera → 0», en W1 *(`spec.md` §Cierre)*.
+- [x] Temporales borrados.
+- [x] Nota para la plataforma: la cabecera de `pricing.php` *(N-6)*, anotada en `spec.md` §Cierre. La enmienda va en un encargo de la
+  plataforma.
