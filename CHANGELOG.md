@@ -3,6 +3,31 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
+## 0.4.0 — 2026-10-07
+
+### Cambia
+- El coste de la escritura de caché usa su duración: la de 5 minutos a su tarifa y la de 1 hora a la suya (el doble de la entrada).
+  Antes toda iba a la de 5 minutos, y el coste salía por debajo.
+  (`specs/007-coste-fiel/spec.md`, FR-001, FR-002, FR-007)
+- Un mensaje que Claude Code escribe en varias líneas se cuenta entero: cada partida vale lo más alto que alcanza. Antes contaba
+  la primera línea, y en las conversaciones de subagentes podía faltar parte de la salida.
+  (`specs/007-coste-fiel/spec.md`, FR-009)
+- El último mensaje de cada conversación se envía cuando empieza el siguiente o tras 10 minutos sin cambios. Si la pasada
+  termina antes, sale en la siguiente.
+  (`specs/007-coste-fiel/spec.md`, FR-010, FR-011, FR-014)
+- Tarifas de 17 modelos, con la escritura de caché a 1 hora; nueva: claude-fable-5-1.
+  (`specs/007-coste-fiel/spec.md`, FR-006, FR-008; `specs/007-coste-fiel/contracts/tarifas.md`)
+
+### Lo ya enviado
+- No se corrige ni se reenvía. Un mensaje que la 0.3.0 envió incompleto se queda como llegó.
+  (`specs/007-coste-fiel/spec.md`, FR-019)
+
+### Limitaciones conocidas
+- El «modo rápido» no se distingue: un mensaje en modo rápido queda por debajo de su coste.
+  (`specs/007-coste-fiel/spec.md`, FR-007, N-3)
+- Una línea sin el desglose de la caché se tarifa entera a 1 hora.
+  (`specs/007-coste-fiel/spec.md`, FR-003, FR-004)
+
 ## 0.3.0 — 2026-10-02
 
 Primera versión desde la 0.2.1. Trae el enrolamiento, la identidad y la adhesión a proyecto, y

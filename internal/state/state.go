@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // FileState guarda el progreso por fichero para no reprocesar llamadas ya emitidas.
@@ -76,14 +77,41 @@ func (s *Store) Save(path string) error {
 // fn por cada una, avanzando el offset solo hasta el fin de la última línea completa.
 // Detecta truncado/rotación (size < offset -> relee desde 0). Una línea parcial (el
 // fichero se está escribiendo) no se cuenta hasta terminar en '\n'. Solo stdlib.
+//
+// P-007: es un envoltorio de `Recorrer` que guarda el offset de siempre, el final de lo leído.
 func (s *Store) ScanFile(path string, fn func(line []byte) error) error {
+	return s.Recorrer(path,
+		func(line []byte, _ int64, _ bool) error { return fn(line) },
+		func(leido int64, _ time.Time) int64 { return leido })
+}
+
+// Recorrer lee las líneas COMPLETAS nuevas de path desde el offset guardado, como ScanFile, con dos
+// diferencias (P-007 FR-011, FR-021):
+//
+//   - fn recibe además el COMIENZO de cada línea en el fichero, y si es RELEÍDA: si empieza por debajo del
+//     tamaño que tenía el fichero en la pasada anterior, ya se leyó entonces;
+//   - el offset que se guarda lo decide quien llama: `fijar` recibe el fin de la última línea completa
+//     leída y la última modificación del fichero, del stat de ESTA pasada, y devuelve el offset que se
+//     guarda. Así un mensaje abierto no se consume: el offset se queda en su comienzo y la pasada
+//     siguiente lo relee del log.
+//
+// «Releída» es una APROXIMACIÓN, porque el `Size` anterior es el del stat de la pasada anterior, no lo que
+// esa pasada leyó. Tiene dos imprecisiones:
+//   - una línea que estaba a medio escribir en la pasada anterior se cuenta como releída sin haberse leído;
+//   - si el fichero creció entre el stat y la lectura, una línea ya leída se cuenta como nueva.
+//
+// Sólo afectan al recuento de releídas y a si el demonio escribe el resumen de ese ciclo. NUNCA a lo que se
+// emite: la marca no entra en la acumulación ni en el cierre de los mensajes.
+func (s *Store) Recorrer(path string, fn func(line []byte, inicio int64, releida bool) error,
+	fijar func(leido int64, modificado time.Time) int64) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
-	offset := s.Files[path].Offset
+	anterior := s.Files[path]
+	offset, leidoAntes := anterior.Offset, anterior.Size
 	if info.Size() < offset {
-		offset = 0 // truncado o rotado: releer desde el principio
+		offset, leidoAntes = 0, 0 // truncado o rotado: releer desde el principio; nada de esto se leyó antes
 	}
 
 	f, err := os.Open(path)
@@ -106,17 +134,20 @@ func (s *Store) ScanFile(path string, fn func(line []byte) error) error {
 		if err != nil {
 			return err
 		}
+		inicio := consumed
 		consumed += int64(len(line))
-		if cbErr := fn(line); cbErr != nil {
+		if cbErr := fn(line, inicio, inicio < leidoAntes); cbErr != nil {
 			return cbErr
 		}
 	}
+	// El offset pedido nunca sale de lo que ya estaba guardado y lo leído ahora.
+	guardado := min(max(fijar(consumed, info.ModTime()), offset), consumed)
 
 	s.Files[path] = FileState{
 		Path:    path,
 		Size:    info.Size(),
 		ModTime: info.ModTime().Unix(),
-		Offset:  consumed,
+		Offset:  guardado,
 	}
 	return nil
 }

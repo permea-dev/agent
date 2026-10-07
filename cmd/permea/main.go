@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/permea-dev/agent/internal/config"
+	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/project"
 	"github.com/permea-dev/agent/internal/state"
@@ -166,6 +167,9 @@ type agent struct {
 	dir  string
 	cfg  config.Config
 	ictx ingest.Context
+	// reloj da la hora contra la que se cierran los mensajes por espera (P-007 FR-010). Nil es time.Now; los
+	// tests lo fijan por código, nunca por entorno ni por bandera.
+	reloj func() time.Time
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -262,10 +266,17 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 	// y entre ciclos no hay memoria (los repetidos los descarta la plataforma por `event_id`).
 	pasada := ingest.NuevaPasada()
 	ictx.Pasada = pasada
+	// P-007 FR-010: la hora contra la que se cierran los mensajes por espera, una para toda la pasada.
+	ahora := time.Now()
+	if a.reloj != nil {
+		ahora = a.reloj()
+	}
 
 	total := 0
 	for _, logPath := range logs {
-		err := st.ScanFile(logPath, func(line []byte) error {
+		var cerrados []ingest.Cerrado
+		err := st.Recorrer(logPath, func(line []byte, inicio int64, releida bool) error {
+			pasada.Situar(inicio, releida)
 			ev, err := ingest.FromClaudeCodeLine(line, ictx)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "skip (línea corrupta):", err)
@@ -279,9 +290,27 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 			}
 			total++
 			return nil
+		}, func(leido int64, modificado time.Time) int64 {
+			// P-007 FR-010, FR-011: salen los mensajes cerrados; lo que sigue abierto no se consume, y el offset
+			// se queda en su comienzo para que la pasada siguiente lo relea.
+			var abierto int64
+			var hayAbierto bool
+			cerrados, abierto, hayAbierto = pasada.CerrarConReloj(ahora, modificado)
+			if hayAbierto {
+				return abierto
+			}
+			return leido
 		})
 		if err != nil {
 			return total, pasada, err
+		}
+		// P-007 FR-012: lo cerrado se encola ANTES de guardar el estado. Si algo falla antes de este punto, el
+		// estado no avanza y la pasada siguiente relee esas líneas.
+		for _, c := range cerrados {
+			if err := transport.Append(a.dir, c.Evento); err != nil {
+				return total, pasada, err
+			}
+			total++
 		}
 	}
 
@@ -316,6 +345,9 @@ func runOnce() error {
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos encolados en %s\n", n, transport.QueuePath(a.dir))
 	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
+	if aviso := pasada.AvisoDeAbiertos(); aviso != "" {
+		fmt.Fprintln(os.Stderr, aviso) // P-007 FR-014: lo abierto sale en la próxima pasada
+	}
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -373,7 +405,7 @@ func (a *agent) tick() error {
 		}
 		// P-006: el resumen, sólo si la pasada leyó algo. Un resumen vacío cada ciclo es ruido, y el
 		// ruido enseña a ignorar los avisos.
-		if pasada.Recuentos().Facturables > 0 {
+		if pasada.HayNovedades() {
 			fmt.Fprintln(os.Stderr, pasada.Resumen())
 		}
 	}
@@ -415,26 +447,36 @@ func dryRun(path string) error {
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
 	n := 0
+	imprimir := func(ev event.Event, cw5m, cw1h int) {
+		n++
+		ref := ev.ProjectRef
+		if len(ref) > 8 {
+			ref = ref[:8] + "…"
+		}
+		// P-007 FR-016: el desglose de la escritura de caché, detrás de `cw=`, que sigue siendo el total. Viaja
+		// con el mensaje cerrado: el evento no lo lleva (D-1).
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cw5m=%d cw1h=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, cw5m, cw1h, ev.TokensCacheRead,
+			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
+	}
 	for sc.Scan() {
 		ev, err := ingest.FromClaudeCodeLine(sc.Bytes(), ctx)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "skip:", err)
 			continue
 		}
-		if ev == nil {
-			continue
+		if ev != nil {
+			// Sólo si la pasada no la acumula, que con un `event_id` de 32 hex es inalcanzable. Su desglose no
+			// se conoce aquí, y se imprime a 0.
+			imprimir(*ev, 0, 0)
 		}
-		n++
-		ref := ev.ProjectRef
-		if len(ref) > 8 {
-			ref = ref[:8] + "…"
-		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
-			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
 	}
 	if err := sc.Err(); err != nil {
 		return err
+	}
+	// P-007 FR-016: el fichero está completo, así que al final se cierra todo lo que tenga.
+	for _, c := range pasada.CerrarFichero() {
+		imprimir(c.Evento, c.Escritura5m, c.Escritura1h)
 	}
 	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", n)
 	fmt.Fprintln(os.Stderr, pasada.Resumen()) // P-006: sólo recuentos, nunca identificadores
