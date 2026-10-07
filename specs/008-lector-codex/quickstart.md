@@ -167,10 +167,10 @@ Se anotan la fecha, el commit del snapshot, la huella del zip y la salida de cad
 
 ## Checklist de cierre
 
-- [ ] Puertas en verde *(C1)*.
-- [ ] M1 y M2 con las referencias, y la huella de la copia igual antes y después *(C2)*.
-- [ ] SC-014: tres medidas ≤ 3 s, anotadas *(C2)*.
-- [ ] Snapshot y `strings` con los textos aprobados *(C3)*.
+- [x] Puertas en verde *(C1, 2026-10-07: 574 pass, 0 SKIP)*.
+- [x] M1 y M2 con las referencias, y la huella de la copia igual antes y después *(C2: `984d483c12a15601`)*.
+- [x] SC-014: tres medidas ≤ 3 s, anotadas *(C2: 0,340 · 0,340 · 0,342 s sobre 115 MB)*.
+- [x] Snapshot y `strings` con los textos aprobados *(C3: `0.4.0-SNAPSHOT-9516a08`)*.
 - [ ] W1 anotado sin fallos *(C4)*.
 - [ ] `PENDIENTE` → 0 antes de fusionar *(C5)*.
 - [ ] Release y canales en `0.5.0` *(C8)*.

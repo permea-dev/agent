@@ -672,3 +672,110 @@ $ cmp <«### Codex CLI» de README.md> <bloque README de la spec>          → s
 $ cmp <«## 0.5.0 — PENDIENTE» de CHANGELOG.md> <bloque de la spec>       → sin diferencias (19 líneas)
 $ grep -c PENDIENTE CHANGELOG.md                                          → 1
 ```
+
+## Cierre
+
+### Enmienda E-5 · coherencia del README *(aprobada por el dueño el 2026-10-07; Encargo 10, fase previa)*
+
+**Qué se hizo**:
+- Ocho frases del README que hablaban sólo de Claude Code, cambiadas **literalmente**, al ancho de línea del fichero. Algunos párrafos se
+  recolocaron, y la frase 1 queda partida en dos líneas.
+- Registrada en `spec.md`, con la fila E-5 y las frases finales en §Textos aprobados.
+- Corregidos en `plan.md` D-008-P8 y R-2: en `--scan` de Codex sólo la primera línea pasa por el tope de 1 MiB *(B6)*.
+
+**Comprobación**: `grep -F` de cada frase final sobre el README con los saltos de línea *(y el `> ` de la cita)* normalizados a un espacio.
+**9 de 9 presentes**: las ocho frases, más la viñeta nueva de la 7.
+- Ninguna línea nueva pasa de 104 caracteres fuera de los bloques de código. Las dos que pasan, las líneas 49 y 180, ya estaban en
+  `HEAD`.
+- `cmp` de «### Codex CLI» y del CHANGELOG con la spec: **sin diferencias**.
+
+### C1 · T046 · Puertas *(2026-10-07, sobre `9516a08` + los documentos de E-5; Go 1.22.2, golangci-lint 2.12.2)*
+
+```
+$ gofmt -l .                                   (vacío, rc=0)
+$ go vet ./...                                 (rc=0)
+$ golangci-lint run                            0 issues. (rc=0)
+$ go test -count=1 ./...                       9/9 ok (rc=0) · recuento -json: tests {'pass': 574} · paquetes {'pass': 9} · SKIP 0
+$ git diff 7b8c77c -- <frontera de FR-022> | wc -c                          0
+$ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'               (vacío)
+$ git diff 7b8c77c --stat -- internal/state/ internal/event/ internal/pricing/   (vacío)
+$ grep -rn 'os.Getenv' --include=*.go cmd internal | grep -v _test          internal/config/codex.go:19 (1)
+$ CGO_ENABLED=0 GOOS=windows GOARCH=amd64 / GOOS=darwin GOARCH=amd64, arm64 go build   rc=0 ×3
+$ grep -c PENDIENTE CHANGELOG.md               1
+$ grep -rn nolint --include=*.go . | wc -l     1   (la de SA1007, de 006)
+$ git log --oneline 7b8c77c..HEAD              7 commits: B0, B1, B2, B3, B4, B5, B6 y B7
+```
+
+**Resultado: todo en verde.**
+
+### C2 · T047 · Medidas sobre la copia congelada *(2026-10-07; binario de la rama, `9516a08`)*
+
+**Cómo**:
+- **El sandbox**: `mktemp -d /tmp/permea-008-XXXXXX` y `env -i` con `HOME`, `XDG_CONFIG_HOME`, `PATH=/usr/bin:/bin` y
+  `CODEX_HOME=<copia congelada>`. Sin enrolar *(`status` → «no enrolado» antes de cualquier `--run`)* y sin endpoint.
+- **El binario**: compilado con `-X main.version=0.5.0-c2-9516a08`, para seguir `agent_version` hasta la cola.
+- **El contador**: extraído por programa de `descubrimiento.md` §FASE 0 (f).
+- **Huella de la copia**: **`984d483c12a15601`** *(8 ficheros)* antes y después.
+- **El temporal**: borrado tras comprobar el prefijo.
+
+**`--scan` fichero a fichero, frente al contador** *(SC-001, SC-002, SC-003, SC-009)*:
+
+| F | Agente: eventos · entrada / escritura / lectura / salida · modelo | Línea `codex:` | Contador | |
+|---|---|---|---|---|
+| F1–F4 | 0 | formato anterior 1, cada uno | anterior | ✅ |
+| F5 | 0 | todo a 0 | sin consumo | ✅ |
+| F6 | 4 · 15 076 / 0 / 51 200 / 88 · `gpt-6-luna` ×4 | respuestas 4 · eventos 4 | igual | ✅ |
+| F7 | 1 · 2 823 / 0 / 11 008 / 5 → **2828** | respuestas 1 · eventos 1 | igual | ✅ |
+| F8 | 2 · 3 880 / 0 / 24 064 / 237 → **4117** | respuestas 2 · eventos 2 | igual | ✅ |
+
+Todos con `rc=0` y `cost_avail=false`. `--scan` no dejó ningún fichero en el hogar del sandbox.
+
+**`--run` dos veces** *(SC-002, SC-004, SC-005)*:
+- **Primera**: «7 eventos encolados» · los dos resúmenes de Claude Code a 0 *(el sandbox no tiene sus logs)* ·
+  `codex: respuestas 7 · eventos 7 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · ficheros en formato anterior 4 · ficheros comprimidos 0`
+  · «sync omitido».
+- **Segunda**: «0 eventos encolados» y `codex:` todo a 0, con «ficheros en formato anterior 0».
+
+**La cola**:
+- 7 eventos, **todos `tool = codex`** *(0 de Claude Code)*, con 21 779 / 0 / 86 272 / 330;
+- `cost_available = false` y `cost_usd = 0` en los 7;
+- `agent_version = 0.5.0-c2-9516a08` en los 7, con modelo `gpt-6-luna` ×7;
+- 7 `event_id` distintos, `schema_version = 1` y **17 campos** por evento;
+- `state.json`, con 8 entradas.
+
+**SC-014, con el binario entero**:
+- **El fichero**: una sesión sintética de **115 170 686 B** *(110 003 líneas)*, generada con el guion de `quickstart.md` §Coste, extraído por
+  programa, en otro `CODEX_HOME` temporal.
+- **Los tiempos**, de pared *(`time`)*:
+
+| | Tiempo | `codex:` |
+|---|---:|---|
+| Pasada inicial *(lee todo)* | 0,331 s | respuestas 1 · eventos 1 |
+| Medida 1 | **0,340 s** | respuestas 1 · eventos 1 |
+| Medida 2 | **0,340 s** | respuestas 1 · eventos 1 |
+| Medida 3 | **0,342 s** | respuestas 1 · eventos 1 |
+
+- **Lo que salió**: los tres eventos nuevos llevan `modelo-sintetico`, sacado del prefijo, y `project_ref` no vacío.
+- **La máquina**: Intel Core i5-13400, 16 hilos, ext4 en `/tmp`, Linux 6.18 WSL2.
+- **Tope: 3 s. Se cumple.**
+
+**Resultado: SC-001 a SC-005, SC-009 y SC-014, ✅.**
+
+### C3 · T048 · Snapshot *(2026-10-07; goreleaser v2.16.0)*
+
+**Lo que se construyó**:
+- `goreleaser release --snapshot --clean` → `rc=0`, «skipping announce, publish, and validate». **No se publicó nada**: no había ninguna
+  credencial en el entorno.
+- **El código es el de `9516a08`**. El árbol sólo tenía modificados el README *(E-5)* y tres documentos de `specs/`.
+- **Versión inyectada: `0.4.0-SNAPSHOT-9516a08`.** goreleaser parte de la última etiqueta, `v0.4.0`; no es ni `0.0.1-dev` ni `0.4.0`.
+- `sha256sum -c` del fichero de checksums: OK en los 5 artefactos.
+- **El zip de Windows**: `dist/permea_0.4.0-SNAPSHOT-9516a08_windows_amd64.zip`, 2 495 694 B, SHA-256
+  **`96dfa0ee5f49312f908827ac73e0efcf3f4a4606cc51b7d5c09653af8fbe5566`**.
+
+**Las comprobaciones**:
+- **El binario de Linux, en sandbox**: `--version` → `0.4.0-SNAPSHOT-9516a08`, sin crear ningún fichero en el hogar.
+- **Los textos aprobados**, extraídos de la spec por programa y contados sobre los bytes del ejecutable de Linux y del de Windows: la línea
+  `codex:`, `codex: fichero omitido: %v` y la línea `evento:` de Codex aparecen **una** vez cada una en los dos.
+- **El README empaquetado**, en el zip de Windows y en el tar de Linux: lleva «### Codex CLI», las 9 frases de E-5, y es **idéntico** al del
+  repo.
+- **`dist/`** no aparece en `git status`: lo ignora `.gitignore`.

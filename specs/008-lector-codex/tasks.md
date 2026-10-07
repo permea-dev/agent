@@ -193,15 +193,18 @@ git diff 7b8c77c --name-only --diff-filter=M -- '*_test.go'                     
 - [x] **T044** `CHANGELOG.md`: `## 0.5.0 — PENDIENTE` encima de la 0.4.0, con el cuerpo **sacado por programa** de spec §Textos aprobados.
   `cmp` de los dos textos *(README y CHANGELOG)*, sin diferencias. `grep -c PENDIENTE CHANGELOG.md` → 1.
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B6 y B7 · T042–T044.
-- [ ] **T045** ✋ Puertas y commit de B6 y B7: `008 B6 y B7: scan de Codex, README y CHANGELOG de la 0.5.0`.
+- [x] **T045** ✋ *(`9516a08`)* Puertas y commit de B6 y B7: `008 B6 y B7: scan de Codex, README y CHANGELOG de la 0.5.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
 
-- [ ] **T046** **C1** · Puertas, transcritas: las del bloque, más `go test` → **494 + nuevos** *(SC-012)*; ningún `_test.go` existente
+- [x] **T046** **C1** · Puertas, transcritas: las del bloque, más `go test` → **494 + nuevos** *(SC-012)*; ningún `_test.go` existente
   modificado; `os.Getenv` de producción = 1; compilan Windows y darwin; `PENDIENTE` → 1.
-- [ ] **T047** **C2** · Medidas *(quickstart §Copia, §Contador, §M, §Coste)*: la huella de la copia antes; el contador; en sandbox, `--scan`
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre · E-5 y C1 *(574 pass, 0 SKIP; todo en verde)*.
+- [x] **T047** **C2** · Medidas *(quickstart §Copia, §Contador, §M, §Coste)*: la huella de la copia antes; el contador; en sandbox, `--scan`
   y `--run` dos veces *(SC-001 a SC-005 y SC-009)*; **SC-014**, tres veces, con su tiempo; la huella después, igual; temporales borrados.
-- [ ] **T048** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos aprobados *(SC-013)*.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre · C2 *(SC-001–SC-005 y SC-009 cuadran; SC-014: 0,340 · 0,340 · 0,342 s)*.
+- [x] **T048** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos aprobados *(SC-013)*.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre · C3 *(`0.4.0-SNAPSHOT-9516a08`; zip de Windows `96dfa0ee…`)*.
 - [ ] **T049** ✋ **C4 · W1** *(quickstart §W1; sandbox, sin enrolar)*: `--version`; `status` → «no enrolado»; dos `--run` sobre la carpeta
   real de Codex, en sólo lectura; la raíz, la de Codex *(Q-6)*.
 - [ ] **T050** **C5** · El cuerpo del PR y la fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0)*. ✋ Commit

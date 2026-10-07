@@ -1,6 +1,6 @@
 # 008 · «Lector de Codex» — Especificación
 
-**Feature Branch**: `008-lector-codex` · **Created**: 2026-10-07 · **Status**: **Ratificada** el 2026-10-07, 12:16 (Madrid) · **Cabeza de partida**: `7b8c77c` *(0.4.0)* · **Enmiendas**: E-1, E-2, E-3, E-4
+**Feature Branch**: `008-lector-codex` · **Created**: 2026-10-07 · **Status**: **Ratificada** el 2026-10-07, 12:16 (Madrid) · **Cabeza de partida**: `7b8c77c` *(0.4.0)* · **Enmiendas**: E-1 a E-5
 **Input**: las decisiones del dueño `D-1`…`D-3` · las decisiones de método del orquestador `M-1`…`M-9` · el descubrimiento del 07-10 y la
 FASE 0 *(`soporte/descubrimiento.md`, sobre la **copia congelada** de 8 sesiones, F1…F8)* · la fuente pública de Codex, etiqueta
 `rust-v0.160.1` · el contrato nuevo `contracts/event-id-codex.md`.
@@ -309,6 +309,18 @@ el agente: los eventos de Codex salen con `cost_available = false`, y el coste l
 cuando tenga las tarifas de esos modelos. Hace falta Codex 0.153.0 o posterior; las sesiones anteriores
 se cuentan como «formato anterior» y no se envían. Si la carpeta no existe, no cambia nada.
 ```
+**README, coherencia** *(E-5, aprobada por el dueño el 2026-10-07)*. Las ocho frases finales, literales. En el fichero se parten al ancho
+de línea; se comprueban con `grep -F` sobre el texto con los saltos de línea normalizados:
+1. «lee los logs de uso de herramientas de IA (Claude Code y Codex CLI), calcula **en local** el coste de Claude Code»
+2. «todo el historial que conserven Claude Code y Codex CLI»
+3. «un evento por mensaje (por respuesta, en Codex)»
+4. «Con Codex activo, una tercera línea, `codex: …`, con sus recuentos.»
+5. «En una sesión de Codex la línea no lleva `cw5m=` ni `cw1h=`, y el coste es 0.»
+6. «descubre los logs de Claude Code y las sesiones de Codex»
+7. «El coste de Claude Code se calcula **en local**», y la viñeta «**Codex**: el agente no calcula su coste; lo pone la plataforma (ver
+   «Codex CLI»).»
+8. «lectores por herramienta (claude_code, codex)»
+
 **CHANGELOG `0.5.0`** *(encabezado con `PENDIENTE` hasta la etiqueta, como en 007)*:
 ```
 ## 0.5.0 — PENDIENTE
@@ -364,3 +376,4 @@ se cuentan como «formato anterior» y no se envían. Si la carpeta no existe, n
 | **E-2** | 2026-10-07 | **Enmienda del orquestador.** **(1)** FR-002: la activación se evalúa **en cada pasada**. **(2)** Nuevos **FR-028** y **SC-018**: un error de lectura de un fichero de Codex se omite con `codex: fichero omitido: %v` *(a §Textos aprobados)*, sin avanzar su offset ni cortar la pasada; encolar sigue siendo fatal. **(3)** Nuevo **FR-029**: la línea corrupta, con aviso sólo en la parte nueva. **(4)** SC-015: un forzado en el que `Load` pasa y `Save` falla, porque «`state.json` como directorio» hace fallar `Load` antes de encolar. **(5)** SC-011: un fichero de referencia generado con el commit anterior | El demonio vive días; un fichero de Codex no debe tumbar a Claude Code; y dos SC necesitaban un instrumento que sí mida |
 | **E-3** | 2026-10-07 | **Enmienda del orquestador.** «Incoherente» *(FR-027, Q-1)* cubre también un `token_usage_record` **sin `usage`** y uno con **alguna partida negativa**: no se emite y se cuenta. El rojo (6) gana una hoja por caso *(caché + escritura > entrada · sin `usage` · partida negativa)*, y m6 debe tumbar las tres | Que un registro roto no viaje como evento con ceros, ni con negativos que resten en la plataforma |
 | **E-4** | 2026-10-07 | **Enmienda del orquestador.** «Corrupta» *(FR-029)* es sólo la línea cuya envoltura no es JSON válido. Con `type = "token_usage_record"`, cualquier defecto de sus datos la hace «incoherente» *(FR-027)*: sin `timestamp` o mal formado, payload que no decodifica, partida no numérica. Una partida **ausente** vale 0 y se emite. Sin ningún `cwd`, el evento sale con `project_ref` vacío, como hoy en Claude Code *(`internal/event/event.go:40-43`)*. Hojas nuevas en el rojo (6), un test para la partida ausente y la hoja «sin `cwd`» en (20) | Que un registro defectuoso se cuente, no se pierda como «corrupto», y que las dos clases signifiquen una sola cosa |
+| **E-5** | 2026-10-07 | **Coherencia del README** *(aprobada por el dueño)*. Ocho frases que hablaban sólo de Claude Code pasan a decir también Codex *(§Textos aprobados, «README, coherencia»)*. «### Codex CLI» y el CHANGELOG no cambian | Con la 0.5.0, esas frases quedaban falsas o incompletas *(Encargo 9, DISCREPANCIAS)* |
