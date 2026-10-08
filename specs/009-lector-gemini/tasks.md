@@ -225,10 +225,10 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
   veces con `GEMINI_CLI_HOME` en la **segunda copia congelada** *(SC-001 a SC-004)*; **SC-013**, tres veces; las huellas después, iguales;
   los temporales, borrados.
 - [x] **T050** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-015)*.
-  > Transcripción del cierre: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(C1 671 pass; C2 SC-001–SC-005 y SC-013 ✅; C3 zip `8a478701…`)*.
-- [ ] **T051** ✋ **C4 · W1** *(sandbox, sin enrolar)*: `--version`; `status`; dos `--run` sobre el `.gemini` real en **sólo lectura**,
+  > Transcripción del cierre: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(C1 671 pass; C2 SC-001–SC-005 y SC-013 ✅; C3 zip `8a478701…`; W1 y Q-1 ✅; C5 fecha y PR)*.
+- [x] **T051** ✋ **C4 · W1** *(sandbox, sin enrolar)*: `--version`; `status`; dos `--run` sobre el `.gemini` real en **sólo lectura**,
   contrastados con el contador; **Q-1**: el `project_ref` de un directorio con sesiones de Claude Code y de Gemini, igual en los dos.
-- [ ] **T052** **C5** · El cuerpo del PR y la fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0)*. ✋ Commit `009 C5: fecha de la 0.6.0 en el CHANGELOG`.
+- [x] **T052** **C5** · El cuerpo del PR y la fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0)*. ✋ Commit `009 C5: fecha de la 0.6.0 en el CHANGELOG`.
 - [ ] **T053** ✋ **C6** · Fusión del PR con merge commit.
 - [ ] **T054** ✋ **C7** · `git tag -a v0.6.0` sobre `main` y `git push origin v0.6.0`.
 - [ ] **T055** **C8** · Los tres canales en `0.6.0` y `strings` del binario publicado *(SC-015)*.

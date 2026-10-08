@@ -1,6 +1,6 @@
 # 009 · «Lector de Gemini CLI» — Especificación
 
-**Feature Branch**: `009-lector-gemini` · **Created**: 2026-10-08 · **Status**: **Ratificada** el 2026-10-08, 12:20 (Madrid), salvo lo que diga «pendiente» · **Cabeza de
+**Feature Branch**: `009-lector-gemini` · **Created**: 2026-10-08 · **Status**: **Cerrada** el 2026-10-08 *(ratificada a las 12:20, Madrid; E-1 a las 18:30; §Cierre)* · **Cabeza de
 partida**: `15ce93b` *(sobre `c89c5de`, 0.5.0)*
 **Input**: las decisiones del dueño `D-1`…`D-4` del 2026-10-08 · el descubrimiento del 08-10 *(`soporte/descubrimiento.md`, Q1–Q13, sobre la
 **copia congelada** de una sesión de Gemini CLI 0.63.0)* · el paquete `@google/gemini-cli` 0.63.0 · el contrato nuevo
@@ -395,6 +395,51 @@ fichero se parten al ancho de línea, y se comprueban con `grep -F` sobre el tex
   `gemini-3.8-flash` y `gemini-3.5-flash-lite`.
 - **006**: el esquema del `event_id`, sin tocarlo. **007**: `Recorrer`, tal cual. **008**: el patrón del lector de Codex *(prefijo, errores
   por fichero, recuentos)*, sin cambiar su conducta.
+
+## Cierre *(2026-10-08)*
+
+**Cerrada.** Bloques B0–B7 sobre `15ce93b` *(7 commits)*, el cierre C1–C5 y el ensayo en Windows W1 *(`soporte/registro.md` §Cierre)*.
+
+| SC | Dónde se acreditó | |
+|---|---|:--:|
+| **SC-001** | **C2**: el contador = `--scan` en su sitio = `--run` sobre la segunda copia *(10 · 95 747 / 12 141 / 0 / 2 482)*. **W1**: 10 eventos `gemini` | ✅ |
+| **SC-002** | **C2**: entrada + caché = 107 888 | ✅ |
+| **SC-003** | **B5** (33). **C2** y **W1**: la segunda pasada, 0 | ✅ |
+| **SC-004** | **B3** (17): 12 · 8 · 4 y 4 · 2 · 2; con P-3 (b) cae *(m14)* | ✅ |
+| **SC-005** | **B2** (8). **C2**: 10/10 sin coste | ✅ |
+| **SC-006** | **B1** (1)–(3), con m1–m4. **B5** (34): centinelas; las rutas, sólo como clave de `state.json` | ✅ |
+| **SC-007** | **B2** (4), con m5–m7 | ✅ |
+| **SC-008** | **B2** (6), (7), (10), (11). **B3** (21): el resumen literal y la identidad | ✅ |
+| **SC-009** | **B3** (14), (15), con m15 y m16 | ✅ |
+| **SC-010** | **B3** (23), (24), con m20–m22. **W1**: Q-1, el mismo `project_ref` que Claude Code | ✅ |
+| **SC-011** | **B3** (20), (23). **B4** (26), (27) | ✅ |
+| **SC-012** | **B5** (28): byte a byte la referencia del binario de `15ce93b` *(`aa3314e9…`)* | ✅ |
+| **SC-013** | **B3**: 0,434 · 0,445 · 0,436 s *(la función)*. **C2**: 2,30 · 2,23 · 2,09 s con el binario entero tras mucha E/S, y 0,44–0,59 s en reposo | ✅ |
+| **SC-014** | Las puertas de cada bloque. **C1**: 671 pass, 0 SKIP, lint 0, frontera con 0 bytes y los 574 anteriores sin tocar | ✅ |
+| **SC-015** | **B5** (31), **B6** (37), y el `cmp` de **B7**. **C3**: los literales, byte a byte en `permea.exe`. **W1**: la línea `gemini:` | ✅ |
+| **SC-016** | **B5** (36), con m31 y m32 | ✅ |
+| **SC-017** | **B5** (29), (30), con el forzado A, m27 y m29 | ✅ |
+
+**17 / 17.** 46 mutaciones, todas con la caída declarada antes de mutar; 574 → 671 tests. **Q-1 se cumple en Windows** *(W1)*.
+
+**Desviaciones declaradas**:
+- B6 y B7 en un solo commit *(ratificado el 2026-10-08, 12:35)*;
+- el presupuesto de B2 *(registro +57 %)* y B3 *(producción +55 %)*;
+- el incidente de m28 en B5, que fue del guion: se repitieron limpias m28–m30, y desde B6 el md5 se comprueba antes de cada mutación;
+- P-9 rechazada: SC-001 se midió con la segunda copia.
+
+**Límites que quedan**:
+- **D-1**: las llamadas auxiliares y los intentos fallidos no constan en el fichero;
+- la retención de 30 días de la CLI;
+- Antigravity no se lee;
+- `/stats` no es referencia directa;
+- una respuesta enviada sin proyecto desde una carpeta antigua no se corrige;
+- enlaces en la raíz *(N-11)*;
+- una lectura que falla a mitad cuenta de más en su línea *(R-9)*;
+- en `--scan`, el `<slug>` se deduce por el nombre de las carpetas;
+- SC-013 es sensible a la E/S de WSL.
+
+**Nota para la plataforma**: las tarifas de los identificadores vistos en eventos reales, `gemini-3.8-flash` y `gemini-3.5-flash-lite`, van en un encargo aparte *(D-4)*. Hasta entonces, sus eventos llegan sin coste: ciegos y señalizados.
 
 ## Registro de enmiendas
 
