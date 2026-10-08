@@ -314,3 +314,27 @@ frontera de FR-027 → 0 · '*_test.go' existentes modificados → 0 · codex.go
 
 **Presupuesto**: producción 326 líneas, frente a ~210 *(+55 %: se declara)*; test 458, frente a ~380; 10 fixtures; esta sección,
 **91** líneas frente a ≤ 90. Commit previsto *(✋ dueño)*: `009 B3: apariciones, contexto entre pasadas y formato de Gemini`.
+
+## B4 · Raíz
+
+**T024–T027** · `config.GeminiRoot()` *(nuevo, `internal/config/gemini.go`)*: el esqueleto devolvía `"", nil`. **Rojos**, en ficheros nuevos:
+(26) ×3 y (27) en `internal/config/gemini_test.go`, que reutiliza `hogarDePrueba` y `mkdir` de `codex_test.go`, y añade `sinGeminiHome`; y
+**(27-bis)** *(T026.1, del orquestador)* en `internal/testutil/sandbox_gemini_test.go`. Los cinco cayeron con `("", <nil>)` frente a la ruta
+esperada, y (27-bis) con la variable aún definida. **Verde**: la regla de D-009-P9. El comentario de `codex.go:16` pasa a «una de las DOS lecturas
+de entorno de producción, con `GEMINI_CLI_HOME`», y `git diff -U0` sólo toca `:16-17`, que son comentario. `sandbox.go` gana
+`t.Setenv("GEMINI_CLI_HOME", "")` tras `:63`. `sandbox_test.go` sigue en verde y sin tocar. Suite: **646** «--- PASS» *(640 + 6)*, 0 FAIL,
+0 SKIP; lint 0. `os.Getenv` de producción → **2**: `internal/config/codex.go:19` *(`CODEX_HOME`)* y `internal/config/gemini.go:20`
+*(`GEMINI_CLI_HOME`)*.
+
+**T028 · Censo, ANTES de mutar.** md5 `gemini.go` = `2825c479…` y `sandbox.go` = `82639521…`.
+
+| # | Mutación | Debe caer *(y sólo eso)* | Observado | md5 mutado | md5 tras revertir |
+|---|---|---|---|---|---|
+| **m23** | `GEMINI_CLI_HOME=""` tomada como raíz *(`LookupEnv`)* | `TestGeminiRoot_Raiz/vacia` | `TestGeminiRoot_Raiz/vacia` ✅ | `003ffa86` | `2825c479…` |
+| **m24** | ignorar `GEMINI_CLI_HOME` | `TestGeminiRoot_Raiz/definida` | `TestGeminiRoot_Raiz/definida` ✅ | `677f99ac` | `2825c479…` |
+| **m25** | exigir que la raíz exista | `TestGeminiRoot_InexistenteSinError` | `TestGeminiRoot_InexistenteSinError` ✅ | `463efd6b` | `2825c479…` |
+| **M-B4a** | quitar la línea nueva de `sandbox.go` | `TestSandbox_VaciaGeminiCliHome` | `TestSandbox_VaciaGeminiCliHome` ✅ | `31530de9` | `82639521…` |
+
+**Las cuatro coinciden**; sólo cae el paquete de la hoja *(`config` o `testutil`)*. `cmp` con las copias previas: idénticos. **T029 · Puertas**:
+`gofmt`, `vet` y lint a 0; **646** pass, 0 FAIL, 0 SKIP; frontera → 0; `*_test.go` existentes modificados → 0. Commit previsto *(✋ dueño)*:
+`009 B4: raiz de Gemini con GEMINI_CLI_HOME`.

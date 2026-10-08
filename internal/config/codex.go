@@ -13,8 +13,8 @@ import (
 // Devuelve la ruta AUNQUE NO EXISTA (P-008 E-2): si existe se comprueba en cada pasada, porque el demonio vive
 // días y Codex puede instalarse después (FR-002).
 //
-// ⚠️ Es la ÚNICA lectura de una variable de entorno en producción (plan D-008-P7). Los tests la neutralizan en
-// `internal/testutil.Sandbox` (M-9).
+// ⚠️ Es una de las DOS lecturas de entorno de producción, con `GEMINI_CLI_HOME` (plan D-008-P7, D-009-P9). Los tests la
+// neutralizan en `internal/testutil.Sandbox` (M-9).
 func CodexSessionsRoot() (string, error) {
 	if propia := os.Getenv("CODEX_HOME"); propia != "" {
 		return filepath.Join(propia, "sessions"), nil

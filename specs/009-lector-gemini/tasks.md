@@ -150,16 +150,19 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 
 ## B4 · Raíz *(FR-001; M-9)*
 
-- [ ] **T024** Fase 0: `config.GeminiRoot() (string, error)` en `internal/config/gemini.go` *(nuevo)*, que devuelve `"", nil`.
-- [ ] **T025** [P] **Rojos (26) y (27)** en `internal/config/gemini_test.go` *(nuevo)*, con `t.Setenv`:
+- [x] **T024** Fase 0: `config.GeminiRoot() (string, error)` en `internal/config/gemini.go` *(nuevo)*, que devuelve `"", nil`.
+- [x] **T025** [P] **Rojos (26) y (27)** en `internal/config/gemini_test.go` *(nuevo)*, con `t.Setenv`:
   - **(26)** tres subtests: definida → `<valor>/.gemini`; vacía → `<home>/.gemini`; ausente → lo mismo;
   - **(27)** una raíz inexistente se devuelve sin error.
-- [ ] **T026** **Verde**: la segunda lectura de entorno *(D-009-P9)*. El comentario de `codex.go:16` pasa a «una de las dos». En
+- [x] **T026** **Verde**: la segunda lectura de entorno *(D-009-P9)*. El comentario de `codex.go:16` pasa a «una de las dos». En
   `internal/testutil/sandbox.go`, tras `:63`, `t.Setenv("GEMINI_CLI_HOME", "")` *(M-9)*.
-- [ ] **T027** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde. Y `grep -rn 'os.Getenv' --include=*.go cmd internal
+- [x] **T026.1** *(orquestador, Encargo 7)* **Rojo (27-bis)** en `internal/testutil/sandbox_gemini_test.go` *(nuevo)*: con `GEMINI_CLI_HOME`
+  fijada antes, tras `Sandbox` vale `""`. Lo acredita M-B4a.
+- [x] **T027** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde. Y `grep -rn 'os.Getenv' --include=*.go cmd internal
   | grep -v _test` → 2.
-- [ ] **T028** Censo, **antes de mutar**, y mutaciones: **(m23)** la vacía tomada como raíz → (26/vacía); **(m24)** ignorar la variable →
-  (26/definida); **(m25)** exigir que exista → (27).
+- [x] **T028** Censo, **antes de mutar**, y mutaciones: **(m23)** la vacía tomada como raíz → (26/vacía); **(m24)** ignorar la variable →
+  (26/definida); **(m25)** exigir que exista → (27); **M-B4a** sin la línea de `sandbox.go` → (27-bis).
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B4 *(las cuatro coinciden; 646 pass; `os.Getenv` → 2)*.
 - [ ] **T029** ✋ Puertas y commit: `009 B4: raiz de Gemini con GEMINI_CLI_HOME`.
 
 ## B5 · Integración *(FR-002, FR-003, FR-017, FR-021, FR-023 a FR-026; SC-003, SC-006, SC-012, SC-016, SC-017)*
@@ -288,6 +291,7 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | m23 | B4 | `GEMINI_CLI_HOME=""` tomada como raíz | (26/vacía) |
 | m24 | B4 | ignorar `GEMINI_CLI_HOME` | (26/definida) |
 | m25 | B4 | exigir que la raíz exista | (27) |
+| M-B4a | B4 | sin `GEMINI_CLI_HOME` en `sandbox.go` | (27-bis) |
 | m26 | B5 | la línea de Gemini siempre | (28) |
 | m27 | B5 | `st.Save` antes de encolar Gemini | (30), con el forzado A |
 | m28 | B5 | `tick` escribe siempre | (32/tick) |
@@ -302,7 +306,7 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | m37 | B6 | `dryRunGemini` guarda su estado | (37/nada_en_disco) |
 | m38 | B6 | detección sólo por `sessionId` | (38/claude) |
 
-**44 mutaciones previstas** *(39 + M-B2a a M-B2d + M-B3b)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**45 mutaciones previstas** *(39 + M-B2a a M-B2d, M-B3b y M-B4a)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 
