@@ -127,3 +127,98 @@ $ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go' | wc -l
 ```
 
 Commit previsto *(✋ dueño)*: `009 B1: event_id de Gemini con espacio de nombres propio`.
+
+## B2 · Una aparición
+
+### T009 y T010 · Fase 0 y fixtures
+
+`internal/ingest/gemini.go` *(nuevo)*: `ContextoGemini` *(`Context`, `SessionID`, `ProjectRoot`)*, `ClaseGemini`, `MarcasGemini` *(`SinModelo`,
+`TotalDescuadrado`)* y `RespuestaGemini(crudo, ctx)`, que aún no clasifica. Suite verde. **17 fixtures** en `testdata/gemini/`, una aparición
+por fichero, con `id` `m-0000…`. **Corrección antes del verde** *(DECIDÍ YO)*: el mensaje de usuario lleva `tokens`; sin ellos, la hoja
+«usuario» no acreditaba la guarda del `type`.
+
+### T011 · Rojos, en `internal/ingest/gemini_respuesta_test.go` *(nuevo)*
+
+T013 se sacó del fichero y se escribió **después** del verde, como pide la tarea.
+
+```
+--- FAIL (hojas): PartidasD2/partidas · PartidaAusenteValeCero · Incoherente/{tokens_no_objeto, partida_no_numerica,
+    partida_negativa, cache_mayor_que_entrada, sin_timestamp, timestamp_mal_formado} · SinIdentificador/{ausente, vacio, no_textual} ·
+    SinCoste · MomentoDelMensaje · SinModelo · TotalDescuadrado/{descuadrado, sin_total} · Referencias/{session_ref, project_ref,
+    sin_project_root}                                                       (21 hojas; con los padres, 24 «--- FAIL»)
+--- PASS: PartidasD2/{usuario_no_es_respuesta, tokens_null_no_es_respuesta, sin_tokens_no_es_respuesta}
+gemini_respuesta_test.go:73: RespuestaGemini(respuesta_partidas.jsonl): clase 0, evento <nil>; se esperaba un evento      (y las 11 de evento)
+gemini_respuesta_test.go:123: incoherente_negativa.jsonl: clase 0; se esperaba IncoherenteGemini (3)                       (y las 6 de (6))
+gemini_respuesta_test.go:138: sin_identificador_no_textual.jsonl: clase 0; se esperaba SinIdentificadorGemini (2)         (y las 3 de (7))
+```
+
+**Razón**: la Fase 0 devuelve siempre `NoEsRespuestaGemini`, sin evento. **Nacen verdes** las tres hojas de «no es respuesta» de (4),
+añadidas para que `RespuestaGemini` distinga «no es respuesta» de «incoherente» *(DE CAMINO de B1)*. Las acreditan M-B2a, M-B2c y M-B2d.
+
+### T012 y T013 · Verde, y el verde de nacimiento
+
+`RespuestaGemini` decodifica la envoltura **en crudo** (`json.RawMessage`): no es respuesta *(`type ≠ "gemini"`, o `tokens` ausente o `null`)*
+→ sin identificador *(`id` no textual o vacío)* → incoherente *(`tokens` no decodifica a enteros, falla el `timestamp`, o negativas, o
+`cached > input`)* → evento, con D-2 y las marcas. `total` es un puntero. Sin `internal/pricing`. **T013**, escrito después:
+`NadaDelProveedorEnElEvento` *(centinelas en `id`, `content`, un `projectHash` metido en el mensaje, `SessionID` y `ProjectRoot`)* nace verde;
+lo acredita m12.
+
+```
+28 «--- PASS» en TestRespuestaGemini_* · go test ./...: 607 «--- PASS», 0 FAIL, 0 SKIP · golangci-lint: 0 issues
+$ md5sum internal/ingest/gemini.go
+3c491b0dd8a69b6b592b3a7db59b6406  internal/ingest/gemini.go
+```
+
+### T014 · Censo, declarado ANTES de mutar *(por hoja; sólo puede caer `internal/ingest`)*
+
+| # | Mutación, en `gemini.go` | Debe caer *(y sólo eso)* | Co-caídas y por qué no más |
+|---|---|---|---|
+| **m5** | `TokensInput = Input − Cached` *(sin `tool`)* | `PartidasD2/partidas` | ninguna: sólo ese fixture tiene `tool` ≠ 0 |
+| **m6** | `TokensOutput = Output` *(sin `thoughts`)* | `PartidasD2/partidas` | ninguna: sólo ese tiene `thoughts` ≠ 0 |
+| **m7** | `TokensInput = Input + Tool` *(sin restar `cached`)* | `PartidasD2/partidas` | ninguna: en (5), `cached` = 0 |
+| **m8** | `CostAvailable = true` | `SinCoste` | ninguna |
+| **m9** | la condición de incoherente, con `&& false` | `Incoherente/` × 6 | ninguna: el resto de fixtures son coherentes |
+| **m10** | `OccurredAt = time.Now()` | `MomentoDelMensaje` | ninguna |
+| **m11** | descuadrado → `IncoherenteGemini` | `TotalDescuadrado/descuadrado` | ninguna: los demás `total` cuadran *(115, 11, 11)* |
+| **m12** | `SessionRef = ctx.SessionID` *(sin sal)* | `Referencias/session_ref`, `NadaDelProveedorEnElEvento` | — |
+| **M-B2a** | `tokens: null` tomado como respuesta *(`ausente` → `len == 0`)* | `PartidasD2/tokens_null_no_es_respuesta` | ninguna: `null` decodifica a ceros y sale un evento |
+| **M-B2b** | `id` decodificado como `string` | `SinIdentificador/no_textual` | ninguna: la envoltura entera deja de decodificar sólo con `"id": 7` |
+| **M-B2c** | sin la guarda del `type` | `PartidasD2/usuario_no_es_respuesta` | ninguna |
+| **M-B2d** | sin la guarda de `tokens` ausente | `PartidasD2/sin_tokens_no_es_respuesta`, `PartidasD2/tokens_null_no_es_respuesta` | ausente → incoherente; `null` → evento |
+
+Cada mutación: aplicar → `go test -count=1 ./... 2>&1` → comparar el conjunto de `FAIL` por hoja → revertir por edición inversa → md5
+igual a `3c491b0d…`.
+
+### T015 · Mutaciones *(2026-10-08; `go test -count=1 ./...` entero en cada una; sólo cae `internal/ingest`; las hojas, sin el prefijo `TestRespuestaGemini_`)*
+
+| # | md5 mutado | Observado *(hojas que caen)* | Declarado | md5 tras revertir |
+|---|---|---|:--:|---|
+| **m5** | `20f8cc48` | `PartidasD2/partidas` | ✅ | `3c491b0d…` |
+| **m6** | `e1f702e2` | `PartidasD2/partidas` | ✅ | `3c491b0d…` |
+| **m7** | `bd19cf5f` | `PartidasD2/partidas` | ✅ | `3c491b0d…` |
+| **m8** | `e0f72675` | `SinCoste` | ✅ | `3c491b0d…` |
+| **m9** | `b410f0ea` | `Incoherente/` × 6 | ✅ | `3c491b0d…` |
+| **m10** | `67507957` | `MomentoDelMensaje` | ✅ | `3c491b0d…` |
+| **m11** | `87c34c77` | `TotalDescuadrado/descuadrado` | ✅ | `3c491b0d…` |
+| **m12** | `f6f4f067` | `Referencias/session_ref`, `NadaDelProveedorEnElEvento` | ✅ | `3c491b0d…` |
+| **M-B2a** | `6df3fbf7` | `PartidasD2/tokens_null_no_es_respuesta` | ✅ | `3c491b0d…` |
+| **M-B2b** | `865c6f56` | `SinIdentificador/no_textual` *(«json: cannot unmarshal number into Go struct field mensajeGemini.id of type string»: lo que habría sido un falso «corrupto»)* | ✅ | `3c491b0d…` |
+| **M-B2c** | `52cf890e` | `PartidasD2/usuario_no_es_respuesta` | ✅ | `3c491b0d…` |
+| **M-B2d** | `0a122bfb` | `PartidasD2/tokens_null_no_es_respuesta`, `PartidasD2/sin_tokens_no_es_respuesta` | ✅ | `3c491b0d…` |
+
+**Las doce coinciden.** Ningún paquete más que `internal/ingest` cae, y ninguna mutación deja de compilar. M-B2b toca dos líneas *(el tipo
+del campo y la llamada)*, y se revierte con las dos ediciones inversas. Tras la última, `cmp` con la copia previa a mutar no da diferencias.
+
+### T016 · Puertas del bloque *(antes del ✋ commit)*
+
+```
+gofmt -l . (vacío) · go vet ./... (rc=0) · golangci-lint run (0 issues) · go test -count=1 -v ./... 607 «--- PASS» (579 + 28), 0 FAIL, 0 SKIP
+git diff 15ce93b --stat -- <frontera de FR-027> | wc -l → 0 · git diff 15ce93b --name-only --diff-filter=M -- '*_test.go' | wc -l → 0
+grep -n pricing internal/ingest/gemini.go → sólo :24, un comentario
+```
+
+**Presupuesto** *(tasks §Presupuesto)*: producción 154 líneas *(99 sin comentarios ni blancos)*, frente a ~110; test 221, frente a ~220; 17
+fixtures. Esta sección del registro mide **94** líneas frente a ≤ 60: **+57 %, se declara**. Lo pagan los bloques siguientes, y el techo de
+450 no se mueve.
+
+Commit previsto *(✋ dueño)*: `009 B2: una respuesta de Gemini es un evento sin coste`.

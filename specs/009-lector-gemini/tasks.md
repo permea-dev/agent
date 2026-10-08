@@ -93,12 +93,13 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 
 ## B2 · Una aparición *(FR-009 a FR-015, FR-017, FR-019; SC-005, SC-007)*
 
-- [ ] **T009** Fase 0: en `internal/ingest/gemini.go` *(nuevo)*:
+- [x] **T009** Fase 0: en `internal/ingest/gemini.go` *(nuevo)*:
   - `ContextoGemini`: el `Context` de siempre, el `sessionId` de la cabecera y el texto de `.project_root`;
   - `ClaseGemini`;
   - `RespuestaGemini(crudo, ctx)`: una aparición en crudo → evento o clase. Todavía no clasifica nada.
-- [ ] **T010** Fixtures **sintéticos** en `internal/ingest/testdata/gemini/`: una aparición por clase de FR-019, y las partidas de SC-007.
-- [ ] **T011** [P] **Rojos (4) a (12)** en `internal/ingest/gemini_respuesta_test.go` *(nuevo)*:
+- [x] **T010** Fixtures **sintéticos** en `internal/ingest/testdata/gemini/`: una aparición por clase de FR-019, y las partidas de SC-007.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T009 y T010 *(17 fixtures; el de usuario, con `tokens`)*.
+- [x] **T011** [P] **Rojos (4) a (12)** en `internal/ingest/gemini_respuesta_test.go` *(nuevo)*:
   - **(4)** SC-007: 100/40/5/7/3 → `tokens_input` 65, `tokens_cache_read` 40, `tokens_cache_creation` 0, `tokens_output` 10;
   - **(5)** una partida ausente vale 0, y se emite;
   - **(6)** incoherente, seis hojas: `tokens` no objeto · partida no numérica · negativa · `cached > input` · sin `timestamp` · mal formado;
@@ -108,11 +109,14 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
   - **(10)** sin `model` → emitido con `model` vacío y marcado;
   - **(11)** `total` descuadrado → emitido y marcado; sin `total`, sin marca;
   - **(12)** `session_ref = Ref(sal, sessionId)`; `project_ref = Derivar(.project_root)`; sin `.project_root`, vacío.
-- [ ] **T012** **Verde**: D-2, la clasificación de D-009-P14 y el evento con `event.Ref` y el resolutor. **No** llama a `internal/pricing`.
-- [ ] **T013** Verde de nacimiento, escrito tras T012: **(FR-017)** el evento no contiene ningún centinela *(`id`, `sessionId`,
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T011 *((4) gana tres hojas de «no es respuesta», nacidas verdes)*.
+- [x] **T012** **Verde**: D-2, la clasificación de D-009-P14 y el evento con `event.Ref` y el resolutor. **No** llama a `internal/pricing`.
+- [x] **T013** Verde de nacimiento, escrito tras T012: **(FR-017)** el evento no contiene ningún centinela *(`id`, `sessionId`,
   `projectHash`, texto de `.project_root`)*. Lo valida m12.
-- [ ] **T014** Censo, **antes de mutar**, por hoja: m5 a m12, con lo que debe caer en §Mutaciones.
-- [ ] **T015** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T012 y T013 *(md5 `3c491b0d…`)*.
+- [x] **T014** Censo, **antes de mutar**, por hoja: m5 a m12, con lo que debe caer en §Mutaciones, y M-B2a a M-B2d.
+- [x] **T015** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 · T014, T015 *(las doce coinciden)* y T016 *(607 pass; presupuesto +57 %)*.
 - [ ] **T016** ✋ Puertas y commit: `009 B2: una respuesta de Gemini es un evento sin coste`.
 
 ## B3 · Fichero y contexto *(FR-004 a FR-006, FR-008, FR-014, FR-016, FR-018 a FR-020; SC-004, SC-008 a SC-011, SC-013)*
@@ -262,6 +266,10 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | m10 | B2 | `occurred_at` = ahora | (9) |
 | m11 | B2 | total descuadrado = incoherente | (11/descuadrado) |
 | m12 | B2 | `session_ref` sin sal | (12/session_ref), T013 |
+| M-B2a | B2 | `tokens: null` tomado como respuesta | (4/tokens_null) |
+| M-B2b | B2 | `id` decodificado como texto | (7/no_textual) |
+| M-B2c | B2 | sin la guarda del `type` | (4/usuario) |
+| M-B2d | B2 | sin la guarda de `tokens` ausente | (4/sin_tokens), (4/tokens_null) |
 | m13 | B3 | sin prefijo | (17/segunda), (18), (19) |
 | m14 | B3 | prefijo sin `vistos` *(P-3 (b))* | (17/segunda) |
 | m15 | B3 | `$set.messages` reemplaza el estado | (15) |
@@ -290,7 +298,7 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | m37 | B6 | `dryRunGemini` guarda su estado | (37/nada_en_disco) |
 | m38 | B6 | detección sólo por `sessionId` | (38/claude) |
 
-**39 mutaciones previstas.** Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**43 mutaciones previstas** *(39 + M-B2a a M-B2d)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 
