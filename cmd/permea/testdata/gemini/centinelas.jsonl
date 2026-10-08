@@ -1,0 +1,2 @@
+{"sessionId":"s-CENTINELA-SESION","projectHash":"h-CENTINELA-HASH","startTime":"2026-10-08T00:00:00.000Z","lastUpdated":"2026-10-08T00:00:00.000Z","kind":"main"}
+{"id":"m-CENTINELA-ID-00000001","timestamp":"2026-10-08T00:00:01.000Z","type":"gemini","content":"respuesta sintetica","thoughts":[],"tokens":{"input":10,"output":1,"cached":0,"thoughts":0,"tool":0,"total":11},"model":"modelo-sintetico-gemini"}

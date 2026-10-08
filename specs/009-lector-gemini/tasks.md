@@ -167,14 +167,14 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 
 ## B5 · Integración *(FR-002, FR-003, FR-017, FR-021, FR-023 a FR-026; SC-003, SC-006, SC-012, SC-016, SC-017)*
 
-- [ ] **T030** Fase 0, **en este orden**:
+- [x] **T030** Fase 0, **en este orden**:
   1. **Antes de tocar `main.go`** *(D-009-P11)*: con el binario de `15ce93b`, el stderr de `--run` sobre fixtures de Claude Code y de
      Codex, en `cmd/permea/testdata/gemini/referencia-run.stderr`, con `<DATOS>`. Se transcribe su md5. **Si `main.go` ya tiene un cambio,
      se para.**
   2. **El forzado A** de SC-017 *(D-009-P12)*, comprobado y transcrito: `Load` pasa, `Append` pasa y `Save` falla.
   3. En `cmd/permea/gemini.go` *(nuevo)*, `generarGemini`, que no emite. En `main.go`: `agent.geminiRaiz` y `agent.gemini`; `setup()`; y
      `generate()` con su firma de hoy *(D-009-P7, P8)*.
-- [ ] **T031** [P] **Rojos (28) a (33)** en `cmd/permea/gemini_test.go` *(nuevo)*, con `cola` y `capturarStderr` de `codex_test.go`, sin
+- [x] **T031** [P] **Rojos (28) a (33)** en `cmd/permea/gemini_test.go` *(nuevo)*, con `cola` y `capturarStderr` de `codex_test.go`, sin
   tocarlo:
   - **(28)** SC-012, con `GEMINI_CLI_HOME` vacía y sin `~/.gemini`: byte a byte la referencia *(nace verde; la valida m26)*;
   - **(29)** sólo Gemini;
@@ -182,18 +182,19 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
   - **(31)** la línea `gemini:` literal, tras la de Codex, y «N eventos encolados» la incluye;
   - **(32)** el predicado y `tick`;
   - **(33)** SC-003: la segunda `--run` da 0.
-- [ ] **T032** **Verde**: Gemini tras Codex y antes del único `st.Save`; `<raíz>/tmp` en cada pasada; los errores por fichero
+- [x] **T032** **Verde**: Gemini tras Codex y antes del único `st.Save`; `<raíz>/tmp` en cada pasada; los errores por fichero
   *(D-009-P10)*; la línea en `runOnce` y, con `HayNovedades`, en `tick`.
-- [ ] **T033** Comprobar y transcribir, sin tocarlos, que `main_test.go`, `retencion_test.go`, `coste_test.go`, `project_test.go` y
+- [x] **T033** Comprobar y transcribir, sin tocarlos, que `main_test.go`, `retencion_test.go`, `coste_test.go`, `project_test.go` y
   `codex_test.go` siguen verdes.
-- [ ] **T034** **Rojo (34)**, SC-006: centinelas en `id`, `sessionId`, `projectHash`, `.project_root`, el nombre del fichero y la carpeta del
+- [x] **T034** **Rojo (34)**, SC-006: centinelas en `id`, `sessionId`, `projectHash`, `.project_root`, el nombre del fichero y la carpeta del
   subagente. Tras `--run`: ninguno en la cola; en `state.json`, sólo los de las rutas y **dentro de su clave** *(FR-017)*.
-- [ ] **T035** **Rojo (35)**, FR-002: `GEMINI_CLI_HOME` en una carpeta sin `.gemini/tmp`. La primera pasada no emite. Se crea, y la segunda
+- [x] **T035** **Rojo (35)**, FR-002: `GEMINI_CLI_HOME` en una carpeta sin `.gemini/tmp`. La primera pasada no emite. Se crea, y la segunda
   pasada **del mismo `agent`** emite.
-- [ ] **T036** **Rojo (36)**, SC-016: un fichero de Gemini con permisos 000 junto a fixtures sanos de las tres herramientas. Salen los sanos y
+- [x] **T036** **Rojo (36)**, SC-016: un fichero de Gemini con permisos 000 junto a fixtures sanos de las tres herramientas. Salen los sanos y
   el aviso `gemini: fichero omitido: …`; `state.json` se guarda; la segunda pasada no reencola Claude Code ni Codex; con `se_relee`, sale.
-- [ ] **T037** Censo, **antes de mutar**, por hoja: m26 a m34, con lo que debe caer en §Mutaciones.
-- [ ] **T038** Mutaciones y transcripción, con md5.
+- [x] **T037** Censo, **antes de mutar**, por hoja: m26 a m34, con lo que debe caer en §Mutaciones.
+- [x] **T038** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 *(referencia `aa3314e9…`; las diez coinciden, con el incidente de m28; 662 pass)*.
 - [ ] **T039** ✋ Puertas y commit: `009 B5: Gemini en run y daemon, antes de guardar el estado`.
 
 ## B6 · `--scan` *(FR-022, FR-023; SC-015)*
@@ -292,21 +293,22 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | m24 | B4 | ignorar `GEMINI_CLI_HOME` | (26/definida) |
 | m25 | B4 | exigir que la raíz exista | (27) |
 | M-B4a | B4 | sin `GEMINI_CLI_HOME` en `sandbox.go` | (27-bis) |
-| m26 | B5 | la línea de Gemini siempre | (28) |
+| m26 | B5 | la línea de Gemini siempre | (28) ×2, (35), y en Codex (23) ×2 y (26) |
 | m27 | B5 | `st.Save` antes de encolar Gemini | (30), con el forzado A |
 | m28 | B5 | `tick` escribe siempre | (32/tick) |
-| m29 | B5 | Gemini sólo con raíz de Claude Code | (29), (33), (35) |
+| m29 | B5 | Gemini sólo con raíz de Claude Code | (29), (30), (32/tick), (33), (34), (35) |
 | m30 | B5 | la existencia sólo en `setup()` | (35) |
 | m31 | B5 | el error de Gemini aborta la pasada | (36/pasada) |
 | m32 | B5 | el omitido guarda su offset | (36/se_relee) |
-| m33 | B5 | la ruta de `.project_root` en el evento | (34) |
+| m33 | B5 | la ruta del fichero en el evento | (34) |
 | m34 | B5 | Gemini antes que Codex en stderr | (31) |
+| M-B5a | B5 | `HayNovedades` sin formato anterior | (32/predicado), (21/hay_novedades) |
 | m35 | B6 | sin detección de Gemini en `--scan` | (37) |
 | m36 | B6 | todo fichero es Gemini | (38) |
 | m37 | B6 | `dryRunGemini` guarda su estado | (37/nada_en_disco) |
 | m38 | B6 | detección sólo por `sessionId` | (38/claude) |
 
-**45 mutaciones previstas** *(39 + M-B2a a M-B2d, M-B3b y M-B4a)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**46 mutaciones previstas** *(39 + M-B2a–d, M-B3b, M-B4a y M-B5a)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 

@@ -338,3 +338,40 @@ de entorno de producción, con `GEMINI_CLI_HOME`», y `git diff -U0` sólo toca 
 **Las cuatro coinciden**; sólo cae el paquete de la hoja *(`config` o `testutil`)*. `cmp` con las copias previas: idénticos. **T029 · Puertas**:
 `gofmt`, `vet` y lint a 0; **646** pass, 0 FAIL, 0 SKIP; frontera → 0; `*_test.go` existentes modificados → 0. Commit previsto *(✋ dueño)*:
 `009 B4: raiz de Gemini con GEMINI_CLI_HOME`.
+
+## B5 · Integración
+
+**T030 · Fase 0**, en este orden. **(1)** La referencia de SC-012, antes de tocar `main.go` *(`git diff --quiet` → limpio)*. El binario de
+`15ce93b` sale de `git archive 15ce93b | tar -x` + `go build` en un temporal. Se ejecuta en `env -i`, con `HOME`, `USERPROFILE` y
+`XDG_CONFIG_HOME` temporales, `logs_root` en `claude.jsonl`, `CODEX_HOME` en `sessions/2026/10/07/rollout-a.jsonl` *(`sesion.jsonl`)*, y sin
+`GEMINI_CLI_HOME` ni `.gemini`. Sale `rc=0` y nada en stdout. Con `<DATOS>`, queda en `cmd/permea/testdata/gemini/referencia-run.stderr`,
+md5 **`aa3314e9838f192829743cc3501f4102`**: siete líneas, la de Codex con `respuestas 2 · eventos 2`. **(2)** El forzado A, con un test temporal
+ya borrado: `Load` → `<nil>`; `Append` → `<nil>`, 323 bytes; `Save` → `permission denied`; uid 1000. **(3)** El esqueleto: `agent.geminiRaiz`,
+`agent.gemini`, `setup()` con `config.GeminiRoot()` *(`gofmt` realinea el literal)* y `generarGemini` vacío en `cmd/permea/gemini.go` *(nuevo)*.
+
+**T031–T036 · Rojos**, en `cmd/permea/gemini_test.go` *(nuevo)*, con los ayudantes de `codex_test.go` sin tocarlo. Caen 11 «--- FAIL»: 0 eventos
+`gemini`. **Nacen verdes** (28) ×2 *(la acredita m26)*, `SoloConNovedades/predicado` *(M-B5a, nueva)* y `FicheroIlegibleNoRompe/segunda_pasada`
+*(m31)*. **Verde**: Gemini entre Codex y el único `st.Save`, con `os.Stat(<raíz>/tmp)` en cada pasada, y las líneas de `runOnce` y `tick`.
+**662** pass *(646 + 16)*, 0 FAIL, 0 SKIP; lint 0. Los tests existentes, verdes y sin tocar. md5 `main.go` = `c04ec343…`, `gemini.go` = `f2ccec01…`.
+
+**T037 · Censo, ANTES de mutar** *(hojas sin `TestGemini`; las de Codex, con su nombre)*:
+
+| # | Mutación | Debe caer *(y sólo eso)* | Observado | md5 mutado |
+|---|---|---|---|---|
+| **m26** | `a.gemini = NuevaPasadaGemini()` siempre | `Run_SinRaiz…/gemini_cli_home_vacia`, `…/sin_tmp`, `Activacion_EnCadaPasada`, `TestCodexRun_SinRaiz…/codex_home_vacia`, `…/raiz_inexistente`, `TestCodexRun_LineaDeResumen` | = declarado ✅ | `38fb4c5d` |
+| **m27** | un `st.Save` antes de Gemini | `Generate_EncolaAntesDeGuardar` | = declarado ✅ | `95286d8b` |
+| **m28** | `tick` sin `HayNovedades()` | `Demonio_SoloConNovedades/tick` | = declarado ✅ | `5d4222f6` |
+| **m29** | Gemini sólo con logs de Claude | `Run_SoloGemini`, `Generate_EncolaAntesDeGuardar`, `Demonio…/tick`, `Run_SegundaPasadaCero`, `Run_NadaDelProveedorViaja`, `Activacion_EnCadaPasada` | = declarado ✅ | `0b620a9b` |
+| **m30** | la existencia sólo en `setup()` | `Activacion_EnCadaPasada` | = declarado ✅ | `42b9fd2e` |
+| **m31** | el error de Gemini aborta la pasada | `FicheroIlegibleNoRompe/pasada`, `…/segunda_pasada`, `…/se_relee` | = declarado ✅ | `70e969fe` |
+| **m32** | el omitido guarda su offset al final | `FicheroIlegibleNoRompe/se_relee` | = declarado ✅ | `5ab77917` |
+| **m33** | la ruta del fichero en `SessionRef` | `Run_NadaDelProveedorViaja` | = declarado ✅ | `d3b030c5` |
+| **m34** | la línea `gemini:` antes que la de Codex | `Run_LineaDeResumen` | = declarado ✅ | `ab90a1e8` |
+| **M-B5a** | `HayNovedades` sin formato anterior *(en `gemini_contexto.go`)* | `Demonio…/predicado`, `TestPasadaGemini_ResumenSC008/hay_novedades` | = declarado ✅ | `e69f6380` |
+
+**T038 · Las diez coinciden**, hoja a hoja. Cada reversión devuelve `main.go` a `c04ec343…`, `gemini.go` a `f2ccec01…` y
+`gemini_contexto.go` a `945acb6e…`, y `cmp` con las copias previas no da diferencias. **Incidente** *(de mi guion, no del código)*: tras
+mutar m28, `if a.gemini != nil {` quedaba dos veces, y la reversión automática no pudo hacerse. m29 y m30 corrieron **encima** de m28, y m30
+mostró de más justo `…/tick`, la caída de m28. Se deshizo m28 con una edición inversa de patrón único *(md5 de vuelta a `c04ec343…`)*, se
+descartaron esas dos medidas y m28–m30 se repitieron limpias: son las de la tabla. **T039 · Puertas**: `gofmt`, `vet` y lint a 0; **662**
+pass, 0 FAIL, 0 SKIP; frontera → 0; `*_test.go` existentes → 0. Commit *(✋ dueño)*: `009 B5: Gemini en run y daemon, antes de guardar el estado`.
