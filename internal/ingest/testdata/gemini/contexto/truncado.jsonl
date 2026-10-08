@@ -1,0 +1,2 @@
+{"sessionId":"s-000000000000000000000001","projectHash":"h-000000000000000000000001","startTime":"2026-10-08T00:01:11.000Z","lastUpdated":"2026-10-08T00:01:12.000Z","kind":"main"}
+{"id":"m-000000000000000000000061","timestamp":"2026-10-08T01:00:01.000Z","type":"gemini","content":"respuesta sintetica","thoughts":[],"tokens":{"input":70,"output":7,"cached":0,"thoughts":0,"tool":0,"total":77},"model":"modelo-sintetico-gemini"}

@@ -177,6 +177,12 @@ type agent struct {
 	codexRaiz string
 	// codex son los recuentos de Codex de la última pasada; nil si el lector no estuvo activo (plan D-008-P4).
 	codex *ingest.PasadaCodex
+	// geminiRaiz es la raíz `.gemini` de Gemini CLI (P-009 FR-001), resuelta una vez en `setup()`. Si `<raíz>/tmp`
+	// existe se mira en cada pasada (FR-002). Vacía —un `agent` construido a mano en un test— significa que no se lee
+	// Gemini (plan D-009-P8).
+	geminiRaiz string
+	// gemini son los recuentos de Gemini de la última pasada; nil si el lector no estuvo activo (plan D-009-P7).
+	gemini *ingest.PasadaGemini
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -220,11 +226,17 @@ func setup() (*agent, error) {
 	if err != nil {
 		codexRaiz = ""
 	}
+	// P-009 FR-001, FR-002: lo mismo con Gemini CLI.
+	geminiRaiz, err := config.GeminiRoot()
+	if err != nil {
+		geminiRaiz = ""
+	}
 	return &agent{
-		dir:       dir,
-		cfg:       cfg,
-		ictx:      newIngestContext(version, cfg, salt, machineID),
-		codexRaiz: codexRaiz,
+		dir:        dir,
+		cfg:        cfg,
+		ictx:       newIngestContext(version, cfg, salt, machineID),
+		codexRaiz:  codexRaiz,
+		geminiRaiz: geminiRaiz,
 	}, nil
 }
 
@@ -340,6 +352,19 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
+	// P-009: Gemini, tras Codex y ANTES del único `st.Save` (FR-024, plan D-009-P7). Activo sólo si `<raíz>/tmp` es un
+	// directorio EN ESTA PASADA (FR-002), sin resolver enlaces (N-11).
+	a.gemini = nil
+	if a.geminiRaiz != "" {
+		if info, err := os.Stat(filepath.Join(a.geminiRaiz, "tmp")); err == nil && info.IsDir() {
+			n, err := a.generarGemini(st, ictx)
+			total += n
+			if err != nil {
+				return total, pasada, err
+			}
+		}
+	}
+
 	if err := st.Save(statePath); err != nil {
 		return total, pasada, err
 	}
@@ -411,6 +436,9 @@ func runOnce() error {
 	if a.codex != nil {
 		fmt.Fprintln(os.Stderr, a.codex.Resumen()) // P-008 FR-019: con el lector activo en esta pasada
 	}
+	if a.gemini != nil {
+		fmt.Fprintln(os.Stderr, a.gemini.Resumen()) // P-009 FR-021: tras la de Codex, con el lector activo en esta pasada
+	}
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -474,6 +502,9 @@ func (a *agent) tick() error {
 		if a.codex != nil && a.codex.HayNovedades() {
 			fmt.Fprintln(os.Stderr, a.codex.Resumen()) // P-008 FR-019: sólo con novedades
 		}
+		if a.gemini != nil && a.gemini.HayNovedades() {
+			fmt.Fprintln(os.Stderr, a.gemini.Resumen()) // P-009 FR-021: sólo con novedades
+		}
 	}
 
 	if a.cfg.Endpoint == "" {
@@ -509,6 +540,14 @@ func dryRun(path string) error {
 	}
 	if codex {
 		return dryRunCodex(path)
+	}
+	// P-009 FR-022, P-8: una sesión de Gemini CLI se reconoce por su cabecera y se lee como Gemini.
+	gemini, err := esSesionGemini(path)
+	if err != nil {
+		return err
+	}
+	if gemini {
+		return dryRunGemini(path)
 	}
 	f, err := os.Open(path)
 	if err != nil {

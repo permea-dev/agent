@@ -1,0 +1,1 @@
+{"id":"m-000000000000000000000001","timestamp":"2026-10-08T00:00:01.250Z","type":"gemini","content":"texto sintetico","thoughts":[],"tokens":{"input":100,"output":7,"cached":40,"thoughts":3,"tool":5,"total":115},"model":"modelo-sintetico-gemini"}

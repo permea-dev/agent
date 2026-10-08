@@ -61,6 +61,8 @@ func Sandbox(t *testing.T) string {
 	t.Setenv("XDG_CONFIG_HOME", configuracion)
 	// P-008 M-9: sin esto, un test de proceso heredaría el CODEX_HOME del desarrollador y leería sus sesiones reales.
 	t.Setenv("CODEX_HOME", "")
+	// P-009 M-9: lo mismo con GEMINI_CLI_HOME. Vacía, la raíz cae en el hogar temporal, donde no hay `.gemini`.
+	t.Setenv("GEMINI_CLI_HOME", "")
 
 	base, err := os.UserConfigDir()
 	if err != nil {

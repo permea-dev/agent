@@ -1,0 +1,4 @@
+{"sessionId":"s-000000000000000000000001","projectHash":"h-000000000000000000000001","startTime":"2026-10-08T00:01:07.000Z","lastUpdated":"2026-10-08T00:01:08.000Z","kind":"main"}
+{"id":"m-000000000000000000000041","timestamp":"2026-10-08T01:00:41.000Z","type":"gemini","content":"respuesta sintetica","thoughts":[],"tokens":{"input":10,"output":1,"cached":0,"thoughts":0,"tool":0,"total":11},"model":"modelo-sintetico-gemini"}
+{"id":"m-000000000000000000000042","type":"gemini","tokens":{"input":1, ROTA
+{"id":"m-000000000000000000000043","timestamp":"2026-10-08T01:00:43.000Z","type":"gemini","content":"respuesta sintetica","thoughts":[],"tokens":{"input":20,"output":2,"cached":0,"thoughts":0,"tool":0,"total":22},"model":"modelo-sintetico-gemini"}
