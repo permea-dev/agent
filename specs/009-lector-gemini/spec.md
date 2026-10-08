@@ -63,7 +63,7 @@ partida**: `15ce93b` *(sobre `c89c5de`, 0.5.0)*
 | **P-8** ✅ **(a)** | **`--scan`** reconoce una sesión de Gemini por su primera línea: un objeto con `sessionId` y `projectHash`, y sin `type`. Cada evento sale con la línea `evento:` de Codex, y el resumen con la línea de Gemini | (b) `--scan-gemini` | **(a)**, como 008 P-8 |
 | **P-9** ❌ **(b)**, rechazada | **El agente no resuelve enlaces simbólicos**: una raíz de sesiones que sea un enlace no se garantiza ni se prueba *(N-11)*. SC-001 mide sobre la segunda copia congelada | (a) *(propuesta, rastro)*: resolver `<raíz>/tmp` si es un enlace, una vez por pasada | **(a)**, para medir `--run` sobre la copia sin copiarla. El dueño eligió **(b)**, con la segunda copia |
 | **P-10** ✅ **(a)** | **Los textos**: §Textos propuestos | corregirlos | — |
-| **P-11** ✅ **(a)** *(textos pendientes hasta B6)* | **La coherencia del README** *(como la E-5 de 008)*: las frases que hoy dicen «Claude Code y Codex CLI» pasan a nombrar también Gemini CLI, con textos que se aprueban en el encargo de B6 | (b) dejarlas | **(a)**: si no, quedarían incompletas con la 0.6.0 |
+| **P-11** ✅ **(a)** *(textos aprobados en E-1)* | **La coherencia del README** *(como la E-5 de 008)*: las frases que hoy dicen «Claude Code y Codex CLI» pasan a nombrar también Gemini CLI, con textos que se aprueban en el encargo de B6 | (b) dejarlas | **(a)**: si no, quedarían incompletas con la 0.6.0 |
 
 ## User Scenarios & Testing
 
@@ -317,7 +317,7 @@ veredicto.
 - **Una respuesta enviada sin proyecto** desde una carpeta antigua *(sin `.project_root`)* no se corrige si después aparece su copia con
   proyecto: la plataforma descarta el `event_id` repetido.
 
-## Textos aprobados (2026-10-08) *(P-10 ✅; las frases de coherencia de P-11, pendientes hasta B6)*
+## Textos aprobados (2026-10-08) *(P-10 ✅; las frases de coherencia de P-11, en E-1)*
 
 **Resumen de Gemini** *(stderr, una línea; en `--run`, tras la de Codex; en el demonio, sólo con novedades)*. Añade «total descuadrado»
 *(P-5)* a la propuesta del dueño, y no lleva «comprimidos» *(Gemini no comprime)*:
@@ -342,6 +342,18 @@ Las llamadas internas de la CLI (compresión, enrutado) y los intentos fallidos 
 así que el agente no los ve. Gemini CLI borra por defecto las sesiones de más de 30 días. Si la carpeta no
 existe, no cambia nada. Antigravity no guarda su consumo en estas sesiones y el agente no lo lee.
 ```
+**README, coherencia** *(P-11; E-1, aprobada por el dueño el 2026-10-08, 18:30)*. Sólo cambian las palabras que nombran a Gemini; en el
+fichero se parten al ancho de línea, y se comprueban con `grep -F` sobre el texto con los saltos normalizados:
+1. «Agente local que lee los logs de uso de herramientas de IA (Claude Code, Codex CLI y Gemini CLI), calcula **en local** el coste de Claude Code y transmite…»
+2. «> ⚠️ **La primera pasada envía todo el historial que conserven Claude Code, Codex CLI y Gemini CLI**, no sólo lo»
+3. «permea --scan <fichero.jsonl>   # prueba en seco: un evento por mensaje (por respuesta, en Codex y en Gemini), sin tocar estado ni cola»
+4. «…Con Codex activo, una tercera línea, `codex: …`, con sus recuentos, y con Gemini activo, otra, `gemini: …`.»
+5. «…En una sesión de Codex o de Gemini la línea no lleva `cw5m=` ni `cw1h=`, y el coste es 0.»
+6. «- **`--run`** hace una pasada: descubre los logs de Claude Code y las sesiones de Codex y de Gemini, lee lo nuevo»
+7. «- **Codex y Gemini**: el agente no calcula su coste; lo pone la plataforma (ver «Codex CLI» y «Gemini CLI»).»
+8. «internal/ingest   lectores por herramienta (claude_code, codex, gemini) + tests de frontera»
+9. «…espejo exacto de las 17 filas de Anthropic del catálogo de tarifas de la plataforma (`permea-dev/permea-platform` · `backend/config/pricing.php` · `8f147d1`); las de otros proveedores sólo están en la plataforma.»
+
 **CHANGELOG `0.6.0`** *(encabezado con `PENDIENTE` hasta la etiqueta)*:
 ```
 ## 0.6.0 — PENDIENTE
@@ -390,3 +402,4 @@ existe, no cambia nada. Antigravity no guarda su consumo en estas sesiones y el 
 |---|---|---|---|
 | **Borrador** | 2026-10-08 | Primera redacción, con D-1 a D-4 ratificadas el 2026-10-08, y P-1 a P-11 y Q-1 a Q-4 para ratificar | Encargo 009 · spec · 2/n |
 | **Ratificación** | 2026-10-08 12:20 | **El dueño ratifica** P-1 a P-8, P-10 y P-11 **(a)**, y Q-1 a Q-4 con su recomendación. **Rechaza P-9 (b)**: no se resuelven enlaces *(N-11)*; FR-002 ya no los nombra, y SC-001 mide `--run` sobre la **segunda copia congelada** con `GEMINI_CLI_HOME`. **Aprueba los textos** *(P-10)*, con una frase más en «### Gemini CLI» sobre Antigravity. Las frases de coherencia *(P-11)* quedan pendientes hasta B6 | Ratificación del dueño |
+| **E-1** | 2026-10-08 18:30 | **El dueño aprueba las nueve frases de coherencia del README** *(P-11, T043)*, a §Textos aprobados, «README, coherencia». La 9 se escribe tras comprobar que las 17 filas de Anthropic de `internal/pricing` son iguales a las del catálogo de la plataforma en `6569815` *(`soporte/registro.md` §B6 y B7)* | Que el README no quede incompleto con la 0.6.0 |

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/permea-dev/agent/internal/ingest"
+	"github.com/permea-dev/agent/internal/project"
 	"github.com/permea-dev/agent/internal/testutil"
 	"github.com/permea-dev/agent/internal/transport"
 )
@@ -276,4 +277,81 @@ func TestGeminiGenerate_FicheroIlegibleNoRompe(t *testing.T) {
 			t.Errorf("con el fichero ya legible: %d eventos gemini; se esperaban 3 (2 + el suyo, porque su offset no avanzó)", n)
 		}
 	})
+}
+
+// ═══ P-009 B6 · `--scan` DE UNA SESIÓN DE GEMINI CLI ═════════════════════════════════════════════
+//
+// La línea `evento:` es la aprobada en 008 (`textoAprobado` de `codex_test.go` la lee por programa), y el resumen, la de
+// 009 (`lineaGemini`).
+
+// (37) · FR-022, SC-015: una línea `evento:` aprobada por evento, la línea `gemini:`, el proyecto de la posición del
+// fichero, y nada en disco.
+func TestGeminiScan_EventosYResumen(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	home := raizGemini(t, map[string]string{"s.jsonl": "sesion.jsonl"}, textoRaizDePrueba)
+	fichero := filepath.Join(home, ".gemini", "tmp", slugDePrueba, "chats", "s.jsonl")
+	codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", fichero)
+	if codigo != 0 {
+		t.Fatalf("código %d; stderr:\n%s", codigo, stderr)
+	}
+	lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+	t.Run("lineas_evento", func(t *testing.T) {
+		patron := patronDe(textoAprobado(t, "**Línea de `--scan` para Codex**"))
+		want := []string{"gemini modelo-sintetico-gemini 100 10 0 0 0.0000 false", "gemini modelo-sintetico-gemini 200 12 0 0 0.0000 false"}
+		if len(lineas) != 2 {
+			t.Fatalf("%d líneas en stdout; se esperaban 2:\n%s", len(lineas), stdout)
+		}
+		for i, l := range lineas {
+			m := patron.FindStringSubmatch(l)
+			if m == nil || strings.Join(m[1:9], " ") != want[i] {
+				t.Errorf("línea %d:\n%s\nse esperaba la aprobada con %q", i, l, want[i])
+			}
+		}
+	})
+	t.Run("resumen", func(t *testing.T) {
+		if want := lineaGemini(t, 3, 2, 1, 0, 0, 0, 0, 0); !strings.Contains(stderr, want+"\n") {
+			t.Errorf("stderr no lleva la línea aprobada %q:\n%s", want, stderr)
+		}
+	})
+	t.Run("proyecto", func(t *testing.T) {
+		if want := "project_ref=" + project.Derivar(textoRaizDePrueba, "dry-run-salt")[:8] + "… "; !strings.Contains(lineas[0], want) {
+			t.Errorf("la línea no lleva el proyecto de su `<slug>` (%q):\n%s", want, lineas[0])
+		}
+	})
+	t.Run("sin_forma", func(t *testing.T) {
+		suelto := filepath.Join(t.TempDir(), "s.jsonl")
+		escribir(t, suelto, fixtureGemini(t, "sesion.jsonl"))
+		codigo, stdout, _, _ := ejecutar(t, 30*time.Second, "--scan", suelto)
+		if codigo != 0 || strings.Count(stdout, "project_ref= event_id=") != 2 {
+			t.Errorf("fuera de `<slug>/chats/`, código %d; se esperaban 2 eventos con project_ref vacío:\n%s", codigo, stdout)
+		}
+	})
+	t.Run("nada_en_disco", func(t *testing.T) {
+		for _, f := range []string{"state.json", "queue.jsonl"} {
+			if _, err := os.Stat(filepath.Join(dataDir, f)); !os.IsNotExist(err) {
+				t.Errorf("--scan dejó %s en el directorio de datos (err %v)", f, err)
+			}
+		}
+	})
+}
+
+// (38) · FR-023: `--scan` de Claude Code y de Codex da la salida de la 0.5.0, byte a byte. Las referencias son las del binario
+// de `15ce93b` (Claude Code, la misma de la 0.4.0). Nace verde; lo valida m36.
+func TestGeminiScan_ClaudeYCodexComoLa050(t *testing.T) {
+	for _, c := range []struct{ hoja, fichero, stdout, stderr string }{
+		{"claude", filepath.Join("testdata", "codex", "claude.jsonl"),
+			filepath.Join("codex", "referencia-scan-claude.stdout"), filepath.Join("codex", "referencia-scan-claude.stderr")},
+		{"codex", filepath.Join("testdata", "codex", "sesion.jsonl"),
+			filepath.Join("gemini", "referencia-scan-codex.stdout"), filepath.Join("gemini", "referencia-scan-codex.stderr")},
+	} {
+		t.Run(c.hoja, func(t *testing.T) {
+			_ = testutil.Sandbox(t)
+			codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", c.fichero)
+			wantOut, _ := os.ReadFile(filepath.Join("testdata", c.stdout))
+			wantErr, _ := os.ReadFile(filepath.Join("testdata", c.stderr))
+			if codigo != 0 || stdout != string(wantOut) || stderr != string(wantErr) || len(wantOut) == 0 {
+				t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nno es la salida de la 0.5.0", codigo, stdout, stderr)
+			}
+		})
+	}
 }

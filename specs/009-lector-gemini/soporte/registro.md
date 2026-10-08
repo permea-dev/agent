@@ -375,3 +375,34 @@ mutar m28, `if a.gemini != nil {` quedaba dos veces, y la reversión automática
 mostró de más justo `…/tick`, la caída de m28. Se deshizo m28 con una edición inversa de patrón único *(md5 de vuelta a `c04ec343…`)*, se
 descartaron esas dos medidas y m28–m30 se repitieron limpias: son las de la tabla. **T039 · Puertas**: `gofmt`, `vet` y lint a 0; **662**
 pass, 0 FAIL, 0 SKIP; frontera → 0; `*_test.go` existentes → 0. Commit *(✋ dueño)*: `009 B5: Gemini en run y daemon, antes de guardar el estado`.
+
+## B6 y B7 · `--scan`, README y CHANGELOG
+
+**T040–T041** · Antes de nada, las referencias de la 0.5.0 con el binario de `15ce93b` *(`git archive` + `go build`, `env -i`)*: `--scan` de
+`testdata/codex/sesion.jsonl` → `testdata/gemini/referencia-scan-codex.stdout` *(`100aa389…`)* y `.stderr` *(`b530a31f…`)*. La de Claude es
+byte a byte la de la 0.4.0 *(`cmp`)*, y se reutiliza. **Rojos** en `gemini_test.go`: (37) cae en 4 hojas, porque el fichero de Gemini aún se lee
+como Claude Code *(0 eventos)*. **Nacen verdes** `nada_en_disco` *(m37)* y (38) ×2 *(m36 y m38)*. **Verde**: `esSesionGemini` *(cabecera:
+`sessionId` y `projectHash`, sin `type`)* y `dryRunGemini`, en `gemini.go`; en `dryRun`, tras Codex. **DECIDÍ YO** *(`slugDeScan`)*: con
+`--scan` el fichero llega suelto, así que el `<slug>` sale de la posición. Padre `chats` → abuelo; abuelo `chats` *(subagente)* → bisabuelo; si no,
+`project_ref` vacío. Es la única deducción por nombre del lector, y sólo en `--scan`. **671** pass, 0 FAIL, 0
+SKIP; lint 0. md5 `main.go` = `89e1b4ec…`, `gemini.go` = `4c3e95d7…`.
+
+**T042 · Censo, ANTES de mutar.** `Scan_*` de Claude son los cuatro `TestScan_*` *(`main_test.go:478,497`, `coste_test.go:26,49`)*.
+
+| # | Mutación | Debe caer *(y sólo eso)* | Observado | md5 mutado |
+|---|---|---|---|---|
+| **m35** | `if false && gemini` en `dryRun` | `GeminiScan_EventosYResumen/{lineas_evento, resumen, proyecto, sin_forma}` | = declarado ✅ | `1b89bd13` |
+| **m36** | `esSesionGemini` → `true` | `GeminiScan_ClaudeYCodexComoLa050/claude`, `TestCodexScan_ClaudeCodeComoLa040`, los cuatro `TestScan_*` | = declarado ✅ | `91bbc7d4` |
+| **m37** | `dryRunGemini` guarda `state.json` | `GeminiScan_EventosYResumen/nada_en_disco` | = declarado ✅ | `fffb321c` |
+| **m38** | detección sólo por `sessionId` | lo mismo que m36: las primeras líneas de Claude llevan `sessionId` | = declarado ✅ | `cd4b0918` |
+
+Las cuatro coinciden, y el md5 se comprobó tras cada reversión, **antes** de la siguiente mutación *(corrección de método del dueño)*. El guion,
+además, rechaza un reemplazo que ya existiera en el fichero, que es la causa del incidente de m28 en B5.
+
+**T043 ✋** *(el dueño, 2026-10-08, 18:30)*: las nueve frases de coherencia, a spec §Textos aprobados *(E-1)*. **Tarifas, antes de la frase 9**:
+con `git show 6569815:backend/config/pricing.php` *(sólo lectura)*, las 17 filas `claude-*` de la plataforma y las de `internal/pricing`, con las cinco
+cifras de cada una, son **17/17 iguales**. La plataforma tiene además 11 filas `gpt-*`. **T044–T046**: los rojos dieron 0 y 0. «### Gemini CLI» y
+`## 0.6.0 — PENDIENTE` se sacaron por programa de la spec, y `cmp` no da diferencias. Las nueve frases dan 9/9 con `grep -F` sobre el texto normalizado
+*(la 2, sobre la línea tal cual)*. Las líneas 187, 201 y 243 de B5 están ahora en 197, 211 y 253, porque la sección nueva las movió. `grep -c` →
+`^## 0.6.0` 1, `^### Gemini CLI` 1 y `PENDIENTE` 1; `Claude Code y Codex CLI` → 0. **Puertas**: **671** pass, 0 FAIL, 0 SKIP; lint 0; frontera → 0.
+Commit *(✋ dueño, T047)*: `009 B6 y B7: scan de Gemini, README y CHANGELOG de la 0.6.0`.

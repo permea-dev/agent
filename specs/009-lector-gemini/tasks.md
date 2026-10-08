@@ -199,23 +199,22 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 
 ## B6 · `--scan` *(FR-022, FR-023; SC-015)*
 
-- [ ] **T040** [P] **Rojos (37) y (38)** en `cmd/permea/gemini_test.go`, con los textos leídos de las specs por programa:
-  - **(37)** un fichero de Gemini → la línea `evento:` de 008, una por evento; la línea `gemini:`; y nada en disco *(`nada_en_disco` nace
-    verde; la valida m37)*;
-  - **(38)** Claude Code y Codex → byte a byte su salida de la 0.5.0 *(nace verde; la valida m36)*.
-- [ ] **T041** **Verde**: en `dryRun`, tras Codex, `esSesionGemini` y `dryRunGemini` *(D-009-P13)*.
-- [ ] **T042** Censo, **antes de mutar**, y mutaciones: **(m35)** sin detección → (37); **(m36)** todo es Gemini → (38); **(m37)**
+- [x] **T040** [P] **Rojos (37) y (38)** en `cmd/permea/gemini_test.go`, con los textos de las specs leídos por programa: **(37)** un fichero
+  de Gemini → `evento:` de 008 por evento, `gemini:` y nada en disco *(nace verde; m37)*; **(38)** Claude Code y Codex → su salida de la 0.5.0 *(m36)*.
+- [x] **T041** **Verde**: en `dryRun`, tras Codex, `esSesionGemini` y `dryRunGemini` *(D-009-P13)*.
+- [x] **T042** Censo, **antes de mutar**, y mutaciones: **(m35)** sin detección → (37); **(m36)** todo es Gemini → (38); **(m37)**
   `dryRunGemini` guarda estado → (37/nada_en_disco); **(m38)** detección sólo por `sessionId` → (38/claude).
-- [ ] **T043** ✋ **El dueño aprueba las frases de coherencia del README** *(P-11)*, que se proponen en este bloque, literales, en
-  `soporte/registro.md`.
+- [x] **T043** ✋ *(2026-10-08, 18:30)* **El dueño aprueba las frases de coherencia del README** *(P-11)*, literales, a spec §Textos aprobados *(E-1)*.
+  > Transcripción B6: [`soporte/registro.md`](./soporte/registro.md) §B6 y B7 *(m35–m38 coinciden; 671 pass)*.
 
 ## B7 · README y CHANGELOG *(FR-028; SC-015)*
 
-- [ ] **T044** **Rojo**, transcrito: `grep -c '^## 0.6.0' CHANGELOG.md` → 0; `grep -c '^### Gemini CLI' README.md` → 0.
-- [ ] **T045** `README.md`: «### Gemini CLI», literal y **sacada por programa** de spec §Textos aprobados, tras «### Codex CLI». Y las frases
+- [x] **T044** **Rojo**, transcrito: `grep -c '^## 0.6.0' CHANGELOG.md` → 0; `grep -c '^### Gemini CLI' README.md` → 0.
+- [x] **T045** `README.md`: «### Gemini CLI», literal y **sacada por programa** de spec §Textos aprobados, tras «### Codex CLI». Y las frases
   de coherencia aprobadas en T043.
-- [ ] **T046** `CHANGELOG.md`: `## 0.6.0 — PENDIENTE` encima de la 0.5.0, con el cuerpo **sacado por programa**. `cmp` de los dos textos, sin
+- [x] **T046** `CHANGELOG.md`: `## 0.6.0 — PENDIENTE` encima de la 0.5.0, con el cuerpo **sacado por programa**. `cmp` de los dos textos, sin
   diferencias. `grep -c PENDIENTE CHANGELOG.md` → 1.
+  > Transcripción B7: [`soporte/registro.md`](./soporte/registro.md) §B6 y B7 *(tarifas 17/17; frases 9/9; `cmp` sin diferencias)*.
 - [ ] **T047** ✋ Puertas y commit de B6 y B7: `009 B6 y B7: scan de Gemini, README y CHANGELOG de la 0.6.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
@@ -225,8 +224,7 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 - [ ] **T049** **C2** · Medidas *(plan §Contador)*: las huellas de las dos copias, antes; el contador y `--scan` sobre la primera; `--run` dos
   veces con `GEMINI_CLI_HOME` en la **segunda copia congelada** *(SC-001 a SC-004)*; **SC-013**, tres veces; las huellas después, iguales;
   los temporales, borrados.
-- [ ] **T050** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos aprobados
-  *(SC-015)*.
+- [ ] **T050** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-015)*.
 - [ ] **T051** ✋ **C4 · W1** *(sandbox, sin enrolar)*: `--version`; `status`; dos `--run` sobre el `.gemini` real en **sólo lectura**,
   contrastados con el contador; **Q-1**: el `project_ref` de un directorio con sesiones de Claude Code y de Gemini, igual en los dos.
 - [ ] **T052** **C5** · El cuerpo del PR y la fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0)*. ✋ Commit `009 C5: fecha de la 0.6.0 en el CHANGELOG`.
@@ -304,9 +302,9 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | m34 | B5 | Gemini antes que Codex en stderr | (31) |
 | M-B5a | B5 | `HayNovedades` sin formato anterior | (32/predicado), (21/hay_novedades) |
 | m35 | B6 | sin detección de Gemini en `--scan` | (37) |
-| m36 | B6 | todo fichero es Gemini | (38) |
+| m36 | B6 | todo fichero es Gemini | (38/claude), los cuatro `TestScan_*`, `TestCodexScan_ClaudeCodeComoLa040` |
 | m37 | B6 | `dryRunGemini` guarda su estado | (37/nada_en_disco) |
-| m38 | B6 | detección sólo por `sessionId` | (38/claude) |
+| m38 | B6 | detección sólo por `sessionId` | lo mismo que m36 |
 
 **46 mutaciones previstas** *(39 + M-B2a–d, M-B3b, M-B4a y M-B5a)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 

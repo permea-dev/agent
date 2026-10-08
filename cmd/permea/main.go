@@ -541,6 +541,14 @@ func dryRun(path string) error {
 	if codex {
 		return dryRunCodex(path)
 	}
+	// P-009 FR-022, P-8: una sesión de Gemini CLI se reconoce por su cabecera y se lee como Gemini.
+	gemini, err := esSesionGemini(path)
+	if err != nil {
+		return err
+	}
+	if gemini {
+		return dryRunGemini(path)
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return err

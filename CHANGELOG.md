@@ -3,6 +3,25 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
+## 0.6.0 — PENDIENTE
+
+### Nuevo
+- Lee también el consumo de Gemini CLI, de `~/.gemini/tmp` (o de `$GEMINI_CLI_HOME/.gemini/tmp`), si esa
+  carpeta existe. Cada respuesta del modelo es un evento con `tool = gemini`.
+  (`specs/009-lector-gemini/spec.md`, FR-001, FR-002, FR-006)
+- Los eventos de Gemini llevan sus tokens y su modelo, sin coste: el coste lo calcula la plataforma.
+  (`specs/009-lector-gemini/spec.md`, FR-010, FR-011, FR-013)
+
+### Sin cambios
+- Claude Code y Codex se leen exactamente como en la 0.5.0. Sin carpeta de Gemini, la salida no cambia.
+  (`specs/009-lector-gemini/spec.md`, FR-023, FR-028)
+
+### Limitaciones conocidas
+- Las llamadas internas de Gemini CLI y los intentos fallidos no constan en sus sesiones: el consumo
+  enviado queda por debajo de la factura. (`specs/009-lector-gemini/spec.md`, D-1)
+- Sólo se leen las sesiones de Gemini CLI 0.39.0 o posterior; las anteriores se cuentan y no se envían.
+  (`specs/009-lector-gemini/spec.md`, FR-018; D-3)
+
 ## 0.5.0 — 2026-10-07
 
 ### Nuevo
