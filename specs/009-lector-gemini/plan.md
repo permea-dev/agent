@@ -192,3 +192,6 @@ Estimación: B1 ~35 + 60 de test · B2 ~110 + 220 · B3 ~210 + 380 · B4 ~25 + 5
 
 - **Ratificación** *(2026-10-08, 12:20; registro en `spec.md`)*: P-9 rechazada. D-009-P8 no resuelve enlaces, y C2 mide `--run` sobre la
   segunda copia congelada *(disciplina 12)*.
+- **Ratificación de las preguntas del plan** *(2026-10-08, 12:35, Madrid; el dueño, como se recomendaron)*: **(1)** D-009-P1 no decodifica
+  los `$set` del prefijo, con su plan B escrito; **(2)** el comentario de `internal/config/codex.go:16` se corrige en el bloque que toca ese
+  fichero *(B4)*; **(3)** B6 y B7 en un solo commit *(T047)*; **(4)** SC-013 sobre un sintético de ≥ 100 MB con muchos `$set.messages` largos.

@@ -69,22 +69,26 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 
 ## B0 · Documentos
 
-- [ ] **T001** Fase 0. Transcribir la línea base sobre `15ce93b`: 574 pass en 9 paquetes, 0 SKIP, lint 0 y la frontera sin diff. Si algo
+- [x] **T001** Fase 0. Transcribir la línea base sobre `15ce93b`: 574 pass en 9 paquetes, 0 SKIP, lint 0 y la frontera sin diff. Si algo
   difiere, **se para**.
-- [ ] **T002** ✋ Commit: `009 B0: spec ratificada, contrato, plan y tareas`.
+- [x] **T002** ✋ *(`19cda8e`)* Commit: `009 B0: spec ratificada, contrato, plan y tareas`.
 
 ## B1 · Identidad *(contrato; FR-007; SC-006)*
 
-- [ ] **T003** Fase 0: en `internal/ingest/gemini_eventid.go` *(nuevo)*, `derivarEventIDGemini(id string) (string, bool)`, que devuelve `"",
+- [x] **T003** Fase 0: en `internal/ingest/gemini_eventid.go` *(nuevo)*, `derivarEventIDGemini(id string) (string, bool)`, que devuelve `"",
   false`. Se crea `soporte/registro.md`. La suite sigue verde.
-- [ ] **T004** **Rojos (1), (2) y (3)** en `internal/ingest/gemini_eventid_test.go` *(nuevo)*:
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T003.
+- [x] **T004** **Rojos (1), (2) y (3)** en `internal/ingest/gemini_eventid_test.go` *(nuevo)*:
   - **(1)**: los dos vectores normativos, byte a byte;
   - **(2)**: el vector del espacio de Codex, como literal *(`07d1f3ea…`)*, es distinto del de Gemini para el mismo valor;
   - **(3)**: `id` vacío → `ok = false` *(nace verde; la valida m3)*.
-- [ ] **T005** **Verde**: la derivación del contrato, **replicada** en el fichero nuevo *(plan §Qué se reutiliza)*.
-- [ ] **T006** Censo, **declarado antes de mutar**, por hoja: **(m1)** `"gemini"` → `"codex"` → (1) ×2 y (2); **(m2)** sin prefijo de
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T004.
+- [x] **T005** **Verde**: la derivación del contrato, **replicada** en el fichero nuevo *(plan §Qué se reutiliza)*.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T005 *(md5 `60ce5a10…`)*.
+- [x] **T006** Censo, **declarado antes de mutar**, por hoja: **(m1)** `"gemini"` → `"codex"` → (1) ×2 y (2); **(m2)** sin prefijo de
   longitud → (1) ×2; **(m3)** vacío aceptado → (3); **(m4)** el `sessionId` en el hash → (1) ×2.
-- [ ] **T007** Mutaciones y transcripción, con md5.
+- [x] **T007** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 · T006 y T007 *(las cuatro coinciden)*, y T008 *(puertas: 579 pass)*.
 - [ ] **T008** ✋ Puertas y commit: `009 B1: event_id de Gemini con espacio de nombres propio`.
 
 ## B2 · Una aparición *(FR-009 a FR-015, FR-017, FR-019; SC-005, SC-007)*
