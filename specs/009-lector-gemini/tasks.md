@@ -219,12 +219,13 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
 
-- [ ] **T048** **C1** · Puertas, transcritas: las del bloque; `go test` → **574 + nuevos**, 0 SKIP en Linux *(SC-014)*; ningún `_test.go`
+- [x] **T048** **C1** · Puertas, transcritas: las del bloque; `go test` → **574 + nuevos**, 0 SKIP en Linux *(SC-014)*; ningún `_test.go`
   existente modificado; `os.Getenv` de producción = 2; compilan Windows y darwin; `PENDIENTE` → 1.
-- [ ] **T049** **C2** · Medidas *(plan §Contador)*: las huellas de las dos copias, antes; el contador y `--scan` sobre la primera; `--run` dos
+- [x] **T049** **C2** · Medidas *(plan §Contador)*: las huellas de las dos copias, antes; el contador y `--scan` sobre la primera; `--run` dos
   veces con `GEMINI_CLI_HOME` en la **segunda copia congelada** *(SC-001 a SC-004)*; **SC-013**, tres veces; las huellas después, iguales;
   los temporales, borrados.
-- [ ] **T050** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-015)*.
+- [x] **T050** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-015)*.
+  > Transcripción del cierre: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(C1 671 pass; C2 SC-001–SC-005 y SC-013 ✅; C3 zip `8a478701…`)*.
 - [ ] **T051** ✋ **C4 · W1** *(sandbox, sin enrolar)*: `--version`; `status`; dos `--run` sobre el `.gemini` real en **sólo lectura**,
   contrastados con el contador; **Q-1**: el `project_ref` de un directorio con sesiones de Claude Code y de Gemini, igual en los dos.
 - [ ] **T052** **C5** · El cuerpo del PR y la fecha del encabezado del CHANGELOG *(`PENDIENTE` → 0)*. ✋ Commit `009 C5: fecha de la 0.6.0 en el CHANGELOG`.

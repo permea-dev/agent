@@ -406,3 +406,11 @@ cifras de cada una, son **17/17 iguales**. La plataforma tiene además 11 filas 
 *(la 2, sobre la línea tal cual)*. Las líneas 187, 201 y 243 de B5 están ahora en 197, 211 y 253, porque la sección nueva las movió. `grep -c` →
 `^## 0.6.0` 1, `^### Gemini CLI` 1 y `PENDIENTE` 1; `Claude Code y Codex CLI` → 0. **Puertas**: **671** pass, 0 FAIL, 0 SKIP; lint 0; frontera → 0.
 Commit *(✋ dueño, T047)*: `009 B6 y B7: scan de Gemini, README y CHANGELOG de la 0.6.0`.
+
+## Cierre *(2026-10-08; binario de la rama, `4b7f88e`; Go 1.22.2, golangci-lint 2.12.2, goreleaser v2.16.0)*
+
+| **C1** · Puertas | `gofmt`, `vet` y lint 0 · **671** pass, 0 FAIL, 0 SKIP · frontera de FR-027 → 0 B · `*_test.go` existentes modificados → 0 · `internal/state/`, `event/` y `pricing/` → sin diff · `os.Getenv` → 2 *(`codex.go:19`, `gemini.go:20`)* · `windows`/`darwin` × `amd64`/`arm64` → rc 0 ×4 · `PENDIENTE` → 1 · `15ce93b..HEAD` → B0…B7 *(7 commits)* ✅ |
+|---|---|
+| **C2** · Medidas | Huellas de las dos copias, antes = después *(3 + 3)*, y 0 ficheros modificados en ellas. **Contador** sobre la primera: 16 · 10 · 6, y 95 747 / 12 141 / 0 / 2 482 *(9 + 1)*. **`--scan`** en su sitio: 10 `evento:`; con `awk`, las mismas sumas; `gemini:` literal; 0 `project_ref` vacíos; nada en el hogar. **`--run` ×2** con `GEMINI_CLI_HOME` en la segunda copia y `CODEX_HOME=""`: la 1.ª, 10 `gemini` *(9 y 1)*, mismas sumas, entrada + caché **107 888**, 10/10 sin coste; la 2.ª, 0. `state.json` y la cola, sólo en el sandbox *(SC-001–SC-005)* ✅ |
+| **SC-013** | Binario entero, 105 906 784 B *(70 089 respuestas, 350 `$set.messages`)*. Las tres medidas: **2,30 · 2,23 · 2,09 s** ≤ 3 s ✅. Diagnóstico: justo después de escribir ~140 MB, con 140 MB libres en WSL, hubo 1,5–3,25 s, y una de 5,98 s. En reposo, **8 medidas de 0,44 a 0,59 s**. La varianza es de E/S de WSL, no del lector *(sin bytes nuevos: 0,03–0,10 s)* |
+| **C3** · Snapshot | `rc=0`, «skipping announce, publish, and validate»; la versión inyectada, `0.5.0-SNAPSHOT-4b7f88e` *(desde la etiqueta `v0.5.0`)*; `sha256sum -c` OK ×5. En `permea.exe`, el resumen `gemini:`, `gemini: fichero omitido: %v` y la línea `evento:`, byte a byte *(1 vez cada uno; `strings` no ve el resumen porque el `·` no es ASCII)*. Zip de Windows `8a478701…e400`, copiado para W1 ✅ |
