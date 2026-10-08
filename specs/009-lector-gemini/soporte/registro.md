@@ -222,3 +222,95 @@ fixtures. Esta sección del registro mide **94** líneas frente a ≤ 60: **+57 
 450 no se mueve.
 
 Commit previsto *(✋ dueño)*: `009 B2: una respuesta de Gemini es un evento sin coste`.
+
+## B3 · Fichero y contexto
+
+### T017–T019 · Fase 0, fixtures y rojos
+
+`internal/ingest/gemini_contexto.go` *(nuevo)*: `PasadaGemini`, `FicheroGemini{Ruta, Slug}`, `ListarGemini(raiz)`,
+`LeerFicheroGemini(st, f FicheroGemini, …)` y `ContarAnteriorGemini`, que no hacen nada. Suite verde. **10 fixtures** en
+`testdata/gemini/contexto/`, generados por un guion fuera del repo. `forma_copia.jsonl` *(53 líneas: herramientas, compresión, reanudación)*
+da, con un contador independiente, 16 · 10 · 6 de una vez, y 12 · 8 · 4 + 4 · 2 · 2 cortado en la línea 42. El árbol de `ListarGemini` y los
+`.project_root` se montan en `t.TempDir()`. Rojos en `gemini_contexto_test.go` *(nuevo)*: **31 «--- FAIL»**, todos porque el esqueleto no
+devuelve nada (`respuestas 0 · eventos 0 · repetidas 0`, `Resumen() = ""`, `sesiones ""`…). **Nacen verdes** `ContarAnteriorGemini/segunda`
+*(la acredita m18)* y `PasadaGemini_ResumenSC008/identidad` *(con ceros se cumple; la acredita M-B3b, nueva)*.
+
+### T020 · Verde
+
+El prefijo de D-009-P1, la cabecera de D-009-P2, la caché de `.project_root` de D-009-P3, el orden de D-009-P4 y el `.json` de D-009-P5.
+`Recorrer` va tal cual. Repetida = `event_id` en `emitidos` o en `vistos`. **Dos correcciones antes del verde completo** *(DECIDÍ YO)*:
+- `ListarGemini` ordena cada grupo **por ruta completa**, como dice D-009-P4; mi primer verde seguía el orden de recorrido;
+- `truncado.jsonl` tenía un `timestamp` con el segundo 61, que es inválido. El guion usa `%60`, y sólo cambió ese fichero.
+
+```
+33 «--- PASS» en los tests de B3 · go test ./...: 640 «--- PASS», 0 FAIL, 0 SKIP · golangci-lint: 0 issues
+$ md5sum internal/ingest/gemini_contexto.go
+945acb6e4c34a13183529b6106624adf  internal/ingest/gemini_contexto.go
+```
+
+**SC-013, medida informativa**. Es un sintético de 105 906 784 B en el temporal, nunca en el repo: 140 529 líneas, 70 089 respuestas y 350
+`$set.messages` de hasta 125 165 B con el historial vivo y sus tokens. Una primera pasada entera, y después tres pasadas con **1** respuesta
+nueva cada una, con un test temporal que se borró. Máquina: i5-13400, Linux.
+
+```
+primera pasada entera: 70089 eventos en 2.046418034s
+medida 1: 1 evento nuevo, respuestas 1 · eventos 1 · repetidas 0, en 0.434 s
+medida 2: 1 evento nuevo, respuestas 1 · eventos 1 · repetidas 0, en 0.445 s
+medida 3: 1 evento nuevo, respuestas 1 · eventos 1 · repetidas 0, en 0.436 s
+```
+
+**≤ 3 s en las tres** *(0,434 · 0,445 · 0,436 s)*. El plan B no hace falta.
+
+### T021 · Censo, declarado ANTES de mutar *(por hoja; sin el prefijo `TestFicheroGemini_`, salvo los de otro nombre)*
+
+| # | Mutación, en `gemini_contexto.go` | Debe caer *(y sólo eso)* |
+|---|---|---|
+| **m13** | sin prefijo *(`false &&` en su condición)* | `ReanudacionEnDosPasadas/segunda`, `DosPasadasIgualAUna`, `CabeceraEnElPrefijo` |
+| **m14** | el prefijo no guarda `vistos` | `ReanudacionEnDosPasadas/segunda` |
+| **m15** | un `$set.messages` vacía los eventos ya acumulados del fichero | `Apariciones`, `SetFinalNoBorra`, `DosPasadasIgualAUna` |
+| **m16** | una aparición sin tokens mete su `event_id` en `emitidos` | `TokensTardios` |
+| **m17** | sin repetidas *(`false &&`)* | `Apariciones`, `RepetidasEnLaPasada/herramienta`, `…/dos_carpetas`, `ReanudacionEnDosPasadas/primera`, `…/segunda`, `CabeceraEnElPrefijo`, `PasadaGemini_ResumenSC008/literal`, `Proyecto/con`, `Proyecto/sin`, `Proyecto/subagente` |
+| **m18** | el `.json` en cada pasada | `ContarAnteriorGemini/segunda` |
+| **m19** | el prefijo avisa de la línea corrupta *(con `avisos` en su firma)* | `LineaCorrupta/segunda` |
+| **m20** | orden sólo léxico, sin grupos | `ListarGemini/patron`, `ListarGemini/orden` |
+| **m21** | `Slug = filepath.Dir(dir)` *(el del subagente queda en `chats/`)* | `ListarGemini/patron`, `Proyecto/subagente` |
+| **m22** | sin `.project_root` es error | `RepetidasEnLaPasada/dos_carpetas`, `Proyecto/sin` |
+| **M-B3a** | el truncado lee prefijo *(`offset > 0` a secas)* | `TruncadoSinPrefijo` |
+| **M-B3b** | una repetida no suma a `Respuestas` | `Apariciones`, `RepetidasEnLaPasada/herramienta`, `…/dos_carpetas`, `ReanudacionEnDosPasadas/primera`, `…/segunda`, `PasadaGemini_ResumenSC008/literal`, `…/identidad` |
+
+**Co-caídas más allá de `tasks.md`, declaradas aquí**:
+- **m17** hace caer todo test que cuenta repetidas o exige un solo evento de una respuesta que se repite;
+- **m15** hace caer los que miran los eventos de un fichero con `$set.messages`;
+- **m20** y **m21** hacen caer `patron`, que compara el listado completo;
+- **m22** hace caer `dos_carpetas`, que tiene una carpeta sin `.project_root`.
+
+md5 de referencia: `945acb6e…`.
+
+### T022 · Mutaciones *(`go test -count=1 ./...` entero en cada una; sólo cae `internal/ingest`; ninguna deja de compilar)*
+
+| # | md5 mutado | Observado | Declarado | md5 tras revertir |
+|---|---|---|:--:|---|
+| **m13** | `99929e13` | `CabeceraEnElPrefijo`, `DosPasadasIgualAUna`, `ReanudacionEnDosPasadas/segunda` | ✅ | `945acb6e…` |
+| **m14** | `1f2c25b6` | `ReanudacionEnDosPasadas/segunda` | ✅ | `945acb6e…` |
+| **m15** | `e8a155cc` | `Apariciones`, `DosPasadasIgualAUna`, `SetFinalNoBorra` | ✅ | `945acb6e…` |
+| **m16** | `37678b74` | `TokensTardios` | ✅ | `945acb6e…` |
+| **m17** | `64815156` | `Apariciones`, `CabeceraEnElPrefijo`, `Proyecto/con`, `Proyecto/sin`, `Proyecto/subagente`, `ReanudacionEnDosPasadas/primera`, `ReanudacionEnDosPasadas/segunda`, `RepetidasEnLaPasada/dos_carpetas`, `RepetidasEnLaPasada/herramienta`, `ResumenSC008/literal` | ✅ | `945acb6e…` |
+| **m18** | `62167e2b` | `ContarAnteriorGemini/segunda` | ✅ | `945acb6e…` |
+| **m19** | `3441ac96` | `LineaCorrupta/segunda` | ✅ | `945acb6e…` |
+| **m20** | `8215b998` | `ListarGemini/orden`, `ListarGemini/patron` | ✅ | `945acb6e…` |
+| **m21** | `6ee65e7a` | `Proyecto/subagente`, `ListarGemini/patron` | ✅ | `945acb6e…` |
+| **m22** | `cae39177` | `Proyecto/sin`, `RepetidasEnLaPasada/dos_carpetas` | ✅ | `945acb6e…` |
+| **M-B3a** | `42810f7d` | `TruncadoSinPrefijo` | ✅ | `945acb6e…` |
+| **M-B3b** | `6119ff17` | `Apariciones`, `ReanudacionEnDosPasadas/primera`, `ReanudacionEnDosPasadas/segunda`, `RepetidasEnLaPasada/dos_carpetas`, `RepetidasEnLaPasada/herramienta`, `ResumenSC008/identidad`, `ResumenSC008/literal` | ✅ | `945acb6e…` |
+
+**Las doce coinciden**, hoja a hoja, con T021. Tras la última, `cmp` con la copia previa a mutar no da diferencias.
+
+### T023 · Puertas del bloque *(antes del ✋ commit)*
+
+```
+gofmt -l . (vacío) · go vet ./... (rc=0) · golangci-lint run (0 issues) · go test -count=1 -v ./... 640 «--- PASS» (607 + 33), 0 FAIL, 0 SKIP
+frontera de FR-027 → 0 · '*_test.go' existentes modificados → 0 · codex.go, codex_contexto.go, gemini.go e internal/state/ → sin cambios
+```
+
+**Presupuesto**: producción 326 líneas, frente a ~210 *(+55 %: se declara)*; test 458, frente a ~380; 10 fixtures; esta sección,
+**91** líneas frente a ≤ 90. Commit previsto *(✋ dueño)*: `009 B3: apariciones, contexto entre pasadas y formato de Gemini`.

@@ -121,28 +121,31 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 
 ## B3 · Fichero y contexto *(FR-004 a FR-006, FR-008, FR-014, FR-016, FR-018 a FR-020; SC-004, SC-008 a SC-011, SC-013)*
 
-- [ ] **T017** Fase 0: en `internal/ingest/gemini_contexto.go` *(nuevo)*:
+- [x] **T017** Fase 0: en `internal/ingest/gemini_contexto.go` *(nuevo)*:
   - `PasadaGemini`: los ocho recuentos, `Resumen()` *(texto aprobado)*, `HayNovedades()`, `emitidos` y la caché de `.project_root`;
   - `LeerFicheroGemini(st, ruta, base, p, avisos io.Writer)`, sobre `Recorrer`, que aún no emite;
   - `ContarAnteriorGemini(st, ruta, p)` y `ListarGemini(raiz)`.
 
   Compila, y la suite sigue verde.
-- [ ] **T018** Fixtures sintéticos en `testdata/gemini/contexto/`, con forma de `tmp/<slug>/chats/…`: una llamada a herramienta; tokens
+- [x] **T018** Fixtures sintéticos en `testdata/gemini/contexto/`, con forma de `tmp/<slug>/chats/…`: una llamada a herramienta; tokens
   tardíos; un `$set.messages` final sin tokens; una sesión **con la forma de la copia** *(herramientas, compresión, reanudación)* y su corte
   antes de la reanudación; la cuenta de SC-008; una línea corrupta; un `.json`, `logs.json`, `*.unreadable-*` y `*.tmp-*`; un subagente;
   dos carpetas con la misma sesión, una sin `.project_root`; un fichero largo y su versión truncada.
-- [ ] **T019** [P] **Rojos (13) a (25)** en `internal/ingest/gemini_contexto_test.go` *(nuevo)*: **(13)** cuentan las apariciones de
+- [x] **T019** [P] **Rojos (13) a (25)** en `internal/ingest/gemini_contexto_test.go` *(nuevo)*: **(13)** cuentan las apariciones de
   mensaje y de `$set.messages`, y `tokens: null` no; **(14)** SC-009, tokens tardíos → 1; **(15)** SC-009, el `$set` final no borra eventos;
   **(16)** repetidas en la pasada; **(17)** SC-004, `12 · 8 · 4` y luego `4 · 2 · 2`; **(18)** dos pasadas = una *(`event_id`, modelo,
   `project_ref`, `session_ref`)*; **(19)** la cabecera en el prefijo; **(20)** el `.json` cuenta 1, 0, 1 *(la segunda nace verde; la valida
   m18)*; **(21)** SC-008, el resumen literal y la identidad de FR-019; **(22)** la línea corrupta, con aviso en lo nuevo y sin él en el
   prefijo; **(23)** `ListarGemini`, con patrón, exclusiones y orden de D-009-P4; **(24)** el proyecto: con, sin, subagente, e ilegible →
   error; **(25)** el truncado se relee sin prefijo.
-- [ ] **T020** **Verde**: el prefijo con el filtro de bytes *(D-009-P1)*; la cabecera *(D-009-P2)*; el proyecto *(D-009-P3)*; el orden
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 · T017–T019 *(31 rojos; nacen verdes (20/segunda) y (21/identidad))*.
+- [x] **T020** **Verde**: el prefijo con el filtro de bytes *(D-009-P1)*; la cabecera *(D-009-P2)*; el proyecto *(D-009-P3)*; el orden
   *(D-009-P4)*; el `.json` *(D-009-P5)*; la clasificación con `emitidos` y `vistos`; y la línea corrupta *(D-009-P10)*. `state.json` sigue
   con cuatro campos. **Medida informativa de SC-013**, transcrita.
-- [ ] **T021** Censo, **antes de mutar**, por hoja: m13 a m22 y M-B3a, con lo que debe caer en §Mutaciones.
-- [ ] **T022** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 · T020 *(md5 `945acb6e…`; SC-013: 0,434 · 0,445 · 0,436 s sobre 101 MB)*.
+- [x] **T021** Censo, **antes de mutar**, por hoja: m13 a m22, M-B3a y M-B3b, con lo que debe caer en §Mutaciones *(y las co-caídas, en el registro)*.
+- [x] **T022** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 · T021–T023 *(las doce coinciden; 640 pass)*.
 - [ ] **T023** ✋ Puertas y commit: `009 B3: apariciones, contexto entre pasadas y formato de Gemini`.
 
 ## B4 · Raíz *(FR-001; M-9)*
@@ -272,15 +275,16 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | M-B2d | B2 | sin la guarda de `tokens` ausente | (4/sin_tokens), (4/tokens_null) |
 | m13 | B3 | sin prefijo | (17/segunda), (18), (19) |
 | m14 | B3 | prefijo sin `vistos` *(P-3 (b))* | (17/segunda) |
-| m15 | B3 | `$set.messages` reemplaza el estado | (15) |
+| m15 | B3 | `$set.messages` reemplaza el estado | (13), (15), (18) |
 | m16 | B3 | la aparición sin tokens bloquea el `id` | (14) |
-| m17 | B3 | sin repetidas | (16), (21) |
+| m17 | B3 | sin repetidas | (13), (16) ×2, (17) ×2, (19), (21/literal), (24) ×3 |
 | m18 | B3 | el `.json` en cada pasada | (20/segunda) |
 | m19 | B3 | el aviso también en el prefijo | (22/segunda) |
-| m20 | B3 | orden sólo léxico | (23/orden) |
-| m21 | B3 | `.project_root` del subagente en `chats/<padre>/` | (24/subagente) |
-| m22 | B3 | sin `.project_root` es error | (24/sin) |
+| m20 | B3 | orden sólo léxico | (23/orden), (23/patron) |
+| m21 | B3 | `.project_root` del subagente en `chats/<padre>/` | (24/subagente), (23/patron) |
+| m22 | B3 | sin `.project_root` es error | (24/sin), (16/dos_carpetas) |
 | M-B3a | B3 | el truncado lee prefijo | (25) |
+| M-B3b | B3 | una repetida no suma a «respuestas» | (13), (16) ×2, (17) ×2, (21/literal), (21/identidad) |
 | m23 | B4 | `GEMINI_CLI_HOME=""` tomada como raíz | (26/vacía) |
 | m24 | B4 | ignorar `GEMINI_CLI_HOME` | (26/definida) |
 | m25 | B4 | exigir que la raíz exista | (27) |
@@ -298,7 +302,7 @@ git diff 15ce93b --name-only --diff-filter=M -- '*_test.go'                     
 | m37 | B6 | `dryRunGemini` guarda su estado | (37/nada_en_disco) |
 | m38 | B6 | detección sólo por `sessionId` | (38/claude) |
 
-**43 mutaciones previstas** *(39 + M-B2a a M-B2d)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
+**44 mutaciones previstas** *(39 + M-B2a a M-B2d + M-B3b)*. Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.
 
 ## Lo que este plan de tareas NO hace
 

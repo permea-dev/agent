@@ -1,0 +1,5 @@
+{"sessionId":"s-000000000000000000000001","projectHash":"h-000000000000000000000001","startTime":"2026-10-08T00:01:01.000Z","lastUpdated":"2026-10-08T00:01:02.000Z","kind":"main"}
+{"id":"m-000000000000000000000028","timestamp":"2026-10-08T01:00:28.000Z","type":"gemini","content":"respuesta sintetica","thoughts":[],"tokens":{"input":60,"output":6,"cached":0,"thoughts":0,"tool":0,"total":66},"model":"modelo-sintetico-gemini"}
+{"$set":{"lastUpdated":"2026-10-08T00:01:03.000Z"}}
+{"id":"m-000000000000000000000028","timestamp":"2026-10-08T01:00:28.000Z","type":"gemini","content":"respuesta sintetica","thoughts":[],"tokens":{"input":60,"output":6,"cached":0,"thoughts":0,"tool":0,"total":66},"model":"modelo-sintetico-gemini","toolCalls":[{"id":"c-28","name":"herramienta_sintetica","args":{},"status":"success"}]}
+{"id":"u-000000000000000000000028","timestamp":"2026-10-08T00:01:04.000Z","type":"user","content":[{"text":"pregunta sintetica"}]}
