@@ -400,6 +400,8 @@ fichero se parten al ancho de línea, y se comprueban con `grep -F` sobre el tex
 
 **Cerrada.** Bloques B0–B7 sobre `15ce93b` *(7 commits)*, el cierre C1–C5 y el ensayo en Windows W1 *(`soporte/registro.md` §Cierre)*.
 
+**Publicada como `0.6.0` el 2026-10-08**: PR #6 con merge commit `a05f066`, etiqueta anotada `v0.6.0` y los tres canales *(C6–C8)*. **W2**, en la instalación real: los 10 eventos `gemini` de la plataforma cuadran **al token** con el contador independiente *(C9)*.
+
 | SC | Dónde se acreditó | |
 |---|---|:--:|
 | **SC-001** | **C2**: el contador = `--scan` en su sitio = `--run` sobre la segunda copia *(10 · 95 747 / 12 141 / 0 / 2 482)*. **W1**: 10 eventos `gemini` | ✅ |
@@ -430,9 +432,7 @@ fichero se parten al ancho de línea, y se comprueban con `grep -F` sobre el tex
 
 **Límites que quedan**:
 - **D-1**: las llamadas auxiliares y los intentos fallidos no constan en el fichero;
-- la retención de 30 días de la CLI;
-- Antigravity no se lee;
-- `/stats` no es referencia directa;
+- la retención de 30 días de la CLI; Antigravity no se lee; `/stats` no es referencia directa;
 - una respuesta enviada sin proyecto desde una carpeta antigua no se corrige;
 - enlaces en la raíz *(N-11)*;
 - una lectura que falla a mitad cuenta de más en su línea *(R-9)*;
