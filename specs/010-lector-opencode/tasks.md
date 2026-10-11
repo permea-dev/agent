@@ -4,7 +4,7 @@
 [contracts/event-id-opencode.md](./contracts/event-id-opencode.md)
 **Base**: `82e0b2d`. **Línea base a preservar**: `go test -count=1 -v ./...` → **671** «--- PASS», 0 FAIL, 0 SKIP · `go vet` limpio ·
 `golangci-lint run` → **0**.
-**59 tareas · 14 ✋ · 53 rojos · 58 mutaciones** *(las 56 de plan §Bloques, más M-B1a y M-B1b)*. **La release queda bloqueada por SC-027** *(P-033)*.
+**59 tareas · 14 ✋ · 53 tests nuevos** *(39 rojos y 14 nacidos verdes)* **· 59 mutaciones** *(plan §Bloques, más M-B1a y M-B1b)*. **La release queda bloqueada por SC-027** *(P-033)*.
 
 ## Formato: `[ID] [P?] [✋?] Descripción`
 
@@ -19,9 +19,9 @@
 
 | Fichero de `specs/010-lector-opencode/` | Techo | Hoy |
 |---|---:|---:|
-| `spec.md` | 450 | 446 |
-| `plan.md` | **250** | 222 |
-| `tasks.md` *(este)* | **350** | — |
+| `spec.md` | 450 | 449 |
+| `plan.md` | **250** | 225 |
+| `tasks.md` *(este)* | **350** | 296 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
 | `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | — |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
@@ -49,9 +49,12 @@
 6. **Un `require` en `go.mod`**, o un `go.sum` *(FR-011)*.
 7. **SC-007 pasa de 102 400 B** en alguna plataforma en C1. En el corte de B6, la medida es informativa, y si pasa se adelgaza antes de B7.
 8. **Un dato real** en testdata, en el registro o en un informe: un `id` con la forma real *(4 + 26)*, una ruta personal, un título o un texto. Nada
-   que no salga de un `generar.sh`.
+   que no salga de un `generar.sh`, y nada que case con el grep de privacidad, **tampoco con `grep -a` dentro de las bases** *(centinelas `CENTINELA-…`,
+   rutas `/sintetico/…`)*.
 9. **Una copia congelada cambia su sha256.**
 10. **Crear `v0.7.0` sin SC-027.**
+11. **Un fixture de `cmd/permea` con una fila en curso** *(su resultado cambiaría 24 h después de generarlo; D-010-P9)*.
+12. **Un test que abre un testdata en su sitio**: siempre una copia en `t.TempDir()`.
 
 ## Puertas en cada corte
 
@@ -81,7 +84,8 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 - [ ] **T001** Fase 0: transcribir la línea base sobre `82e0b2d` *(671, vet, lint 0, frontera sin diff)*. Nace `soporte/registro-mutaciones.md`, con
   su techo. Si algo difiere, **PARA**.
-- [ ] **T002** ✋ Commit: `010 B0: plan, tareas y contrato del event_id de OpenCode`.
+- [ ] **T002** ✋ **Línea base y registro**. La enmienda **E-1** ya está en la spec desde el remate del analyze *(9/n)*: T002 no la aplica. Commit:
+  `010 B0: linea base y registro de mutaciones`.
 
 ## B1 · Lector *(`internal/sqlitero`; FR-006 a FR-010; SC-004, SC-005, SC-009)* — nacen `lector_test.go` y `fuzz_test.go`
 
@@ -91,19 +95,25 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   - `RecorrerDesde`, `Buscar` y `Paginas` son stubs que devuelven error o 0.
 
   La suite sigue verde. Se transcribe el md5 del fichero portado.
-- [ ] **T004** Testdata: `internal/sqlitero/testdata/generar.sh` *(plan §6)* → `i/`, `r/`, `s/`, `raros/` *(utf16, without_rowid, p512, p65536, reserva)*,
-  `profundo.db` *(≥ 3 niveles)* y `esperado.json`. Las cifras de I, R y S deben ser las de la prueba en forma *(R sin T3, I sin la transacción a
-  medias)*. md5 de cada fichero al registro.
-- [ ] **T005** [P] **Rojos (1) a (10)** *(plan §Bloques)* en `lector_test.go`, y `FuzzBase` y `FuzzWAL` con sus semillas en `fuzz_test.go`. Las que nacen verdes
-  *(lógica portada: (1)–(3), (6), (9), (10))* llevan su mutación: mB1–mB4, mB8, mB10, y dos nuevas:
+- [ ] **T004** Testdata: `internal/sqlitero/testdata/generar.sh` *(plan §6)* → `i/`, `r/`, `s/`, `raros/` *(utf16, without_rowid, p512, p65536,
+  reserva, desborda)*, `profundo.db` *(≥ 3 niveles, sin WAL, filas < 1 KB)* y `esperado.json`.
+  - Las cifras de I, R y S deben ser las de la prueba en forma: R sin T3, e I sin la transacción a medias.
+  - **R**: el último byte de una hoja de `session_message` de T3, comprobado **dentro de una celda** por el guion *(H9)*.
+  - md5 de cada fichero al registro.
+- [ ] **T005** [P] **Rojos (1) a (10)** *(plan §Bloques)* en `lector_test.go`, y `FuzzBase` y `FuzzWAL` con sus semillas en `fuzz_test.go`. **El fixture de cada
+  rojo**, el de plan §Bloques *(H8)*. Las que nacen verdes *(lógica portada: (1)–(3), (6), **(7)**, (9), (10))* llevan su mutación: mB1–mB4, mB8,
+  **mB9**, mB10, y dos nuevas:
   - **M-B1a**, aceptar UTF-16 → (1/utf16);
   - **M-B1b**, `Abrir` crea un `-shm` vacío → (10/listado).
+
+  (9/carga_enorme) declara **2⁶²** y llama con `recover`. La goroutine de los fuzz, también con `recover` *(H7)*.
 - [ ] **T006** **Verde**:
   - `RecorrerDesde` con poda; `Buscar` por descenso; `Paginas()`;
   - errores **sin ruta** *(`PathError` → `Op: Err`)*; `ErrCorrupta` y `ErrNoSoportada`.
 
   Se transcribe el md5.
-- [ ] **T007** Censo, **antes de mutar**, por hoja: **mB1–mB10**, **M-B1a** y **M-B1b**, con lo que debe caer en plan §Bloques y sus co-caídas.
+- [ ] **T007** Censo, **antes de mutar**, por hoja: **mB1–mB10**, **M-B1a** y **M-B1b**, con lo que debe caer en plan §Bloques. Entre las
+  co-caídas, (7/sin_cambio) para mB1 y `FuzzBase` *(semilla `carga_enorme`)* para mB8.
 - [ ] **T008** Mutaciones y transcripción, con md5. **mB1–mB4 son las de la prueba, rehechas** sobre el código definitivo *(D-3)*.
 - [ ] **T009** ✋ Puertas y commit: `010 B1: lector SQLite de solo lectura (internal/sqlitero)`.
 
@@ -121,9 +131,9 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 - [ ] **T015** Fase 0: en `internal/ingest/opencode.go`, `ContextoOpenCode` *(`Context`, `Ahora`)*, `ClaseOpenCode` y `LlamadaOpenCode`, que aún no
   clasifica.
 - [ ] **T016** Fixtures: filas sintéticas *(`data` JSON en `testdata/opencode/filas/`)*: una por clase, las partidas de SC-012 y una con centinelas.
-- [ ] **T017** [P] **Rojos (14) a (21)**.
+- [ ] **T017** [P] **Rojos (14) a (22)**: cada uno afirma **sólo su campo**. (22) cae porque el stub no emite evento *(H19)*.
 - [ ] **T018** **Verde**: P-2, la clasificación de D-010-P14, `occurred_at` y las referencias. **No** llama a `internal/pricing`.
-- [ ] **T019** Nace verde, tras T018: **(22)** el evento no contiene ningún centinela. Lo valida m13.
+- [ ] **T019** **(22)**, escrito en T017 como rojo, pasa a verde con T018: el evento no contiene ningún centinela. Lo valida m13.
 - [ ] **T020** Censo y mutaciones **m5–m14**, con md5.
 - [ ] **T021** ✋ Puertas y commit: `010 B3: una llamada de OpenCode es un evento sin coste`.
 
@@ -133,16 +143,21 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   - `internal/state/state.go`: `FileState.Frontera` *(D-010-P2)*. **Ningún test de `internal/state` cambia**, y siguen verdes, transcrito;
   - `opencode_base.go`, con `PasadaOpenCode`, `LeerBaseOpenCode`, `ListarOpenCode` y `ContarFormatoOpenCode`, que no emiten.
 - [ ] **T023** Testdata: `internal/ingest/testdata/opencode/generar.sh` →
-  - `frontera/paso1…paso3/`, `vacuum/{antes,despues}/` *(2 borradas + `VACUUM` + 3 nuevas)* y `borrada_h/`;
-  - `abandono.db` *(`time.created` fijos)*, `clases.db`, `dos_sesiones.db` y `centinelas.db`;
+  - `frontera/paso1…paso3/` *(4 completadas y 1 en curso)*, `inverso/`, `lista_borrada/` *(con una completada)* y `vacuum/{antes,despues}/` *(2
+    borradas + `VACUUM` + 3 nuevas)*;
+  - `borrada_h/`: se borran las de rowid máximo y **entran 2 que reutilizan rowids ≤ H** *(H10)*;
+  - `abandono/paso1…paso3/` y `abandono_1h/` *(`time.created` fijos)*, `clases.db` *(con una en curso de 25 h)*, `dos_sesiones.db` y `centinelas.db`
+    *(H23)*;
   - `formatos/{v1,without_rowid,utf16,sin_columna}.db` y `corrupta.db`;
   - `esperado.json`, con los rowids de H antes y después de `VACUUM`.
 
   md5 al registro.
-- [ ] **T024** [P] **Rojos (23) a (38)**. Para (33), un gancho de test cambia el `-wal` de la copia entre la lectura y `Estable()`.
+- [ ] **T024** [P] **Rojos (23) a (38)**, con `Ahora` inyectado en **todos** *(H6)* y la línea de resumen literal en cada pasada. Para (33), un
+  gancho de test cambia el `-wal` de la copia entre la lectura y `Estable()`.
 - [ ] **T025** **Verde**: el algoritmo de plan §2, D-010-P5 a P-9, y `Resumen()` con el texto de spec §Textos.
   - **SC-017 informativa**: `go test -tags sc017 …` una vez, transcrita.
-- [ ] **T026** Censo, **antes de mutar**, por hoja: **m15–m29**.
+- [ ] **T026** Censo, **antes de mutar**, por hoja: **m15–m29**, con las co-caídas de plan §Bloques, incluida la de un test **existente** para m29:
+  `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos`.
 - [ ] **T027** Mutaciones y transcripción, con md5.
 - [ ] **T028** ✋ Puertas y commit: `010 B4: frontera por rowid y pasada de una base de OpenCode`.
 
@@ -166,17 +181,21 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 - [ ] **T037** **Verde**: OpenCode tras Gemini y antes del único `st.Save`; la activación en cada pasada; los errores por base *(D-010-P6, P7)*; la
   línea en `runOnce` y, con `HayNovedades`, en `tick`.
 - [ ] **T038** Comprobar y transcribir, sin tocarlos, que los `_test.go` de `cmd/permea` siguen verdes.
-- [ ] **T039** **Rojos (47) a (50)**: centinelas en la cola y en `state.json`; md5 y listado de I tras `--run`; la carpeta creada después; y la base
-  corrupta.
-- [ ] **T040** Censo y mutaciones **m35–m42**, con md5.
+- [ ] **T039** **Nacen verdes (47) a (50)**, porque se escriben tras el verde de T037: centinelas en la cola y en `state.json`; md5 y listado de I
+  tras `--run`; la carpeta creada después; y la base corrupta. Los validan m42, **M-B6a**, m39 y m40–m41. Ningún fixture de `cmd` con filas en curso
+  *(PARA 11)*.
+- [ ] **T040** Censo y mutaciones **m35–m42** y **M-B6a**, con md5. **m35** declara, por nombre y hoja, los tests existentes de plan §Bloques
+  *(`TestCodexRun_*` y `TestGeminiRun_*`)*, y se comprueba antes de mutar que no hay más.
 - [ ] **T041** **SC-007, informativo**: las 5 plataformas, con el método de D-010-P12. Si pasa de 102 400 B, se adelgaza **antes** de B7 *(PARA 7)*.
 - [ ] **T042** ✋ Puertas y commit: `010 B6: OpenCode en run y daemon, antes de guardar el estado`.
 
 ## B7 · `--scan` *(FR-025, FR-026; SC-001, SC-002 en forma)*
 
-- [ ] **T043** [P] **Rojos (51) a (53)** en `cmd/permea/opencode_test.go`, con los textos de spec §Textos leídos por programa.
+- [ ] **T043** [P] **Rojos (51) y (53)**, y **(52) nacido verde**, en `cmd/permea/opencode_test.go`, con los textos de spec §Textos leídos por
+  programa. El fixture de (53) lleva **Δ`reasoning` ≠ 0** *(H13)*.
 - [ ] **T044** **Verde**: `esBaseSQLite`, **antes** de `esSesionCodex`, y `dryRunOpenCode` con la línea de contraste *(plan §5)*.
-- [ ] **T045** Censo y mutaciones **m43–m46**, con md5.
+- [ ] **T045** Censo y mutaciones **m43–m46**, con md5. **m44** declara, por nombre y hoja, los diez tests existentes de `--scan` de plan §Bloques
+  *(como m36 en 009)*.
 - [ ] **T046** ✋ Puertas y commit: `010 B7: scan de OpenCode con la linea de contraste`.
 
 ## B8 · README y CHANGELOG *(FR-031; P-12)*
@@ -249,10 +268,11 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 | 007 | T041 *(informativo)*, **T051** | | 016 | T035 *(referencia)*, T036 (41) | | 025 | T024 (31) |
 | 008 | **T051** | | 017 | T025 *(informativa)*, **T052** *(× 3)* | | 026 | ✅ **cumplido** *(spec, 11-10; `soporte/medicion-anthropic.md`)* |
 | 009 | T005 *(semillas)*, **T052** *(10 min × 2)* | | 018 | puertas de cada corte, **T051** | | 027 | **T057** 🛑 |
+| 028 | T017 (18, 19, 21) | | 029 | T024 (33) | | | |
 
-**31 / 31 FR** *(plan §Trazabilidad)* **y 27 / 27 SC con tarea.**
+**31 / 31 FR** *(plan §Trazabilidad)* **y 29 / 29 SC con tarea.**
 
-## Mutaciones — **58** *(plan §Bloques, más M-B1a y M-B1b; lo que debe caer, allí y en T005)*
+## Mutaciones — **59** *(plan §Bloques, más M-B1a y M-B1b; lo que debe caer, allí y en T005)*
 
 | Bloque | Tarea | Mutaciones | Tipo |
 |---|---|---|---|
@@ -261,7 +281,7 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 | B3 | T020 | m5–m14 | conducta → suite |
 | B4 | T027 | m15–m29 *(frontera, renumeración, abandono, formatos, `state.json`)* | conducta → suite |
 | B5 | T033 | m30–m34 | conducta → suite |
-| B6 | T040 | m35–m42 | conducta → suite |
+| B6 | T040 | m35–m42 · M-B6a | conducta → suite |
 | B7 | T045 | m43–m46 | conducta → suite |
 
 Las co-caídas que aparezcan al declarar el censo se escriben **antes** de mutar, por hoja.

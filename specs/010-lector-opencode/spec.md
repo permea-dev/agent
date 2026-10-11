@@ -1,7 +1,7 @@
 # 010 · «Lector de OpenCode» — Especificación
 
 **Feature Branch**: `010-lector-opencode` · **Created**: 2026-10-11 · **Status**: **Ratificada** el 2026-10-11 *(P-1 a P-12; P-3, reescrita
-por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada)* · **Cabeza de partida**: `4c6cafc` *(sobre `6a952bf`, cierre de la 0.6.0)*
+por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada; E-1 el 11-10)* · **Cabeza de partida**: `4c6cafc` *(sobre `6a952bf`, cierre de la 0.6.0)*
 **Input**:
 - las decisiones del dueño D-1 y D-2 *(2026-10-09)* y D-3 *(2026-10-11)*;
 - el descubrimiento del 09-10 *(`soporte/descubrimiento.md`, D-1…D-10, sobre la **copia congelada** de una sesión de OpenCode 2.0.26)*;
@@ -63,17 +63,13 @@ por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada)*
 
 ### P-3 ✅ · Frontera por rowid *(decisión del dueño, 2026-10-11; el mecanismo exacto, al plan)*
 
-**Por qué rowid.**
-- `session_message` tiene rowid implícito: su `id` es texto *(desc. D-1)*.
-- **SQLite serializa a los escritores**, también entre procesos: una fila confirmada después tiene un rowid mayor que las confirmadas antes.
-- Hay dos excepciones, y las dos las detecta la frontera:
-  - un rowid **reutilizado** tras borrar la fila de rowid máximo;
-  - una **renumeración** por `VACUUM`.
+**Por qué rowid.** `session_message` tiene rowid implícito: su `id` es texto *(desc. D-1)*. **SQLite serializa a los escritores**, también entre
+procesos: una fila confirmada después tiene un rowid mayor que las confirmadas antes. Hay dos excepciones, y las dos las detecta la frontera: un rowid
+**reutilizado** tras borrar la fila de rowid máximo, y una **renumeración** por `VACUUM`.
 
-**Estado por base** *(FR-004)*:
-- **H**, el mayor rowid visto de `session_message`;
-- la **huella** del `id` de la fila H. Es una huella con sal, no el `id`, para que `state.json` no guarde identificadores del proveedor `DECIDÍ YO`;
-- la **lista en curso**: rowid y huella del `id` de cada fila `assistant` vista sin completar. Es pequeña.
+**Estado por base** *(FR-004)*: **H**, el mayor rowid visto de `session_message`; la **huella** del `id` de la fila H *(con sal, no el `id`, para que
+`state.json` no guarde identificadores del proveedor; `DECIDÍ YO`)*; y la **lista en curso**, con el rowid y la huella de cada fila `assistant` vista sin
+completar *(pequeña)*.
 
 **Una pasada**:
 1. **Comprueba la frontera** bajando por el árbol hasta H. Si la fila no existe, o su huella no es la guardada, hace una **pasada completa** y cuenta
@@ -86,18 +82,14 @@ por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada)*
      se emite.
 
    La consulta va **antes** que el abandono: una fila que se completó mientras el agente estaba parado sale como llamada.
-3. **Recorre desde el primer rowid > H** hasta el final:
-   - una completada, se clasifica;
-   - una en curso, entra en la lista *(o es «abandonada», si ya tiene más de 24 h)*;
-   - otro `type`, nada.
-
-   H pasa a ser el mayor rowid visto.
+3. **Recorre desde el primer rowid > H** hasta el final: una completada se clasifica; una en curso entra en la lista *(o es «abandonada», si ya tiene
+   más de 24 h)*; otro `type`, nada. H pasa a ser el mayor rowid visto.
 
 **Pasada completa**: la primera pasada *(entrada sin el campo nuevo)* o una frontera reiniciada. Recorre la tabla entera, emite todas las completadas y
 rehace la lista. Tras un reinicio, las ya emitidas vuelven a salir con el mismo `event_id` y la plataforma las descarta: **nunca se pierde una fila
 completada**.
 
-**Coste**: proporcional a lo nuevo y al tamaño de la lista, no al de la tabla *(SC-017)*. **Nunca hay un barrido completo** fuera de la pasada completa.
+**Coste**: proporcional a lo nuevo, al tamaño de la lista y al número de sesiones *(E-1)*, no al de la tabla *(SC-017)*. **Nunca hay un barrido completo** fuera de la pasada completa.
 
 ## User Scenarios & Testing
 
@@ -159,7 +151,8 @@ completada**.
 - **FR-005** *(entre pasadas — P-3)*:
   - una fila completada **DEBE** salir **una vez**, salvo tras una frontera reiniciada, que la reemite con el mismo `event_id`;
   - **NUNCA** se pierde, salvo si se abandona *(24 h en curso)*;
-  - el coste de una pasada **DEBE** ser proporcional a lo nuevo y a la lista en curso, no al tamaño de la tabla *(SC-017)*.
+  - el coste de una pasada **DEBE** ser proporcional a lo nuevo, a la lista en curso **y al número de sesiones** *(la lectura de `session_v2`)*, no al
+    tamaño de `session_message` *(SC-017; E-1)*.
 
 ### B · Cómo lee la base *(D-3)*
 
@@ -266,7 +259,8 @@ publican.
 - **SC-005** *(mutaciones — D-3)*: mB1–mB4, rehechas sobre el código definitivo, caen **exactamente** donde caían en la prueba: mB1 en
   I y R; mB2 sólo en R; mB3 en I, R y S; mB4 sólo en I. Cada una se declara antes de mutar, con md5 antes, mutado y restaurado.
 - **SC-006** *(sólo lectura)*: sobre una base sintética viva *(una conexión de `sqlite3` abierta y transacciones en el WAL)*, una `--run` deja **iguales**
-  las md5 de `opencode.db`, `-wal` y `-shm`, y el listado de la carpeta. En el ensayo de Windows, lo mismo, contra la base real.
+  las md5 de `opencode.db`, `-wal` y `-shm`, y el listado de la carpeta. En el ensayo de Windows *(W1)*, lo mismo contra la base real **con OpenCode
+  cerrado**; con OpenCode abierto, ningún fichero nuevo en la carpeta *(E-1)*.
 - **SC-007** *(binario)*: el aumento frente al binario de `4c6cafc`, con las banderas de `.goreleaser.yaml`, es **≤ 100 KB** en **las 5 plataformas**. El
   lector solo midió de 51 a 66 KB *(prueba §Tamaños)*. **Se mantiene** *(dueño, 11-10)*: si no cabe, se adelgaza el código y el tope no sube.
 - **SC-008** *(dependencias)*: `go.mod` sin `require`, no hay `go.sum`, y `go list -m all` da una sola línea.
@@ -322,7 +316,8 @@ publican.
   Cada medida, tres veces. Si no se cumple, cambia el mecanismo; los topes no se mueven.
 - **SC-018** *(puertas)*: frontera con 0 bytes de diff *(FR-030)*; los **671** tests actuales, verdes y **sin tocar** *(`git diff 4c6cafc --stat --
   '*_test.go'` sólo con ficheros nuevos)*; `golangci-lint run` → 0; `os.Getenv` → 4.
-- **SC-019** *(textos)*: los textos nuevos, byte a byte iguales a los aprobados, también sobre el binario publicado.
+- **SC-019** *(textos)*: los textos nuevos, byte a byte iguales a los aprobados *(los de README y CHANGELOG, en T047; E-1)*, también sobre el binario
+  publicado.
 - **SC-020** *(OpenCode no rompe a los demás)*: una base corrupta, junto a fixtures sanos de las tres herramientas:
   - salen los eventos sanos, stderr lleva `opencode: base omitida: …`, y `state.json` se guarda sin avanzar la frontera de esa base;
   - cuando la base vuelve a estar sana, sus llamadas salen.
@@ -335,7 +330,8 @@ publican.
   - `testdata` sólo lleva bases **sintéticas**;
   - ninguna huella del contenido de la copia se publica.
 - **SC-023** *(ensayo en Windows)*: con OpenCode escribiendo, el agente emite cada llamada completada **una vez**, cumple SC-006, y sus eventos cuadran
-  **al token** con un contador independiente *(como 009 W2)*.
+  **al token** con un contador independiente: en **W1**, antes de publicar *(sandbox; `sonda-a.exe` como contador)*, y en **W2**, en la instalación real,
+  **después de P-033** *(como 009 W2; E-1)*.
 - **SC-024** *(renumeración — P-3)*: sobre una base sintética:
   1. una pasada emite;
   2. se borran 2 filas anteriores a H y se hace `VACUUM` con `sqlite3`. El test **comprueba que los rowid cambiaron**: la fila H tiene otro rowid u otro `id`;
@@ -351,6 +347,11 @@ publican.
   lectura 46 851 · escritura 11 995 «(5m)» · salida 397 = 369 + 28 *(`soporte/medicion-anthropic.md`)*. P-2 **no** se enmienda por proveedor.
 - **SC-027** *(publicación — dependencia de P-033)*: la etiqueta `v0.7.0` no se crea hasta que **P-033** esté en producción. Se acredita reparando en la
   plataforma las 5 filas de la medición *(escritura a 5 min, `ROUND(·, 6)` por evento)*: **0,043348**, y no 0,061341 `DECIDÍ YO` *(el vector)*.
+- **SC-028** *(el evento — FR-017 a FR-019, D-1; E-1)*: el 100 % de los eventos `opencode` llevan `cost_usd = 0` y `cost_available = false`, y ninguno
+  `tool ≠ "opencode"`; `occurred_at` = `$.time.completed` en UTC *(y no `time.created`)*; `session_ref` = `event.Ref(sal, session_id)` y `project_ref` =
+  `Derivar(directory, sal)`; sin fila de sesión, las dos vacías.
+- **SC-029** *(estabilidad — FR-008; E-1)*: una base que cambia entre la lectura y la comprobación se relee, y sus llamadas salen **una vez**; si cambia
+  en los **5** intentos, se omite con `opencode: base omitida: …`, su frontera no se mueve y la pasada siguiente la lee.
 
 ## Textos propuestos *(P-12)*
 
@@ -384,14 +385,15 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 
 | Dónde | Nace |
 |---|---|
-| **Lector SQLite** *(paquete nuevo de `internal/`, nombre en el plan)* | el código de la prueba *(`lector.go`)*; tests de cabecera, árbol, registros, desbordamiento y WAL; el fuzzing; las bases I, R y S *(`db`, `-wal` y `-shm`)* y el guion `sqlite3` que las genera, versionado y fuera del binario |
+| `internal/sqlitero/` *(nuevo)* | `lector.go` *(el de la prueba)*; `lector_test.go` *(cabecera, árbol, registros, desbordamiento y WAL)* y `fuzz_test.go`; las bases I, R y S *(`db`, `-wal` y `-shm`)*, los raros, y el guion `sqlite3` que las genera, versionado y fuera del binario |
 | `internal/config/` | `opencode.go` y `opencode_test.go` *(P-8)* |
-| `internal/ingest/` | `opencode.go`, `opencode_eventid.go`, `opencode_eventid_test.go`, `opencode_test.go` y `testdata/opencode/` |
+| `internal/ingest/` | `opencode.go`, `opencode_base.go`, `opencode_eventid.go`; `opencode_eventid_test.go`, `opencode_llamada_test.go`, `opencode_base_test.go`, `opencode_coste_test.go` *(sólo con `-tags sc017`)*; y `testdata/opencode/` |
 | `cmd/permea/` | `opencode.go` y `opencode_test.go` *(`--run`, demonio, `--scan`, SC-016, SC-020, SC-021)* |
 | `internal/testutil/` | `sandbox_opencode_test.go`, como `sandbox_gemini_test.go` |
 | `specs/010-lector-opencode/contracts/` | `event-id-opencode.md` |
 
-**Fuera de los `_test.go`** *(M-3)*: `internal/testutil/sandbox.go` gana `t.Setenv("XDG_DATA_HOME", "")` y `t.Setenv("OPENCODE_DB", "")`.
+**Fuera de los `_test.go`** *(M-3; E-1)*: `internal/testutil/sandbox.go` gana `t.Setenv("XDG_DATA_HOME", "")` y `t.Setenv("OPENCODE_DB", "")`;
+`internal/state/state.go`, el campo opcional de FR-004; e `internal/config/codex.go:16` y `gemini.go:17`, sólo el comentario *(«una de las CUATRO»)*.
 - `sandbox_test.go:20` comprueba `HOME`, `USERPROFILE` y `XDG_CONFIG_HOME`: las nuevas no cambian su veredicto.
 - `XDG_DATA_HOME` no la lee hoy ningún código del agente *(`grep`: 0)*, así que vaciarla no cambia nada más.
 
@@ -444,3 +446,4 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 | **Ratificación** | 2026-10-11 | **El dueño ratifica** P-1, P-2 y P-4 a P-12 **(a)**:<br>• **P-5**, con la redacción corregida: un modelo que no casa queda sin reparar y parcial, y el alias es otra feature *(N-10)*;<br>• **SC-007** *(≤ 100 KB)* se mantiene.<br>**P-3 se sustituye** por la **frontera por rowid** *(§P-3)*, con FR-004, FR-005, FR-012, FR-020, FR-021, FR-024 y FR-029 ajustados. SC-011 y SC-017 se reescriben; nacen SC-024 *(renumeración)* y SC-025 *(abandono)*. La línea de resumen gana `abandonadas` y `fronteras reiniciadas` *(SC-001, SC-013)*. Q-4 queda sólo para `opencode import` | Encargo 010 · remate de la spec · 4/n |
 | **Segundo proveedor** | 2026-10-11 11:00 | **El dueño** abre **Q-5**: P-2 está medida sólo con `google`, y con otros proveedores la caché podría contarse mal. Mientras tanto, P-2 vale para todos, con el límite en §Límites. Nace **SC-026**: medición con `anthropic` antes de la 0.7.0; si falla, P-2 por proveedor con su mutación; sin medición, límite en README y CHANGELOG | Encargo 010 · segundo proveedor · 4b/n |
 | **Cierre de Q-5** | 2026-10-11 12:05 | **La consola de Anthropic** *(el dueño, 12:02)* coincide al token con la copia: salida 397 = 369 + 28 y escritura «(5m)». **Q-5, cerrada**; **SC-026, cumplido**. En §Límites, «partidas verificadas sólo con Google» deja paso a la **dependencia de P-033**. Nace **SC-027**, que FR-031 cita: la 0.7.0 no se publica sin P-033 en producción. Se condensan los puntos 1 y 3 del Contexto y la nota de SC-017, sin tocar nada normativo | Encargo 010 · cierre de Q-5 · 6/n |
+| **E-1** | 2026-10-11 12:35 | **El dueño** resuelve las discrepancias del plan *(7/n)* y los hallazgos del analyze *(8/n)*. **FR-005**: «Antes: el coste de una pasada **DEBE** ser proporcional a lo nuevo y a la lista en curso, no al tamaño de la tabla *(SC-017)*.» → «… a lo nuevo, a la lista en curso **y al número de sesiones** …» *(y §P-3 «Coste»)*. **SC-006**: «Antes: En el ensayo de Windows, lo mismo, contra la base real.» → W1 con OpenCode **cerrado**; abierto, sin ficheros nuevos. **SC-019**: «Antes: los textos nuevos, byte a byte iguales a los aprobados, también sobre el binario publicado.» → los de README y CHANGELOG, en T047. **SC-023**: «Antes: … con un contador independiente *(como 009 W2)*.» → W1 antes de publicar, W2 después de P-033. **Censo**: «Antes: `opencode.go`, `opencode_eventid.go`, `opencode_eventid_test.go`, `opencode_test.go` y `testdata/opencode/`» → los nombres del plan; y fuera de los `_test.go`, `internal/state/state.go` y los comentarios de `internal/config/{codex,gemini}.go`. **Nacen SC-028** *(el evento: FR-017 a FR-019)* **y SC-029** *(estabilidad: FR-008)* | Plan 7/n, DISCREPANCIAS 1–5; analyze 8/n, H1, H12, H18 |
