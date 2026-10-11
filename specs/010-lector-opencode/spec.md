@@ -1,7 +1,7 @@
 # 010 · «Lector de OpenCode» — Especificación
 
 **Feature Branch**: `010-lector-opencode` · **Created**: 2026-10-11 · **Status**: **Ratificada** el 2026-10-11 *(P-1 a P-12; P-3, reescrita
-por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas)* · **Cabeza de partida**: `4c6cafc` *(sobre `6a952bf`, cierre de la 0.6.0)*
+por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada)* · **Cabeza de partida**: `4c6cafc` *(sobre `6a952bf`, cierre de la 0.6.0)*
 **Input**:
 - las decisiones del dueño D-1 y D-2 *(2026-10-09)* y D-3 *(2026-10-11)*;
 - el descubrimiento del 09-10 *(`soporte/descubrimiento.md`, D-1…D-10, sobre la **copia congelada** de una sesión de OpenCode 2.0.26)*;
@@ -13,20 +13,16 @@ por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas)* · **Cabeza d
 
 ## Contexto — el agente lee Claude Code, Codex y Gemini CLI
 
-1. **Tres lectores hoy**, en `generate()`, antes del **único** `st.Save` *(`cmd/permea/main.go:368`)*:
-   - Claude Code;
-   - Codex *(`main.go:342-353`)*;
-   - Gemini, tras Codex *(`main.go:355-366`)*.
+1. **Tres lectores hoy**, en `generate()`, antes del **único** `st.Save` *(`cmd/permea/main.go:368`)*: Claude Code, Codex *(`main.go:342-353`)* y Gemini,
+   tras Codex *(`main.go:355-366`)*.
 2. **OpenCode 2.x guarda su consumo en una base SQLite**: `<XDG_DATA_HOME | ~/.local/share>/opencode/opencode.db`, con la misma regla en los tres SO
    *(desc. D-9)*.
    - Cada llamada al modelo es **una fila `assistant`** de `session_message`, con tokens, coste y modelo en `data` *(JSON; desc. D-2)*.
    - La fila **se reescribe en su sitio** hasta completarse *(desc. D-5)*.
-   - El coste de OpenCode coincide con la tarifa de Permea, salvo el redondeo, si la salida es `output + reasoning` *(desc. D-4)*.
-3. **Leer SQLite sin cgo y sin dependencias es posible.** El lector propio de la prueba *(B)*:
-   - añade **≈ 60 KB** al binario y **nunca escribe**;
-   - es exacto con WAL vivo, con un WAL roto y con desbordamiento, y detecta las cuatro mutaciones declaradas;
-   - en Windows, contra OpenCode escribiendo, dio lo mismo que `modernc.org/sqlite` en **176 de 176** lecturas, también a través de un reinicio del WAL *(prueba
-     §Ensayo)*.
+   - El coste de OpenCode coincide con la tarifa de Permea, salvo el redondeo, si la salida es `output + reasoning` *(desc. D-4)*: con `google` y con
+     `anthropic` *(`soporte/medicion-anthropic.md`)*.
+3. **Leer SQLite sin cgo y sin dependencias es posible.** El lector propio de la prueba *(B)* añade **≈ 60 KB** y **nunca escribe**; es exacto con WAL vivo,
+   WAL roto y desbordamiento; y en Windows dio lo mismo que `modernc.org/sqlite` en **176 de 176** lecturas *(prueba §Ensayo)*.
 4. **La plataforma ya acepta el evento tal cual.** `tool` es texto libre; un modelo sin tarifa llega «ciego y señalizado»; y un `event_id` repetido se
    descarta *(009 §Contexto 4)*.
 
@@ -53,7 +49,7 @@ por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas)* · **Cabeza d
 | # | Propuesta | Alternativas | Recomendación |
 |---|---|---|---|
 | **P-1** ✅ **(a)** | **Fuente**: las filas de `session_message` con `type = 'assistant'` y `$.time.completed` presente y no nulo. Una fila = una llamada = **como mucho un** evento | (b) también las no completadas con tokens | **(a)**: la fila se reescribe hasta completarse *(desc. D-5)*. En vivo, la regla excluyó una respuesta a medio escribir y la tomó 2 s después *(prueba §Ensayo 3)* |
-| **P-2** ✅ **(a)** | **Partidas**:<br>• `tokens_input` = `tokens.input`;<br>• `tokens_output` = `tokens.output + tokens.reasoning`;<br>• `tokens_cache_read` = `tokens.cache.read`;<br>• `tokens_cache_creation` = `tokens.cache.write`.<br>Una partida ausente vale 0 | (b) la salida sin `reasoning` | **(a)**: `input` ya viene sin la caché, y el coste sólo cuadra así; sin el razonamiento, Permea daría un 3,7 % menos *(desc. D-3, D-4)*. Es la regla de Gemini *(009 D-2)*. **Medida sólo con `google`** *(Q-5, SC-026)* |
+| **P-2** ✅ **(a)** | **Partidas**:<br>• `tokens_input` = `tokens.input`;<br>• `tokens_output` = `tokens.output + tokens.reasoning`;<br>• `tokens_cache_read` = `tokens.cache.read`;<br>• `tokens_cache_creation` = `tokens.cache.write`.<br>Una partida ausente vale 0 | (b) la salida sin `reasoning` | **(a)**: `input` ya viene sin la caché, y el coste sólo cuadra así; sin el razonamiento, Permea daría un 3,7 % menos *(desc. D-3, D-4)*. Es la regla de Gemini *(009 D-2)*. **Verificada con `google` y `anthropic`** *(Q-5 cerrada, SC-026)* |
 | **P-3** ✅ *(del dueño)* | **Estado entre pasadas: frontera por rowid** *(§P-3)* | *(rastro)* (b) la marca por `time_updated` con corte de 5 s, del borrador · (c) guardar los `id` emitidos · (d) reemitirlo todo | **Decisión del dueño, 11-10**: el coste por pasada sigue a lo nuevo, no a la tabla, y una renumeración nunca pierde filas |
 | **P-4** ✅ **(a)** | **`event_id` sólo con el `id` de la fila** *(`msg_` + 26; desc. D-5)*: `["permea/event_id/v1", "opencode", "respuesta", <id>]`, en un fichero y una función nuevos, con un contrato nuevo, `contracts/event-id-opencode.md` | (b) `session_id` + `id` | **(a)**, como 009 P-2: el `id` es único por llamada *(14 de 14)* y estable mientras la fila se reescribe. El tipo reutiliza `tipoRespuesta`, como en 008 y 009 |
 | **P-5** | **Modelo**: `$.model.id` tal cual. `providerID` y `variant` no viajan. Sin `model.id` *(ausente, vacío o no textual)*: el evento sale con `model` vacío y se cuenta como «sin modelo» | (b) `providerID/model.id` · (c) normalizarlo en el agente | **(a)**. Con `google`, `model.id` es ya la clave de Permea *(desc. D-6)*. Con otros proveedores *(p. ej. pasarelas o nubes que añaden prefijos o sufijos)*, el `id` puede no casar con el catálogo: el evento llega «ciego y señalizado», y en la plataforma **queda sin reparar y parcial**, como hoy. Un alias en la plataforma sería otra feature *(N-10)*. El agente nunca traduce modelos *(como 008 y 009)* |
@@ -239,7 +235,8 @@ completada**.
   - `internal/event/` e `internal/ingest/eventid.go`;
   - `eventid_test.go`, `codex_eventid.go`, `codex_eventid_test.go`, `gemini_eventid.go`, `gemini_eventid_test.go` y `boundary_test.go`;
   - los contratos de 006, 008 y 009.
-- **FR-031** *(versión — M-2)*: `0.7.0`. Lo demás, exactamente como en la 0.6.0.
+- **FR-031** *(versión — M-2)*: `0.7.0`. Lo demás, exactamente como en la 0.6.0. **No se publica** hasta que **P-033** de la plataforma esté en producción
+  *(SC-027; dueño, 11-10)*.
 
 ### Key Entities
 - **Llamada de OpenCode**: una fila `assistant` completada. Lleva `id`, `session_id` y `time_updated`, y en `data`, `tokens.{input, output, reasoning,
@@ -319,10 +316,8 @@ publican.
   - **cada pasada siguiente**, con **10 filas nuevas**, en **≤ 50 ms**, leyendo **≤ 1 %** de las páginas de la base. Lo mide un contador de páginas
     instrumentado en el test, que incluye `session_v2` y la lista.
 
-  Lo que no entra en la medida:
-  - encolar *(≈ 250 000 `transport.Append`, con una apertura por evento: `internal/transport/queue.go:23-38`)* queda fuera de N, como en la primera
-    pasada de los otros lectores;
-  - el `-wal` se lee entero *(FR-007)* y no cuenta, porque lo acota el checkpoint de OpenCode *(≤ 1 490 frames en el ensayo)*.
+  **No entran**: encolar *(≈ 250 000 `transport.Append`, una apertura por evento: `internal/transport/queue.go:23-38`)*, como en la primera pasada de los
+  otros lectores; y el `-wal`, que se lee entero *(FR-007)* y lo acota el checkpoint de OpenCode *(≤ 1 490 frames en el ensayo)*.
 
   Cada medida, tres veces. Si no se cumple, cambia el mecanismo; los topes no se mueven.
 - **SC-018** *(puertas)*: frontera con 0 bytes de diff *(FR-030)*; los **671** tests actuales, verdes y **sin tocar** *(`git diff 4c6cafc --stat --
@@ -351,10 +346,11 @@ publican.
   - la de `$.time.created` de **hace 25 h** cuenta `abandonadas 1` y sale de la lista; en la pasada siguiente, `abandonadas 0`;
   - la de **hace 1 h** sigue, `en curso 1`;
   - una fila de la lista que se completa con más de 24 h sale como **evento**, no como abandonada.
-- **SC-026** *(segundo proveedor — Q-5)*: **antes de publicar la 0.7.0**, con la copia congelada de `anthropic`, cada fila `assistant` cumple la identidad
-  de coste de desc. D-4 con las partidas de P-2, con **Δ ≤ el redondeo por evento**. Si no la cumple, **P-2 se enmienda por proveedor**, con su propia
-  mutación. Si la medición no llega antes de publicar, la release sale con el **límite declarado** en README y CHANGELOG: «partidas verificadas con Google;
-  otros proveedores, sin medir».
+- **SC-026** ✅ *(segundo proveedor — Q-5; **cumplido** el 2026-10-11)*: en la copia congelada de `anthropic` *(`3a8e563f…`)*, las 5 filas
+  `claude-sonnet-5` cumplen la identidad de desc. D-4 con las partidas de P-2, con **Δ = 0**. La **consola de Anthropic** coincide al token: entrada 10 ·
+  lectura 46 851 · escritura 11 995 «(5m)» · salida 397 = 369 + 28 *(`soporte/medicion-anthropic.md`)*. P-2 **no** se enmienda por proveedor.
+- **SC-027** *(publicación — dependencia de P-033)*: la etiqueta `v0.7.0` no se crea hasta que **P-033** esté en producción. Se acredita reparando en la
+  plataforma las 5 filas de la medición *(escritura a 5 min, `ROUND(·, 6)` por evento)*: **0,043348**, y no 0,061341 `DECIDÍ YO` *(el vector)*.
 
 ## Textos propuestos *(P-12)*
 
@@ -380,7 +376,7 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 | **Q-2** | ¿Una **compactación** o un resumen dejan fila `assistant` en `session_message`, o sólo suben los totales de `session_v2`? ¿Y una respuesta **interrumpida** por el usuario llega a tener `time.completed`? | Si no dejan fila completada, son otro caso del límite de D-2 | Una sesión de medición con compactación *(`/compact` o automática)* y una interrupción, en copia congelada: recuento por `type` y con `time.completed`, y `session_v2` − Σ de los mensajes, como desc. D-3 |
 | **Q-3** | ¿Qué hacer ante `WITHOUT ROWID`, UTF-16 o un esquema distinto al de la 2.0.26? | **No leer, contarlo en el resumen y nunca fallar** *(FR-023)*. Un error de E/S o una estructura imposible sí avisan *(FR-029)* | Ratificación del dueño y SC-015. Ante cada versión nueva de OpenCode, rehacer SC-001 sobre una copia nueva |
 | **Q-4** | ¿Qué hace **`opencode import`** en `session_message`: inserta filas nuevas, o mueve rowids? Con varios procesos no hay pregunta: SQLite serializa a los escritores, y el orden de los rowid confirmados está garantizado *(§P-3)* | P-3 tal cual. Una fila insertada tiene rowid > H y se emite; si trae el `id` de otra máquina, la plataforma descarta el `event_id` repetido. Un rowid movido reinicia la frontera | Una importación en copia congelada: recuento de filas nuevas y de rowids cambiados frente a la copia de antes |
-| **Q-5** *(del dueño, 11-10)* | ¿**Normaliza OpenCode las partidas igual con otros proveedores**? P-2 está medida sólo con `google`: allí `tokens.input` llega **sin** la caché y `cache.read`, aparte *(desc. D-3, D-4)*. En sus API, Anthropic separa la entrada, la creación de caché y la lectura, y OpenAI incluye lo cacheado dentro de la entrada. El riesgo es **contar mal** la caché *(doble o de menos)*, no dejar de medirla | P-2 se aplica a **todos** los proveedores, con el límite declarado *(§Límites)* | **Medición** corta con el proveedor **`anthropic`** *(clave de pago del dueño, en Windows, como la de Gemini)*. Sobre su **copia congelada**, el coste de OpenCode de cada fila se compara con dos cosas: la fila de Permea de ese modelo *(con `cache_write_1h` según P-031 de la plataforma; 007 `contracts/tarifas.md:19`)* y el consumo de la consola de Anthropic. **SC-026**. Qué precio de escritura *(5 min o 1 h)* aplica OpenCode a su `cache.write` único sale de la misma medición |
+| **Q-5** ✅ *(del dueño; **cerrada** el 2026-10-11)* | ¿Normaliza OpenCode las partidas igual con otros proveedores? | — | **Sí**: P-2 queda verificada con `google` y `anthropic`, con Δ = 0 y sin doble conteo de caché ni de razonamiento. Anthropic informa el razonamiento dentro de su salida, y OpenCode lo reparte. La escritura es de 5 min *(copia `3a8e563f…` y consola; `soporte/medicion-anthropic.md`; SC-026)* |
 
 ## Censo de tests — autorización para la fase de tareas
 
@@ -420,7 +416,8 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 - **P-3**:
   - una fila en curso más de 24 h no se emite nunca, aunque después se complete con el agente parado más tiempo *(«abandonada»)*;
   - una frontera reiniciada reencola **todas** las completadas de esa base. La plataforma descarta las repetidas, pero la cola crece una vez.
-- **Partidas verificadas sólo con Google** *(mientras Q-5 esté abierta)*: con otros proveedores, la caché puede contarse doble o de menos *(SC-026)*.
+- **Dependencia de la plataforma**: con proveedores que escriben caché a 5 min *(Anthropic vía OpenCode)*, la reparación de la plataforma anterior a
+  **P-033** cobra la escritura a 1 h *(+41,5 % en la medición)*. La 0.7.0 **no se publica** hasta que P-033 esté en producción *(decisión del dueño, 11-10)*.
 - **Sesiones borradas antes de leerlas**: se pierden *(`ON DELETE CASCADE`)*.
 - **Sin bloqueos**:
   - la coherencia descansa en la estabilidad *(FR-008)*, que en vivo **no llegó a reintentar** *(176 pares, 0 reintentos)*;
@@ -434,7 +431,8 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 3. **El `id` de la fila es único y estable por llamada** *(desc. D-5)*.
 
 ## Dependencias
-- **La plataforma**: `tool = "opencode"` como texto libre, y las tarifas de los modelos que lleguen *(hoy, `gemini-3.8-flash`)*, como en 009.
+- **La plataforma**: `tool = "opencode"` como texto libre, las tarifas de los modelos que lleguen *(hoy, `gemini-3.8-flash` y `claude-sonnet-5`)*, y
+  **P-033** en producción antes de publicar *(SC-027)*.
 - **006**: el esquema del `event_id`, sin tocarlo. **008** y **009**: el patrón de lector, con errores por fichero, recuentos y la línea de resumen, sin
   cambiar su conducta.
 
@@ -445,3 +443,4 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 | **Borrador** | 2026-10-11 | Primera redacción, con D-1 a D-3 ratificadas, y P-1 a P-12 y Q-1 a Q-4 para ratificar | Encargo 010 · constancia y spec · 3/n |
 | **Ratificación** | 2026-10-11 | **El dueño ratifica** P-1, P-2 y P-4 a P-12 **(a)**:<br>• **P-5**, con la redacción corregida: un modelo que no casa queda sin reparar y parcial, y el alias es otra feature *(N-10)*;<br>• **SC-007** *(≤ 100 KB)* se mantiene.<br>**P-3 se sustituye** por la **frontera por rowid** *(§P-3)*, con FR-004, FR-005, FR-012, FR-020, FR-021, FR-024 y FR-029 ajustados. SC-011 y SC-017 se reescriben; nacen SC-024 *(renumeración)* y SC-025 *(abandono)*. La línea de resumen gana `abandonadas` y `fronteras reiniciadas` *(SC-001, SC-013)*. Q-4 queda sólo para `opencode import` | Encargo 010 · remate de la spec · 4/n |
 | **Segundo proveedor** | 2026-10-11 11:00 | **El dueño** abre **Q-5**: P-2 está medida sólo con `google`, y con otros proveedores la caché podría contarse mal. Mientras tanto, P-2 vale para todos, con el límite en §Límites. Nace **SC-026**: medición con `anthropic` antes de la 0.7.0; si falla, P-2 por proveedor con su mutación; sin medición, límite en README y CHANGELOG | Encargo 010 · segundo proveedor · 4b/n |
+| **Cierre de Q-5** | 2026-10-11 12:05 | **La consola de Anthropic** *(el dueño, 12:02)* coincide al token con la copia: salida 397 = 369 + 28 y escritura «(5m)». **Q-5, cerrada**; **SC-026, cumplido**. En §Límites, «partidas verificadas sólo con Google» deja paso a la **dependencia de P-033**. Nace **SC-027**, que FR-031 cita: la 0.7.0 no se publica sin P-033 en producción. Se condensan los puntos 1 y 3 del Contexto y la nota de SC-017, sin tocar nada normativo | Encargo 010 · cierre de Q-5 · 6/n |

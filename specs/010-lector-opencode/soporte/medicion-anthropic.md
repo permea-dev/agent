@@ -7,6 +7,7 @@ hacia las 09:12 UTC)*, abierta como `file:<copia>?mode=ro&immutable=1`, con su s
 - **MEDIDO**: con `sqlite3` y las cuentas con `decimal` de Python, fuera del repo. La **sonda B** *(el lector propio de la prueba)* da sobre la copia las mismas cifras y el
   mismo sha256 de `data` que `sqlite3`.
 - **NO SE PUDO MEDIR**: va con la muestra que haría falta.
+- **CONSOLA**: la consola de Anthropic, vista por el dueño *(11-10, 12:02)*.
 - **Tarifas de Permea** *(por millón, USD, copiadas de la plataforma)*:
   - `claude-sonnet-5`: entrada 2.00 · salida 10.00 · escritura 5 min 2.50 · escritura 1 h 4.00 · lectura 0.20;
   - `claude-haiku-4-5`: 1.00 · 5.00 · 1.25 · 2.00 · 0.10.
@@ -58,21 +59,25 @@ La fila 1 **escribe** la caché *(11 518)*, y la 2 la **lee** entera *(11 518)*:
 
 Las **19 filas `google`** de esta copia cumplen también su identidad *(desc. D-4)* con Δ = 0.
 
-## A-3 · P-2 con Anthropic
+## A-3 · P-2 con Anthropic *(MEDIDO y CONSOLA: **resuelto**)*
 
-- **MEDIDO**:
-  - con las partidas de P-2 y la tarifa de Permea **de 5 min** para la escritura, la identidad de desc. D-4 se cumple en las 5 filas con **Δ = 0**;
-  - **las partidas no cuentan la caché dos veces**: `input` = 2 en cada fila, y la caché viene **aparte**, en `cache.read` y `cache.write`, como la separa la
-    API de Anthropic;
-  - con la escritura a 1 h, la identidad **no** se cumple *(A-4)*.
-- **NO SE PUDO MEDIR — el razonamiento**:
-  - en la API de Anthropic, los tokens de razonamiento van **dentro** de `output_tokens`;
-  - OpenCode da 129 + 28 y cobra 157, pero la copia no dice si Anthropic informó 157 *(y OpenCode lo partió)* o 129 *(y OpenCode añadió 28)*;
-  - en el segundo caso, P-2 contaría **28 tokens de salida de más**.
-  - Se cierra con la consola de Anthropic: la salida de `claude-sonnet-5` de esta sesión debe ser **397** *(369 + 28)* si P-2 acierta, y **369** si el
-    razonamiento se suma dos veces.
-- **NO SE PUDO MEDIR — la duración de la caché**: qué duración **pidió** OpenCode a la API *(5 min o 1 h)*. OpenCode la **cobra** a 5 min. La consola
-  separa las escrituras de 5 min y de 1 h.
+- **Con las partidas de P-2** y la escritura a **5 min**, la identidad de desc. D-4 se cumple en las 5 filas con **Δ = 0**. A 1 h, no *(A-4)*.
+- **Sin doble conteo de caché**: `input` = 2 en cada fila, y la caché llega aparte, en `cache.read` y `cache.write`.
+- **Sin doble conteo de razonamiento**: Anthropic informa el razonamiento **dentro** de su salida, y OpenCode lo **reparte** en `output` + `reasoning`. La
+  consola da **397** = 369 + 28.
+- **La escritura es de 5 min**: la consola la rotula «Prompt caching write (5m)».
+
+## Consola *(CONSOLA, 11-10 09:00 UTC, `claude-sonnet-5`, clave de la medición)*
+
+| | Consola | Σ de las 5 filas | |
+|---|---:|---:|:--:|
+| entrada | 10 | 10 | = |
+| lectura de caché | 46 851 | 46 851 | = |
+| escritura de caché | 11 995, «Prompt caching write (5m)» | 11 995 | = |
+| salida | 397 | 369 + 28 de razonamiento | = |
+| total | 59 253 | 59 253 | = |
+
+**Coincide al token.** Las 800 escrituras de la llamada de fuera **no** están en `claude-sonnet-5`: son de otro modelo, que no se persigue *(D-2)*.
 
 ## A-4 · Lo que cobraría Permea *(MEDIDO)*
 
@@ -130,21 +135,10 @@ evento; salida = `output + reasoning`)*:
 
 ## Consecuencias para P-2 y para la plataforma *(sin decidir)*
 
-1. **P-2 cuadra con Anthropic** en lo que la copia puede probar:
-   - entrada sin caché, lectura y escritura aparte, y **Δ = 0** con la fórmula de OpenCode;
-   - **no hay doble cuenta de caché.**
-
-   **Queda un punto abierto**: si `output + reasoning` cuenta dos veces el razonamiento con Anthropic *(A-3)*. Lo cierra la consola *(397 frente a 369)*.
-   Si fuera 369, P-2 necesitaría una regla por proveedor *(salida = `output`)*, con su mutación *(SC-026)*.
-2. **La reparación de la plataforma cobra un 41,5 % más que OpenCode** en esta sesión, porque lleva toda escritura a 1 h *(P-031 D-2)* y OpenCode la cobra a
-   5 min.
-   - **No sabemos cuál de las dos acierta** hasta ver la consola *(A-3)*.
-   - Si OpenCode escribe a 5 min, la plataforma **sobrecobraría** cada sesión de OpenCode con Anthropic en proporción a su escritura de caché.
-   - El evento sólo tiene `tokens_cache_creation`, sin separar 5 min y 1 h, y su frontera es cerrada *(FR-030)*.
-   - Caminos posibles, sin decidir:
-     - la plataforma repara la escritura por `tool`;
-     - un campo nuevo en el evento *(fuera de la frontera de 010)*;
-     - o un límite declarado.
+1. **P-2 cuadra con Anthropic**, sin regla por proveedor: Δ = 0 y la consola, al token *(A-3)*.
+2. **La reparación de la plataforma cobra un 41,5 % más** de lo que factura Anthropic, porque lleva toda escritura a 1 h *(P-031 D-2)* y la de OpenCode
+   es de **5 min** *(consola)*. El evento sólo tiene `tokens_cache_creation`, sin separar 5 min y 1 h, y su frontera es cerrada *(FR-030)*: la corrección
+   es de la plataforma.
 3. **La llamada del título** *(D-2)*: con Anthropic, el **0,25 %** del coste de la sesión, y de un modelo **sin identificar**. Con Google, el título lo hace
    `gemini-3.5-flash-lite` en las tres sesiones medidas.
 4. **El lector**: la sonda B lee esta copia como `sqlite3` *(cifras y sha256 de `data`)*. Nada de esta medición cambia D-3 ni P-3.
