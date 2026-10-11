@@ -21,9 +21,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 449 |
 | `plan.md` | **250** | 225 |
-| `tasks.md` *(este)* | **350** | 296 |
+| `tasks.md` *(este)* | **350** | 297 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | — |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 26 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -82,8 +82,9 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## B0 · Documentos
 
-- [ ] **T001** Fase 0: transcribir la línea base sobre `82e0b2d` *(671, vet, lint 0, frontera sin diff)*. Nace `soporte/registro-mutaciones.md`, con
+- [x] **T001** Fase 0: transcribir la línea base sobre `82e0b2d` *(671, vet, lint 0, frontera sin diff)*. Nace `soporte/registro-mutaciones.md`, con
   su techo. Si algo difiere, **PARA**.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B0 · T001 *(sobre `0256098`, sólo documentos desde `82e0b2d`; 671 pass en 9 paquetes, 0 SKIP; lint 0; frontera 0)*.
 - [ ] **T002** ✋ **Línea base y registro**. La enmienda **E-1** ya está en la spec desde el remate del analyze *(9/n)*: T002 no la aplica. Commit:
   `010 B0: linea base y registro de mutaciones`.
 
