@@ -1,0 +1,88 @@
+{
+ "desborda": {
+  "o-desborda-1": {
+   "bytes": 106,
+   "sha256": "283d4a109793c476136e89c77c975499a472d375f51ea5d4d644037aca972f65"
+  },
+  "o-desborda-64k": {
+   "bytes": 80004,
+   "sha256": "74721d176b923d3ff2438bdb997c8bf20fcc9fb64cc8a9f4d56ab83595803d72"
+  },
+  "o-desborda-8k": {
+   "bytes": 9003,
+   "sha256": "9db56e925946d408633b7b894a37451c2c9096c6853b2d16037c411d74d8e327"
+  }
+ },
+ "i": {
+  "frames_confirmados": 52,
+  "session_message": {
+   "filas": 55,
+   "sha256_data": "13b0667f9dbe22172f5acac97c81de4aa00b70fcd0b90e796b9e1f7d5ecf9fb9"
+  },
+  "session_v2": {
+   "filas": 3,
+   "sha256_ids": "3932596d25e3148485bd8896212747238ef2d5c75f5ef556ca83df566fdb4e8f",
+   "tokens_input": 98218,
+   "tokens_output": 32483
+  }
+ },
+ "profundo": {
+  "ausente": 777,
+  "clave_interior": 12,
+  "datos_en_hoja": [
+   "o-p-00001",
+   1,
+   "dato-00001-abcdefghij"
+  ],
+  "en_hoja": 1,
+  "filas": 1999,
+  "max_rowid": 2000,
+  "niveles": 3
+ },
+ "r": {
+  "frame_roto": 34,
+  "frames_confirmados": 26,
+  "session_message": {
+   "filas": 25,
+   "sha256_data": "29f3658d21fe8d11a2ee25e49c3581eb1af48e455769f0db74c329ca572f5156"
+  },
+  "session_v2": {
+   "filas": 2,
+   "sha256_ids": "9d08b9e0984a143c6d62482e618ed474d9964ca52079425b5016d57b6046fdf5",
+   "tokens_input": 7309,
+   "tokens_output": 2180
+  }
+ },
+ "raros": {
+  "p512": {
+   "filas": 40,
+   "sha256_data": "dd7f2b254a4bde6cdc1d8b09edf042f17c659a861be65e0566e7d467382cc351"
+  },
+  "p65536": {
+   "filas": 40,
+   "sha256_data": "dd7f2b254a4bde6cdc1d8b09edf042f17c659a861be65e0566e7d467382cc351"
+  },
+  "reserva": {
+   "filas": 40,
+   "sha256_data": "dd7f2b254a4bde6cdc1d8b09edf042f17c659a861be65e0566e7d467382cc351"
+  },
+  "utf16": {
+   "filas": 10,
+   "sha256_data": "87ae7bf766b11e2dc00d779faae12d743fcb5027e0dd69a620fe7a7707d8e626"
+  }
+ },
+ "s": {
+  "frames_confirmados": 0,
+  "session_message": {
+   "filas": 55,
+   "sha256_data": "13b0667f9dbe22172f5acac97c81de4aa00b70fcd0b90e796b9e1f7d5ecf9fb9"
+  },
+  "session_v2": {
+   "filas": 3,
+   "sha256_ids": "3932596d25e3148485bd8896212747238ef2d5c75f5ef556ca83df566fdb4e8f",
+   "tokens_input": 98218,
+   "tokens_output": 32483
+  }
+ },
+ "sqlite": "3.45.1"
+}

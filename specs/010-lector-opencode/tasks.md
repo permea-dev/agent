@@ -5,6 +5,7 @@
 **Base**: `82e0b2d`. **Línea base a preservar**: `go test -count=1 -v ./...` → **671** «--- PASS», 0 FAIL, 0 SKIP · `go vet` limpio ·
 `golangci-lint run` → **0**.
 **59 tareas · 14 ✋ · 53 tests nuevos** *(39 rojos y 14 nacidos verdes)* **· 59 mutaciones** *(plan §Bloques, más M-B1a y M-B1b)*. **La release queda bloqueada por SC-027** *(P-033)*.
+*Unidades*: aquí, «tests» son los rojos **numerados** del plan, (1)–(53); el registro cuenta **hojas y semillas**. B1: 10 numerados = 40 hojas + 15 semillas = 55.
 
 ## Formato: `[ID] [P?] [✋?] Descripción`
 
@@ -21,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 449 |
 | `plan.md` | **250** | 225 |
-| `tasks.md` *(este)* | **350** | 297 |
+| `tasks.md` *(este)* | **350** | 302 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 26 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 77 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -90,32 +91,33 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## B1 · Lector *(`internal/sqlitero`; FR-006 a FR-010; SC-004, SC-005, SC-009)* — nacen `lector_test.go` y `fuzz_test.go`
 
-- [ ] **T003** Fase 0: `internal/sqlitero/lector.go` **= el de la prueba**:
+- [x] **T003** Fase 0: `internal/sqlitero/lector.go` **= el de la prueba**:
   - se transcribe el md5 de origen, `f6b47fa8…`;
   - sólo cambia el nombre del paquete;
   - `RecorrerDesde`, `Buscar` y `Paginas` son stubs que devuelven error o 0.
 
   La suite sigue verde. Se transcribe el md5 del fichero portado.
-- [ ] **T004** Testdata: `internal/sqlitero/testdata/generar.sh` *(plan §6)* → `i/`, `r/`, `s/`, `raros/` *(utf16, without_rowid, p512, p65536,
+- [x] **T004** Testdata: `internal/sqlitero/testdata/generar.sh` *(plan §6)* → `i/`, `r/`, `s/`, `raros/` *(utf16, without_rowid, p512, p65536,
   reserva, desborda)*, `profundo.db` *(≥ 3 niveles, sin WAL, filas < 1 KB)* y `esperado.json`.
   - Las cifras de I, R y S deben ser las de la prueba en forma: R sin T3, e I sin la transacción a medias.
   - **R**: el último byte de una hoja de `session_message` de T3, comprobado **dentro de una celda** por el guion *(H9)*.
   - md5 de cada fichero al registro.
-- [ ] **T005** [P] **Rojos (1) a (10)** *(plan §Bloques)* en `lector_test.go`, y `FuzzBase` y `FuzzWAL` con sus semillas en `fuzz_test.go`. **El fixture de cada
+- [x] **T005** [P] **Rojos (1) a (10)** *(plan §Bloques)* en `lector_test.go`, y `FuzzBase` y `FuzzWAL` con sus semillas en `fuzz_test.go`. **El fixture de cada
   rojo**, el de plan §Bloques *(H8)*. Las que nacen verdes *(lógica portada: (1)–(3), (6), **(7)**, (9), (10))* llevan su mutación: mB1–mB4, mB8,
   **mB9**, mB10, y dos nuevas:
   - **M-B1a**, aceptar UTF-16 → (1/utf16);
   - **M-B1b**, `Abrir` crea un `-shm` vacío → (10/listado).
 
   (9/carga_enorme) declara **2⁶²** y llama con `recover`. La goroutine de los fuzz, también con `recover` *(H7)*.
-- [ ] **T006** **Verde**:
+- [x] **T006** **Verde**:
   - `RecorrerDesde` con poda; `Buscar` por descenso; `Paginas()`;
   - errores **sin ruta** *(`PathError` → `Op: Err`)*; `ErrCorrupta` y `ErrNoSoportada`.
 
   Se transcribe el md5.
-- [ ] **T007** Censo, **antes de mutar**, por hoja: **mB1–mB10**, **M-B1a** y **M-B1b**, con lo que debe caer en plan §Bloques. Entre las
+- [x] **T007** Censo, **antes de mutar**, por hoja: **mB1–mB10**, **M-B1a** y **M-B1b**, con lo que debe caer en plan §Bloques. Entre las
   co-caídas, (7/sin_cambio) para mB1 y `FuzzBase` *(semilla `carga_enorme`)* para mB8.
-- [ ] **T008** Mutaciones y transcripción, con md5. **mB1–mB4 son las de la prueba, rehechas** sobre el código definitivo *(D-3)*.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B1 · T003–T008 *(726 pass; mB4 también tumba (2/R); T008: 12 de 12 = declarado, tras corregir la co-caída (10/md5) de M-B1b)*.
+- [x] **T008** Mutaciones y transcripción, con md5. **mB1–mB4 son las de la prueba, rehechas** sobre el código definitivo *(D-3)*.
 - [ ] **T009** ✋ Puertas y commit: `010 B1: lector SQLite de solo lectura (internal/sqlitero)`.
 
 ## B2 · Identidad *(contrato; FR-013; SC-014)* — nace `opencode_eventid_test.go`
@@ -224,7 +226,10 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   - **SC-002**, la línea de contraste;
   - la copia de `anthropic`, de control: 24 eventos;
   - **SC-009**: `FuzzBase` y `FuzzWAL`, 10 min cada uno;
-  - **SC-017**, tres veces.
+  - **SC-017**, tres veces;
+  - **equivalencia**: el lector portado = el de la prueba *(`tmp/sonda-sqlite/b-propio/lector/`)* sobre los 13 testdata y las dos copias congeladas. Se
+    comparan recuentos, sumas y sha256 de `data` por tabla. Las copias se abren en su sitio, en solo lectura e `immutable=1`, con su sha256 antes y
+    después. Una diferencia → **PARA**.
 - [ ] **T053** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-019)*.
 - [ ] **T054** ✋ **C4 · W1** *(plan D-010-W)*: OpenCode cerrado, y luego abierto; `sonda-a.exe` como contador. **SC-006** y **SC-023**.
 - [ ] **T055** **C5** · El cuerpo del PR, que dice **«la etiqueta espera a SC-027 (P-033)»**.

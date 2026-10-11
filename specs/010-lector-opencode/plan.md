@@ -54,6 +54,7 @@ README.md · CHANGELOG.md                                            # B8
 - **`cmd/permea/main.go`**: `agent` gana `opencodeDatos`, `opencodeUnica` y `opencode *ingest.PasadaOpenCode`, tras `gemini` *(:183-185)*; `setup()`, `config.OpenCodeDatos()` con la regla de Gemini *(:230-233, :238-239)*; `generate()`, el bloque **entre** Gemini *(:355-366)* y el único `st.Save` *(:368)*; `runOnce()` y `tick()`, la línea tras la de Gemini *(:439-441, :505-507)*; `dryRun()`, la detección **antes** de Codex *(:536-542)*.
 - **`internal/state/state.go:16-21`**: el campo `Frontera`. `Recorrer` *(:105-153)* no cambia. **`internal/testutil/sandbox.go:65`**: dos `t.Setenv`.
 - **`internal/config/codex.go:16` y `gemini.go:17`**: sólo el comentario, de «una de las DOS» a «una de las CUATRO». **`README.md`** y **`CHANGELOG.md`**.
+- **`.gitignore`**: excepción de las bases de testdata de `internal/sqlitero` *(dueño, 11-10)*: `!internal/sqlitero/testdata/**/*.db`, tras `*.db`.
 
 **Nada más**: ni `internal/event/`, `project/`, `transport/` o `pricing/`, ni los lectores de Claude Code, Codex y Gemini.
 
@@ -180,7 +181,7 @@ B6 ~120 + 330 · B7 ~80 + 120 · B8 ~50 de texto. **~1 235 de producción, ~1 80
 | Tramo | Qué | Quién |
 |---|---|---|
 | **C1** · Puertas | gofmt, vet y lint 0; 671 + nuevos, 0 SKIP; SC-018; **SC-007** en las 5; compilan Windows y darwin | Claude |
-| **C2** · Medidas | **SC-001** y **SC-003**, sobre la copia del 09-10 en su sitio *(`--scan`, y `--run` con `OPENCODE_DB`)* · **SC-002** · la de `anthropic` como segundo control *(24 eventos)* · **SC-009**, 10 min × 2 · **SC-017**, × 3 · las huellas de las copias, antes y después | Claude |
+| **C2** · Medidas | **SC-001** y **SC-003**, sobre la copia del 09-10 en su sitio *(`--scan`, y `--run` con `OPENCODE_DB`)* · **SC-002** · la de `anthropic` como segundo control *(24 eventos)* · **SC-009**, 10 min × 2 · **SC-017**, × 3 · las huellas de las copias, antes y después · **equivalencia**: el lector portado = el de la prueba *(`tmp/sonda-sqlite/b-propio/lector/`)* sobre los 13 testdata y las dos copias congeladas; se comparan recuentos, sumas y sha256 de `data` por tabla; las copias, en su sitio, en solo lectura e `immutable=1`, con su sha256 antes y después; una diferencia → PARA | Claude |
 | **C3** · Snapshot | `goreleaser release --snapshot --clean`, `strings` con los textos | Claude |
 | **C4** · **W1** | En Windows, en sandbox y sin enrolar *(D-010-W)* | ✋ dueño |
 | **C5** · PR | El cuerpo, con «**bloqueada por SC-027**» | Claude redacta |

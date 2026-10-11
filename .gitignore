@@ -1,6 +1,7 @@
 /bin/
 /dist/
 *.db
+!internal/sqlitero/testdata/**/*.db
 *.out
 *.exe
 *.test
