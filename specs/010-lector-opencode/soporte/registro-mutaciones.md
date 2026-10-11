@@ -75,3 +75,21 @@ Poda, `Buscar`, `Paginas`, errores tipados y `sinRuta`; 17 arreglos de lint sin 
 | La co-caída (2/R) de mB4, declarada antes de mutar | T007 |
 | 17 arreglos de lint, con su regresión cazada y corregida: el lector ya no es byte a byte el de la prueba *(desviación de D-3)* | T006 |
 | Tests al +52 % *(683 líneas frente a ~450)* | T005 |
+
+## B2 · Identidad *(`internal/ingest/opencode_eventid.go`)*
+
+### T010–T012 *(2026-10-11, sobre `f373016`)*
+Stub → **726 / 0 / 0**. Rojos de T011, con su razón real: `TestEventIDOpenCode_VectoresDelContrato/{llamada,otra_llamada}`
+*(«ok = false; se esperaba un event_id»)* y `TestEventIDOpenCode_EspacioDeNombresPropio` *(«= "", ok false»; su precondición, el literal de Gemini contra
+`derivarEventIDGemini`, pasa)*. Nace verde `TestEventIDOpenCode_SinIDNoHayEventID` *(m3)*. Verde: la derivación replicada, con `dominioEventID`,
+`bytesEventID` y `tipoRespuesta`; md5 `0a3c19d4…`; lint 0; **731 / 0 / 0**.
+
+### T013 · Censo *(declarado ANTES de mutar)* y mutaciones *(base `0a3c19d4…`; suite entera; edición inversa; md5)*
+| Mut. | Edición | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| m1 | `herramientaOpenCode = "opencode"` → `"gemini"` | VectoresDelContrato/llamada, /otra_llamada · EspacioDeNombresPropio | = · `496b16d5` |
+| m2 | `_, _ = h.Write(longitud[:])` → `// m2: sin prefijo de longitud` | VectoresDelContrato/llamada, /otra_llamada | = · `e5868ac3` |
+| m3 | `if id == "" {` → `if id == "" && false {` | SinIDNoHayEventID | = · `30ad5835` |
+| m4 | `…, tipoRespuesta, id}` → `…, tipoRespuesta, "m4", id}` | VectoresDelContrato/llamada, /otra_llamada | = · `bb31b82d` |
+
+Las cuatro, **= declarado**, y restauradas a `0a3c19d4…` antes de la siguiente; directa e inversa comprobadas únicas antes de mutar.

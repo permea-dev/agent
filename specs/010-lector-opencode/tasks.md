@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 449 |
 | `plan.md` | **250** | 225 |
-| `tasks.md` *(este)* | **350** | 302 |
+| `tasks.md` *(este)* | **350** | 303 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 77 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 95 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -122,11 +122,12 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## B2 · Identidad *(contrato; FR-013; SC-014)* — nace `opencode_eventid_test.go`
 
-- [ ] **T010** Fase 0: `derivarEventIDOpenCode(id string) (string, bool)` en `internal/ingest/opencode_eventid.go`, que devuelve `"", false`.
-- [ ] **T011** [P] **Rojos (11) a (13)**: los dos vectores; el de Gemini *(`a53e1c53…`)*, distinto; vacío → no ok *(nace verde; m3)*.
-- [ ] **T012** **Verde**: la derivación, **replicada** *(reutiliza `dominioEventID`, `bytesEventID` y `tipoRespuesta`; `eventid.go:31,43`,
+- [x] **T010** Fase 0: `derivarEventIDOpenCode(id string) (string, bool)` en `internal/ingest/opencode_eventid.go`, que devuelve `"", false`.
+- [x] **T011** [P] **Rojos (11) a (13)**: los dos vectores; el de Gemini *(`a53e1c53…`)*, distinto; vacío → no ok *(nace verde; m3)*.
+- [x] **T012** **Verde**: la derivación, **replicada** *(reutiliza `dominioEventID`, `bytesEventID` y `tipoRespuesta`; `eventid.go:31,43`,
   `codex_eventid.go:29`)*.
-- [ ] **T013** Censo y mutaciones **m1–m4**, con md5.
+- [x] **T013** Censo y mutaciones **m1–m4**, con md5.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B2 *(731 pass; m1–m4 = declarado)*.
 - [ ] **T014** ✋ Puertas y commit: `010 B2: event_id de OpenCode con espacio de nombres propio`.
 
 ## B3 · Una llamada *(FR-012, FR-014 a FR-021; SC-012, SC-013)* — nace `opencode_llamada_test.go`
