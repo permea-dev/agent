@@ -18,6 +18,22 @@ type FileState struct {
 	Size    int64  `json:"size"`
 	ModTime int64  `json:"mod_time"`
 	Offset  int64  `json:"offset"`
+	// Frontera es la de una base de OpenCode (P-010 D-010-P2), con `Offset` = H, el mayor rowid visto. Las entradas de
+	// los otros lectores no la llevan, y su JSON no cambia. Sin ella, la pasada de una base es completa.
+	Frontera *Frontera `json:"frontera,omitempty"`
+}
+
+// Frontera es lo que una base de OpenCode guarda además de H (P-010 §P-3): la huella del `id` de la fila H, y las
+// filas que se vieron en curso. Las huellas llevan sal: `state.json` no guarda identificadores del proveedor.
+type Frontera struct {
+	Huella  string    `json:"huella"`
+	EnCurso []EnCurso `json:"en_curso,omitempty"`
+}
+
+// EnCurso es una fila `assistant` vista sin completar: su rowid y la huella de su `id`.
+type EnCurso struct {
+	Rowid  int64  `json:"rowid"`
+	Huella string `json:"huella"`
 }
 
 // Store es el conjunto persistido de estados por fichero.

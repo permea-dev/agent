@@ -122,3 +122,53 @@ toca)*; (21/sin_sesion) tiene sesión vacía *(m13 da `""` y m14 queda dentro de
 hashes y un `0.25` sin centinela; todos los fixtures de evento llevan `model.id` *(m12)*, y `time.created` numérico *(m10)*.
 
 Las diez, **= declarado**, y restauradas a `1b00c194…` antes de la siguiente; directa e inversa comprobadas únicas, y cada mutante compilado, antes de mutar.
+
+## B4 · Base y frontera *(`internal/ingest/opencode_base.go`, `internal/state/state.go`)*
+
+### T022–T023 *(2026-10-12, sobre `c63cf85`)*
+- **T022**: `FileState.Frontera` *(`omitempty`)*, `Frontera` y `EnCurso` → `state.go` `7622236a…`; esqueleto → **765 / 0 / 0**; `internal/state`: 10 «--- PASS», sin tocar sus tests.
+- **T023**: `generar.sh` `d773524d…` *(Python `sqlite3`, SQLite 3.45.1; conexión retenida para los `-wal` de `frontera/`)*: 28 ficheros, 668 505 B. md5:
+  `frontera/paso1–2` `c564552b` + `-wal 3535469c` · `paso3` `c564552b` + `-wal 07e01470` · `inverso/paso1–3` `1ea02836 4d32c776 271e9131` ·
+  `lista_borrada/paso1–2` `7d560547 5a13808c` · `vacuum/antes` `35931d5d` · `despues` `7bca728f` · `borrada_h/paso1–2` `abdbe429 78732391` ·
+  `abandono/paso1–3` `5c9a9bbc 0106ea3d 2e74ae4d` · `abandono_1h` `f8436203` · `clases` `53af85e7` · `dos_sesiones` `d5324c9b` · `centinelas` `50893cd6` ·
+  `formatos/`: `v1 38041872` · `without_rowid b153e8d0` · `utf16 4e70c51b` · `sin_columna 930dda16` · `corrupta` `6daa9b6b` · `esperado.json` `88c8eb27`.
+- **Hallazgo (SC-024)**: con `id text PRIMARY KEY`, el `VACUUM` de SQLite 3.45.1 **conserva** los rowid *(la tabla tiene índice)*; sin índices, los
+  renumera. `vacuum/` lleva `session_message` sin clave ni índices, y el guion comprueba que el `VACUUM` renumeró.
+- **`.gitignore`**: `!internal/ingest/testdata/opencode/**/*.db`; `git check-ignore`: 0 de 24 bases y 0 de 3 `-wal`. Privacidad con `grep -a`: 0.
+
+### T024–T025
+- **Rojos**: 16 tests y 43 «--- FAIL», todos por el esqueleto *(resumen `""`, sin eventos, sin entrada, sin error)*. Nace verde (36/otras): la valida m29.
+- **Verde** `7c3a011b…`; lint 0; **809 / 0 / 0**. (24/paginas) cayó con 12 > 10: las `assistant` de `frontera/` desbordaban la página de 1 KB y cada
+  `Buscar(25)` leía su desbordamiento. Se corrige el **fixture** *(relleno 500, y el guion lo comprueba)*, no la cota.
+- **SC-017** *(informativa, una vez; 1 039 265 792 B, 253 727 páginas, 250 000 filas, 2 500 sesiones)*: 1.ª pasada **29,3 s > 20 s: no cumple**; la
+  siguiente, con 10 nuevas, **43,6 ms y 75 páginas (0,030 %): cumple**. Se anota y se sigue *(normativa en C2)*.
+
+### T026 · Censo *(declarado ANTES de mutar; prefijo `TestBaseOpenCode_`)* y T027 · mutaciones *(base `7c3a011b…`; suite entera; edición inversa; md5)*
+| Mut. | Edición | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| m15 | `case c.huella(fila) != fr.Huella:` → `… && false:` *(`case false:` no compilaba: `fila` sin usar)* | VacuumRenumera/ninguna_falta, /literal | = · `8443cd75` |
+| m16 | `return false, nil // la fila H ya no está` → `return true, …` | BorradaH/salen, /reinicio | = · `ad9ec2b9` |
+| m17 | en el bucle de la lista, `if true { c.lista = append(c.lista, e); continue }` | EnCursoSeCompleta · OrdenInverso · FilaDeLaListaBorrada · Abandono/paso2, /paso3 · **Inestable/quieta** | = · `49906409` |
+| m18 | antes de `c.clasificar(e.Rowid, fila)`, `if c.abandonada(fila) { …Abandonadas++; continue }` | Abandono/paso2 | = · `05c0d7ae` |
+| m19 | `return false && c.ahora.Sub(…) > abandonoOpenCode` | Abandono/paso2, /paso3, **/1h** · Clases/literal | = · `80ec170d` |
+| m20 | `desde, c.h, c.huellaH = previo.Offset, …` → `desde, … = math.MinInt64, …` | SegundaPasadaSinCambios/linea, /paginas · EnCursoSeCompleta · OrdenInverso · FilaDeLaListaBorrada · Abandono/paso2, /paso3, **/1h** | = · `a2a79d6b` |
+| m21 | antes del `continue // la sesión se borró`, `c.cuenta.Abandonadas++` | FilaDeLaListaBorrada | = · `00f323dc` |
+| m22 | `fr != nil {` → `fr == nil { desde = previo.Offset } else {` | EntradaSinCampo · **EstadoJSON/estado_060** | = · `2ff3148c` |
+| m23 | `c.cuenta.Reiniciadas++` → comentario | VacuumRenumera/literal · BorradaH/reinicio | = · `e5d8c81d` |
+| m24 | `intentosOpenCode = 5` → `1` | Inestable/una | = · `6fa948ec` |
+| m25 | antes del `return` de `errInestableOpenCode`, `st.Files[ruta] = l.estado` | Inestable/quieta | = · `d20bbe16` |
+| m26 | `if visto && previo.Size == …` → `if false && visto && …` | Formatos/anterior_segunda | = · `ed322233` |
+| m27 | `n != "opencode-next.db"` → `true` | `TestListarOpenCode` | = · `becdd4ad` |
+| m28 | `return event.Ref(c.sal, textoDeValor(…))` → `return textoDeValor(…)` | HuellaConSal | = · `7868fe1a` |
+| m29 | `state.go`: `json:"frontera,omitempty"` → `json:"frontera"` | EstadoJSON/otras · `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos` | = · `9835d068` |
+
+**Re-derivación** *(en negrita, las co-caídas que plan §Bloques no lista)*. Sólo m22 toca las entradas sin `frontera`: (28) y (36/estado_060) recorren
+desde 23. Los formatos se deciden antes de la frontera *(m22 no toca (34))*. Las de la lista y del recorrido sólo tocan pasadas con frontera:
+- **m17**: (24) no cae *(la fila sigue en curso, y lee menos páginas)*, ni (31/1h) *(su fila sigue en curso)*. Sí (33/quieta): su tercera pasada no
+  consulta la 25.
+- **m19 y m20**: caen en (31/1h): la primera pasada no abandona la de 25 h, y la segunda recorre otra vez desde el principio.
+- **m20**: (29) y (30) no caen *(reinician)*, ni (33/quieta) *(sólo exige que salga la 25)*. **m18**: (31/paso3) no cae *(la lista ya está vacía)*.
+- **m15**: sólo (29) tiene una fila distinta en H. **m28**: H y la lista se comparan con la misma función; sólo (38) mira la huella.
+- **m29**: el `"frontera": null` no lleva identificadores *(los tests de 008 y 009 sobre `state.json` no caen)*; (36/bases) busca `"frontera":{`.
+
+Las quince, **= declarado**, y restauradas a su md5 antes de la siguiente; directa e inversa únicas y cada mutante compilado, antes de mutar.

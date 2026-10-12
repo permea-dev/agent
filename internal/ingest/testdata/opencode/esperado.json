@@ -1,0 +1,71 @@
+{
+ "abandono": {
+  "tarde": "o-abandono-b"
+ },
+ "borrada_h": {
+  "h_antes": 5,
+  "nuevas": [
+   "o-borradah-6",
+   "o-borradah-7"
+  ]
+ },
+ "centinelas": {
+  "en_curso": [
+   "o-CENTINELA-encurso"
+  ],
+  "h": "o-CENTINELA-encurso"
+ },
+ "corrupta": {
+  "pagina": 4
+ },
+ "dos_sesiones": {
+  "o-dos-1": [
+   "s-uno",
+   "/sintetico/uno"
+  ],
+  "o-dos-2": [
+   "s-dos",
+   "/sintetico/dos"
+  ],
+  "o-dos-3": [
+   "",
+   ""
+  ]
+ },
+ "frontera": {
+  "completadas": [
+   "o-frontera-21",
+   "o-frontera-22",
+   "o-frontera-23",
+   "o-frontera-24"
+  ],
+  "en_curso": "o-frontera-25",
+  "h": 25,
+  "niveles": 2
+ },
+ "inverso": {
+  "orden": [
+   "o-inverso-3",
+   "o-inverso-2"
+  ]
+ },
+ "sqlite": "3.45.1",
+ "t0": 1760000000000,
+ "vacuum": {
+  "completadas_despues": [
+   "o-vacuum-01",
+   "o-vacuum-04",
+   "o-vacuum-05",
+   "o-vacuum-06",
+   "o-vacuum-07",
+   "o-vacuum-08",
+   "o-vacuum-09",
+   "o-vacuum-10",
+   "o-vacuum-11"
+  ],
+  "h_antes": 8,
+  "id_en_h_despues": "o-vacuum-10",
+  "id_h_antes": "o-vacuum-08",
+  "rowid_de_id_h_despues": 6
+ }
+}

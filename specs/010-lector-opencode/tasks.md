@@ -21,10 +21,10 @@
 | Fichero de `specs/010-lector-opencode/` | Techo | Hoy |
 |---|---:|---:|
 | `spec.md` | 450 | 449 |
-| `plan.md` | **250** | 225 |
-| `tasks.md` *(este)* | **350** | 304 |
+| `plan.md` | **250** | 227 |
+| `tasks.md` *(este)* | **350** | 305 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 124 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 174 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -144,10 +144,10 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## B4 · Base y frontera *(FR-003 a FR-005, FR-008, FR-022, FR-023; SC-010, SC-011, SC-013, SC-015, SC-017, SC-024, SC-025)* — nacen `opencode_base_test.go` y `opencode_coste_test.go`
 
-- [ ] **T022** Fase 0:
+- [x] **T022** Fase 0:
   - `internal/state/state.go`: `FileState.Frontera` *(D-010-P2)*. **Ningún test de `internal/state` cambia**, y siguen verdes, transcrito;
   - `opencode_base.go`, con `PasadaOpenCode`, `LeerBaseOpenCode`, `ListarOpenCode` y `ContarFormatoOpenCode`, que no emiten.
-- [ ] **T023** Testdata: `internal/ingest/testdata/opencode/generar.sh` →
+- [x] **T023** Testdata: `internal/ingest/testdata/opencode/generar.sh` →
   - `frontera/paso1…paso3/` *(4 completadas y 1 en curso)*, `inverso/`, `lista_borrada/` *(con una completada)* y `vacuum/{antes,despues}/` *(2
     borradas + `VACUUM` + 3 nuevas)*;
   - `borrada_h/`: se borran las de rowid máximo y **entran 2 que reutilizan rowids ≤ H** *(H10)*;
@@ -157,13 +157,14 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   - `esperado.json`, con los rowids de H antes y después de `VACUUM`.
 
   md5 al registro.
-- [ ] **T024** [P] **Rojos (23) a (38)**, con `Ahora` inyectado en **todos** *(H6)* y la línea de resumen literal en cada pasada. Para (33), un
+- [x] **T024** [P] **Rojos (23) a (38)**, con `Ahora` inyectado en **todos** *(H6)* y la línea de resumen literal en cada pasada. Para (33), un
   gancho de test cambia el `-wal` de la copia entre la lectura y `Estable()`.
-- [ ] **T025** **Verde**: el algoritmo de plan §2, D-010-P5 a P-9, y `Resumen()` con el texto de spec §Textos.
+- [x] **T025** **Verde**: el algoritmo de plan §2, D-010-P5 a P-9, y `Resumen()` con el texto de spec §Textos.
   - **SC-017 informativa**: `go test -tags sc017 …` una vez, transcrita.
-- [ ] **T026** Censo, **antes de mutar**, por hoja: **m15–m29**, con las co-caídas de plan §Bloques, incluida la de un test **existente** para m29:
+- [x] **T026** Censo, **antes de mutar**, por hoja: **m15–m29**, con las co-caídas de plan §Bloques, incluida la de un test **existente** para m29:
   `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos`.
-- [ ] **T027** Mutaciones y transcripción, con md5.
+- [x] **T027** Mutaciones y transcripción, con md5.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B4 *(809 pass; SC-017: 1.ª pasada 29,3 s > 20 s, informativa; m15–m29 = declarado)*.
 - [ ] **T028** ✋ Puertas y commit: `010 B4: frontera por rowid y pasada de una base de OpenCode`.
 
 ## B5 · Ubicación *(FR-001, FR-002; M-3, M-5; SC-015)* — nacen `internal/config/opencode_test.go` y `internal/testutil/sandbox_opencode_test.go`

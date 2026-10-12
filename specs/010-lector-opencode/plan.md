@@ -55,6 +55,7 @@ README.md · CHANGELOG.md                                            # B8
 - **`internal/state/state.go:16-21`**: el campo `Frontera`. `Recorrer` *(:105-153)* no cambia. **`internal/testutil/sandbox.go:65`**: dos `t.Setenv`.
 - **`internal/config/codex.go:16` y `gemini.go:17`**: sólo el comentario, de «una de las DOS» a «una de las CUATRO». **`README.md`** y **`CHANGELOG.md`**.
 - **`.gitignore`**: excepción de las bases de testdata de `internal/sqlitero` *(dueño, 11-10)*: `!internal/sqlitero/testdata/**/*.db`, tras `*.db`.
+- **`.gitignore`**, B4: `!internal/ingest/testdata/opencode/**/*.db`, en la línea siguiente *(dueño: «B4 y B6 añaden la suya»)*.
 
 **Nada más**: ni `internal/event/`, `project/`, `transport/` o `pricing/`, ni los lectores de Claude Code, Codex y Gemini.
 

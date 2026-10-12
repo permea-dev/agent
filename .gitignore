@@ -2,6 +2,7 @@
 /dist/
 *.db
 !internal/sqlitero/testdata/**/*.db
+!internal/ingest/testdata/opencode/**/*.db
 *.out
 *.exe
 *.test
