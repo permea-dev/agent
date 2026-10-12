@@ -20,11 +20,11 @@
 
 | Fichero de `specs/010-lector-opencode/` | Techo | Hoy |
 |---|---:|---:|
-| `spec.md` | 450 | 449 |
+| `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 227 |
-| `tasks.md` *(este)* | **350** | 305 |
+| `tasks.md` *(este)* | **350** | 306 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 174 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 233 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -165,6 +165,7 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos`.
 - [x] **T027** Mutaciones y transcripción, con md5.
   > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B4 *(809 pass; SC-017: 1.ª pasada 29,3 s > 20 s, informativa; m15–m29 = declarado)*.
+  > **Remate** *(§B4 remate)*: un análisis de `data` por fila; SC-017 **cumple** × 3 *(1.ª pasada 5,1–5,2 s; siguiente ≤ 9,3 ms, 0,030 %)*; m9–m11 repetidas, = declarado.
 - [ ] **T028** ✋ Puertas y commit: `010 B4: frontera por rowid y pasada de una base de OpenCode`.
 
 ## B5 · Ubicación *(FR-001, FR-002; M-3, M-5; SC-015)* — nacen `internal/config/opencode_test.go` y `internal/testutil/sandbox_opencode_test.go`

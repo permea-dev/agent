@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/permea-dev/agent/internal/event"
+	"github.com/permea-dev/agent/internal/project"
 	"github.com/permea-dev/agent/internal/sqlitero"
 	"github.com/permea-dev/agent/internal/state"
 )
@@ -382,11 +383,16 @@ func (c *clasificadorOpenCode) clasificar(rowid int64, fila []sqlitero.Valor) {
 	if textoDeValor(fila[c.colTipo]) != "assistant" {
 		return
 	}
-	var d tiempoOpenCode
+	// `data` se analiza UNA vez por fila: lo leído pasa a `LlamadaOpenCode`, y la llamada no retiene la fila (SC-017). Da
+	// error en los mismos casos que `tiempoOpenCode`: sus campos de más son `json.RawMessage`.
+	var d datosOpenCode
 	data := fila[c.colData].B
+	err := json.Unmarshal(data, &d)
 	switch {
-	case json.Unmarshal(data, &d) != nil || !esObjeto(bytes.TrimSpace(data)) || !ausente(d.Time.Completed):
-		c.pendientes = append(c.pendientes, pendienteOpenCode{FilaOpenCode{ID: fila[c.colID], Data: data},
+	case err != nil || !esObjeto(bytes.TrimSpace(data)) || !ausente(d.Time.Completed):
+		id := fila[c.colID]
+		id.B = bytes.Clone(id.B)
+		c.pendientes = append(c.pendientes, pendienteOpenCode{FilaOpenCode{ID: id, leida: &leidaOpenCode{d, err}},
 			textoDeValor(fila[c.colSesion])})
 	case c.abandonada(fila):
 		c.cuenta.Abandonadas++
@@ -410,7 +416,10 @@ func (c *clasificadorOpenCode) abandonada(fila []sqlitero.Valor) bool {
 
 // emitir convierte las llamadas en eventos, con su sesión (P-6), y las cuenta (FR-021).
 func (c *clasificadorOpenCode) emitir(sesiones map[string]filaSesionOpenCode, base ContextoOpenCode) []event.Event {
-	var evs []event.Event
+	if base.Resolutor == nil { // sin resolutor, uno para esta base: la caché optimiza, no decide (P-004; SC-017)
+		base.Resolutor = project.NuevoResolutor()
+	}
+	evs := make([]event.Event, 0, len(c.pendientes))
 	for _, pd := range c.pendientes {
 		ctx := base
 		ctx.SessionID, ctx.Directory, ctx.Path = "", "", ""

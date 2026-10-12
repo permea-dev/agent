@@ -172,3 +172,62 @@ desde 23. Los formatos se deciden antes de la frontera *(m22 no toca (34))*. Las
 - **m29**: el `"frontera": null` no lleva identificadores *(los tests de 008 y 009 sobre `state.json` no caen)*; (36/bases) busca `"frontera":{`.
 
 Las quince, **= declarado**, y restauradas a su md5 antes de la siguiente; directa e inversa únicas y cada mutante compilado, antes de mutar.
+
+## B4 remate · SC-017 en tope y `VACUUM` puede renumerar
+
+**Decisiones del dueño (2026-10-12)**: `tokens` nulo es incoherente *(B3)*; las desviaciones de B4, aceptadas; y la enmienda E-2 de la spec *(`VACUUM` **puede** renumerar)*.
+
+### SC-017 · Perfil antes de tocar *(base `7c3a011b…` y `1b00c194…`; la base de 1 GB de `TestSC017`, en `t.TempDir()`)*
+1.ª pasada **23,6 s** *(en B4, 29,3 s)*; 16,8 s de CPU en la pasada. Las 10 de más tiempo acumulado:
+| Función | Acum. | % |
+|---|---|---|
+| `testing.tRunner` | 16,81 s | 98,0 |
+| `ingest.LeerBaseOpenCode` · `TestSC017_CosteDeLaPasada` · `leerBaseOpenCode` | 16,80 s | 97,9 |
+| `ingest.(*clasificadorOpenCode).emitir` | 10,24 s | 59,7 |
+| `ingest.LlamadaOpenCode` | 8,63 s | 50,3 |
+| `encoding/json.Unmarshal` | 8,53 s | 49,7 |
+| `sqlitero.(*Base).recorrer` · `recorrer.func1` · `(*Tabla).RecorrerDesde` | 6,56 s | 38,2 |
+
+**Dónde se va**: el JSON, **8,5 s** *(51 %)*, con `checkValid` 5,3 s: **la hipótesis se confirma**, `data` se analiza dos veces por fila
+*(`clasificar` 3,4 s y `LlamadaOpenCode` 5,0 s)*. Además, `Resolutor.Derivar` con receptor nil, **2,8 s** *(250 000 `os.Lstat`: el test no
+lleva resolutor; `generate()` crea uno por pasada)*, y el `growslice` de `emitir`, 1,25 s. `sqlitero` propio, ≈ 2,6 s *(`carga` 1,9 s, `ReadAt` 1,2 s)*:
+**no es el cuello**, y `lector.go` no se toca. Memoria: 3,7 GB asignados, 1,5 GB en `carga`, y cada llamada retenía su fila entera hasta `emitir`.
+
+**Cambios, sin cambiar la conducta**:
+- `clasificar` analiza `data` **una vez**, con `datosOpenCode` *(da error en los mismos casos que `tiempoOpenCode`: sus campos de más son
+  `json.RawMessage`)*, y pasa lo leído a `LlamadaOpenCode` por `FilaOpenCode.leida` *(no exportado; nil → analiza `Data`, como en B3)*. La llamada
+  guarda una copia del `id`, no la fila.
+- `emitir`: sin resolutor, uno para la base *(la caché optimiza, no decide: P-004)*; `evs` con su capacidad.
+
+### SC-017 · Después *(`814d5a7e…` y `4e2c4c19…`; **809 / 0 / 0**)*
+Perfil: 1.ª pasada **5,4 s**, 5,3 s de CPU *(antes 16,8)*; 2,8 GB asignados *(antes 3,7)*. Las 10 de más tiempo acumulado:
+`tRunner` 5,32 s · `LeerBaseOpenCode`, `TestSC017`, `leerBaseOpenCode` 5,31 s · `recorrer`, `recorrer.func1`, `RecorrerDesde` 4,33 s ·
+`json.Unmarshal` 3,74 s *(un análisis por fila)* · `RecorrerDesde.func3` 3,46 s · `leerBaseOpenCode.func2` 3,38 s. `Lstat` ya no aparece.
+
+**Tres medidas**, cada una con su ventana y su base nueva de 1 039 265 792 B:
+| Medida | 1.ª pasada *(≤ 20 s)* | Siguiente *(≤ 50 ms)* | Páginas *(≤ 1 %)* |
+|---|---|---|---|
+| 1 | 5,205 s | 3,309 ms | 75 *(0,030 %)* |
+| 2 | 5,114 s | 2,715 ms | 75 *(0,030 %)* |
+| 3 | 5,149 s | 9,281 ms | 75 *(0,030 %)* |
+
+**Cumple**, con margen de ≈ 3,9× en la primera y ≥ 5× en la siguiente *(W1, en Windows, será más lenta)*.
+
+### Mutaciones tocadas *(declarado ANTES de mutar)*
+Ninguna línea de anclaje de m5–m29 cambia ni se mueve de función. Pero `datosOpenCode` y `errData` ahora también vienen de `clasificar`: se repiten
+**m9, m10 y m11** con el protocolo completo *(bases `814d5a7e…` y `4e2c4c19…`)*, y se re-derivan con los tests de B4, que en B3 no existían:
+- **m9** *(`Cost float64`)* y **m10** *(`Created int64`)*: todas las bases de B4 llevan `$.cost` y `$.time.created` numéricos *(o sin `created`)*, y
+  ningún test de B4 mira `cost_usd` ni `occurred_at`: **mismo declarado** que en B3.
+- **m11** *(sin incoherentes)*: además de las 7 de B3, **(32) Clases/literal** *(`o-clases-nojson` y `o-clases-negativa` salen como eventos:
+  incoherentes 0)*. (32/identidad) no cae: la identidad se cumple igual.
+
+Las demás siguen valiendo, con su md5 de base nuevo: m5–m8 y m12–m14 sobre `opencode.go` `814d5a7e…`; m15–m28 sobre `opencode_base.go` `4e2c4c19…`;
+m29, `state.go` sin cambios *(`7622236a…`)*.
+
+| Mut. | Edición *(la de B3)* | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| m9 | `Cost float64` en `datosOpenCode` **y** `CostUSD: d.Cost` | `TestLlamadaOpenCode_SinCoste/cost` | = · `eb641a34` |
+| m10 | `Created int64` en `Time` **y** `time.UnixMilli(d.Time.Created)` | `TestLlamadaOpenCode_OccurredAtEsCompleted` | = · `59320c5f` |
+| m11 | `if false && (errData != nil \|\| …)` | `TestLlamadaOpenCode_Incoherente/` ×7 · **`TestBaseOpenCode_Clases/literal`** | = · `00ce22d1` |
+
+Las tres, **= declarado**, y restauradas a `814d5a7e…`; directa e inversa únicas y cada mutante compilado, antes de mutar.

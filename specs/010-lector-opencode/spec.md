@@ -63,9 +63,10 @@ por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada; 
 
 ### P-3 ✅ · Frontera por rowid *(decisión del dueño, 2026-10-11; el mecanismo exacto, al plan)*
 
-**Por qué rowid.** `session_message` tiene rowid implícito: su `id` es texto *(desc. D-1)*. **SQLite serializa a los escritores**, también entre
-procesos: una fila confirmada después tiene un rowid mayor que las confirmadas antes. Hay dos excepciones, y las dos las detecta la frontera: un rowid
-**reutilizado** tras borrar la fila de rowid máximo, y una **renumeración** por `VACUUM`.
+**Por qué rowid.** `session_message` tiene rowid implícito: su `id` es texto *(desc. D-1)*. **SQLite serializa a los escritores**, también entre procesos:
+una fila confirmada después tiene un rowid mayor. Dos excepciones, que la frontera detecta: un rowid **reutilizado** tras borrar la fila de rowid máximo,
+y una **renumeración**, que `VACUUM` **puede** hacer *(E-2)*. Medido el 2026-10-12 con SQLite 3.45.1, conserva los rowid con `id text PRIMARY KEY` y los
+renumera sin índices; la defensa *(huella de H y pasada completa)* sigue para otras versiones y esquemas, y `vacuum/`, sin índices, prueba el caso.
 
 **Estado por base** *(FR-004)*: **H**, el mayor rowid visto de `session_message`; la **huella** del `id` de la fila H *(con sal, no el `id`, para que
 `state.json` no guarde identificadores del proveedor; `DECIDÍ YO`)*; y la **lista en curso**, con el rowid y la huella de cada fila `assistant` vista sin
@@ -86,8 +87,7 @@ completar *(pequeña)*.
    más de 24 h)*; otro `type`, nada. H pasa a ser el mayor rowid visto.
 
 **Pasada completa**: la primera pasada *(entrada sin el campo nuevo)* o una frontera reiniciada. Recorre la tabla entera, emite todas las completadas y
-rehace la lista. Tras un reinicio, las ya emitidas vuelven a salir con el mismo `event_id` y la plataforma las descarta: **nunca se pierde una fila
-completada**.
+rehace la lista; las ya emitidas vuelven a salir con el mismo `event_id` y la plataforma las descarta: **nunca se pierde una fila completada**.
 
 **Coste**: proporcional a lo nuevo, al tamaño de la lista y al número de sesiones *(E-1)*, no al de la tabla *(SC-017)*. **Nunca hay un barrido completo** fuera de la pasada completa.
 
@@ -124,7 +124,7 @@ completada**.
 - **La llamada del título** y las que no están en `session_message`: D-2. Sólo las muestra el contraste de `--scan`.
 - **Sesión borrada en OpenCode** *(`ON DELETE CASCADE`)*: sus filas desaparecen. Lo emitido no se toca, y lo no leído se pierde *(§Límites)*. Si
   se lleva la fila H, la frontera se reinicia *(P-3)*.
-- **`VACUUM`** *(renumera los rowid implícitos)*: la fila H cambia de `id`, y la frontera se reinicia sin perder nada *(P-3)*.
+- **`VACUUM`** *(**puede** renumerar los rowid implícitos)*: si la fila H cambia de `id`, la frontera se reinicia sin perder nada *(P-3)*.
 - **Varias bases** *(canales)*: cada una tiene su entrada en `state.json` y su frontera. Una misma llamada en dos bases da el mismo `event_id`, y la
   plataforma la descarta.
 - **La tabla `event`** *(vacía en 2.0.26; desc. D-5)*: no se lee. Si una versión la llenara, no se cuenta dos veces.
@@ -447,3 +447,4 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 | **Segundo proveedor** | 2026-10-11 11:00 | **El dueño** abre **Q-5**: P-2 está medida sólo con `google`, y con otros proveedores la caché podría contarse mal. Mientras tanto, P-2 vale para todos, con el límite en §Límites. Nace **SC-026**: medición con `anthropic` antes de la 0.7.0; si falla, P-2 por proveedor con su mutación; sin medición, límite en README y CHANGELOG | Encargo 010 · segundo proveedor · 4b/n |
 | **Cierre de Q-5** | 2026-10-11 12:05 | **La consola de Anthropic** *(el dueño, 12:02)* coincide al token con la copia: salida 397 = 369 + 28 y escritura «(5m)». **Q-5, cerrada**; **SC-026, cumplido**. En §Límites, «partidas verificadas sólo con Google» deja paso a la **dependencia de P-033**. Nace **SC-027**, que FR-031 cita: la 0.7.0 no se publica sin P-033 en producción. Se condensan los puntos 1 y 3 del Contexto y la nota de SC-017, sin tocar nada normativo | Encargo 010 · cierre de Q-5 · 6/n |
 | **E-1** | 2026-10-11 12:35 | **El dueño** resuelve las discrepancias del plan *(7/n)* y los hallazgos del analyze *(8/n)*. **FR-005**: «Antes: el coste de una pasada **DEBE** ser proporcional a lo nuevo y a la lista en curso, no al tamaño de la tabla *(SC-017)*.» → «… a lo nuevo, a la lista en curso **y al número de sesiones** …» *(y §P-3 «Coste»)*. **SC-006**: «Antes: En el ensayo de Windows, lo mismo, contra la base real.» → W1 con OpenCode **cerrado**; abierto, sin ficheros nuevos. **SC-019**: «Antes: los textos nuevos, byte a byte iguales a los aprobados, también sobre el binario publicado.» → los de README y CHANGELOG, en T047. **SC-023**: «Antes: … con un contador independiente *(como 009 W2)*.» → W1 antes de publicar, W2 después de P-033. **Censo**: «Antes: `opencode.go`, `opencode_eventid.go`, `opencode_eventid_test.go`, `opencode_test.go` y `testdata/opencode/`» → los nombres del plan; y fuera de los `_test.go`, `internal/state/state.go` y los comentarios de `internal/config/{codex,gemini}.go`. **Nacen SC-028** *(el evento: FR-017 a FR-019)* **y SC-029** *(estabilidad: FR-008)* | Plan 7/n, DISCREPANCIAS 1–5; analyze 8/n, H1, H12, H18 |
+| **E-2** | 2026-10-12 | **El dueño** enmienda §P-3 y §Edge Cases. «Antes: una **renumeración** por `VACUUM`» y «*(renumera los rowid implícitos)*» → `VACUUM` **puede** renumerar: con SQLite 3.45.1 y `id text PRIMARY KEY` conserva los rowid; sin índices, los renumera *(medido en B4, T023)*. La defensa se mantiene y `vacuum/` prueba el caso. Para caber, §P-3 se condensa sin tocar nada normativo | Encargo 010 · B4 remate |

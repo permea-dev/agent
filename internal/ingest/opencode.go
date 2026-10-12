@@ -36,6 +36,25 @@ type ContextoOpenCode struct {
 type FilaOpenCode struct {
 	ID   sqlitero.Valor
 	Data []byte
+
+	// leida es `Data` ya analizado por la pasada, que así lo analiza una sola vez por fila (SC-017). Nil → se analiza `Data`.
+	leida *leidaOpenCode
+}
+
+// leidaOpenCode es un `data` analizado, con el error del análisis.
+type leidaOpenCode struct {
+	d   datosOpenCode
+	err error
+}
+
+// analizar lee `data` en crudo, o devuelve lo que ya leyó la pasada.
+func (f FilaOpenCode) analizar() (datosOpenCode, error) {
+	if f.leida != nil {
+		return f.leida.d, f.leida.err
+	}
+	var d datosOpenCode
+	err := json.Unmarshal(f.Data, &d)
+	return d, err
 }
 
 // ClaseOpenCode clasifica una llamada de OpenCode (P-010 FR-021).
@@ -93,8 +112,7 @@ func LlamadaOpenCode(fila FilaOpenCode, ctx ContextoOpenCode) (*event.Event, Cla
 	if !ok {
 		return nil, SinIdentificadorOpenCode
 	}
-	var d datosOpenCode
-	errData := json.Unmarshal(fila.Data, &d) // no es JSON, no es un objeto, o `time` no es un objeto
+	d, errData := fila.analizar() // no es JSON, no es un objeto, o `time` no es un objeto
 	var k tokensOpenCode
 	errTokens := json.Unmarshal(d.Tokens, &k) // una partida no numérica o no entera, o `cache` no es un objeto
 	var completada int64
