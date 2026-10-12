@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 227 |
-| `tasks.md` *(este)* | **350** | 306 |
+| `tasks.md` *(este)* | **350** | 307 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 233 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 251 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -170,12 +170,13 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## B5 · Ubicación *(FR-001, FR-002; M-3, M-5; SC-015)* — nacen `internal/config/opencode_test.go` y `internal/testutil/sandbox_opencode_test.go`
 
-- [ ] **T029** Fase 0: `config.OpenCodeDatos()`, que devuelve `"", "", nil`.
-- [ ] **T030** [P] **Rojos (39) y (40)**, con `t.Setenv`.
-- [ ] **T031** **Verde**: P-8, en `internal/config/opencode.go`. Tras `sandbox.go:65`, los dos `t.Setenv`. Los comentarios de `codex.go:16` y
+- [x] **T029** Fase 0: `config.OpenCodeDatos()`, que devuelve `"", "", nil`.
+- [x] **T030** [P] **Rojos (39) y (40)**, con `t.Setenv`.
+- [x] **T031** **Verde**: P-8, en `internal/config/opencode.go`. Tras `sandbox.go:65`, los dos `t.Setenv`. Los comentarios de `codex.go:16` y
   `gemini.go:17` pasan a «una de las CUATRO».
-- [ ] **T032** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde, y `os.Getenv` de producción → **4**.
-- [ ] **T033** Censo y mutaciones **m30–m34**, con md5.
+- [x] **T032** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde, y `os.Getenv` de producción → **4**.
+- [x] **T033** Censo y mutaciones **m30–m34**, con md5.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B5 *(821 pass; `os.Getenv` → 4; m30–m34 = declarado)*.
 - [ ] **T034** ✋ Puertas y commit: `010 B5: ubicacion de OpenCode con XDG_DATA_HOME y OPENCODE_DB`.
 
 ## B6 · Integración *(FR-002, FR-024, FR-026 a FR-029; SC-003, SC-006, SC-014, SC-016, SC-020, SC-021)* — nace `cmd/permea/opencode_test.go`

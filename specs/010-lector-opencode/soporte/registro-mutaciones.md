@@ -231,3 +231,21 @@ m29, `state.go` sin cambios *(`7622236a…`)*.
 | m11 | `if false && (errData != nil \|\| …)` | `TestLlamadaOpenCode_Incoherente/` ×7 · **`TestBaseOpenCode_Clases/literal`** | = · `00ce22d1` |
 
 Las tres, **= declarado**, y restauradas a `814d5a7e…`; directa e inversa únicas y cada mutante compilado, antes de mutar.
+
+## B5 · Ubicación *(`internal/config/opencode.go`, `internal/testutil/sandbox.go`)*
+
+- **T029–T031** *(2026-10-12, sobre `936589e`)*: esqueleto `2f1d1d8c…` → **809 / 0 / 0**. Rojos (39) ×8 y (40) ×2, por el esqueleto *(`("", "", nil)`; las
+  dos variables siguen definidas)*. Verde `a8593750…`, `sandbox.go` `98c03742…`; lint 0; **821 / 0 / 0**. `codex.go` y `gemini.go`: sólo el comentario.
+- **T032**: `sandbox_test.go`, verde y sin tocar; `os.Getenv` de producción → **4** *(`codex.go:19`, `gemini.go:20`, `opencode.go:21`, `:25`)*.
+
+**T033 · Censo** *(ANTES de mutar; (39) = `TestOpenCodeDatos_Ubicacion/`, (40) = `TestSandbox_VaciaLasVariablesDeOpenCode/`)*. Ningún otro código lee
+las dos variables *(grep)*, y `os.UserConfigDir` mira `XDG_CONFIG_HOME`, no `XDG_DATA_HOME`: ninguna co-caída fuera de (39) y (40).
+| Mut. | Edición | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| m30 | `Getenv("XDG_DATA_HOME"); datos != ""` → `LookupEnv(…); definida` *(vacía como raíz; ausente sigue igual)* | (39/xdg_vacia) | = · `d4aedafe` |
+| m31 | `IsAbs(db)` → `IsAbs(db) \|\| db != "" && db != ":memory:"` | (39/relativa) | = · `eff42a83` |
+| m32 | `IsAbs(db)` → `IsAbs(db) \|\| db == ":memory:"` | (39/memory) | = · `8cc512a5` |
+| m33 | `IsAbs(db)` → `false && IsAbs(db)` *(ninguna otra hoja es absoluta)* | (39/absoluta) | = · `b43942f6` |
+| m34 | sin las dos líneas del sandbox *(y su comentario)* | (40/XDG_DATA_HOME), (40/OPENCODE_DB). Los tests de proceso de B1–B4 **no caen**: el binario aún no llama a `OpenCodeDatos` *(B6)* | = · `f0ebaae7` |
+
+Las cinco, **= declarado**, y restauradas a `a8593750…` y `98c03742…`; directa e inversa únicas y cada mutante compilado, antes de mutar.
