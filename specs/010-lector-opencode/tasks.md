@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 449 |
 | `plan.md` | **250** | 225 |
-| `tasks.md` *(este)* | **350** | 303 |
+| `tasks.md` *(este)* | **350** | 304 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 95 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 124 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -132,13 +132,14 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## B3 · Una llamada *(FR-012, FR-014 a FR-021; SC-012, SC-013)* — nace `opencode_llamada_test.go`
 
-- [ ] **T015** Fase 0: en `internal/ingest/opencode.go`, `ContextoOpenCode` *(`Context`, `Ahora`)*, `ClaseOpenCode` y `LlamadaOpenCode`, que aún no
+- [x] **T015** Fase 0: en `internal/ingest/opencode.go`, `ContextoOpenCode` *(`Context`, `Ahora`, `SessionID`, `Directory` y `Path`; H17)*, `ClaseOpenCode` y `LlamadaOpenCode`, que aún no
   clasifica.
-- [ ] **T016** Fixtures: filas sintéticas *(`data` JSON en `testdata/opencode/filas/`)*: una por clase, las partidas de SC-012 y una con centinelas.
-- [ ] **T017** [P] **Rojos (14) a (22)**: cada uno afirma **sólo su campo**. (22) cae porque el stub no emite evento *(H19)*.
-- [ ] **T018** **Verde**: P-2, la clasificación de D-010-P14, `occurred_at` y las referencias. **No** llama a `internal/pricing`.
-- [ ] **T019** **(22)**, escrito en T017 como rojo, pasa a verde con T018: el evento no contiene ningún centinela. Lo valida m13.
-- [ ] **T020** Censo y mutaciones **m5–m14**, con md5.
+- [x] **T016** Fixtures: filas sintéticas *(`data` JSON en `testdata/opencode/filas/`)*: una por clase, las partidas de SC-012 y una con centinelas.
+- [x] **T017** [P] **Rojos (14) a (22)**: cada uno afirma **sólo su campo**. (22) cae porque el stub no emite evento *(H19)*.
+- [x] **T018** **Verde**: P-2, la clasificación de D-010-P14, `occurred_at` y las referencias. **No** llama a `internal/pricing`.
+- [x] **T019** **(22)**, escrito en T017 como rojo, pasa a verde con T018: el evento no contiene ningún centinela. Lo valida m13.
+- [x] **T020** Censo y mutaciones **m5–m14**, con md5.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B3 *(765 pass; m5–m14 = declarado)*.
 - [ ] **T021** ✋ Puertas y commit: `010 B3: una llamada de OpenCode es un evento sin coste`.
 
 ## B4 · Base y frontera *(FR-003 a FR-005, FR-008, FR-022, FR-023; SC-010, SC-011, SC-013, SC-015, SC-017, SC-024, SC-025)* — nacen `opencode_base_test.go` y `opencode_coste_test.go`

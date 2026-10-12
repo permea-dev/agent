@@ -93,3 +93,32 @@ Stub → **726 / 0 / 0**. Rojos de T011, con su razón real: `TestEventIDOpenCod
 | m4 | `…, tipoRespuesta, id}` → `…, tipoRespuesta, "m4", id}` | VectoresDelContrato/llamada, /otra_llamada | = · `bb31b82d` |
 
 Las cuatro, **= declarado**, y restauradas a `0a3c19d4…` antes de la siguiente; directa e inversa comprobadas únicas antes de mutar.
+
+## B3 · Una llamada *(`internal/ingest/opencode.go`)*
+
+### T015–T019 *(2026-10-12, sobre `b65752d`)*
+- **T015**: stub `427e86a1…` → **731 / 0 / 0**. Para compilar los rojos, las tres constantes de `ClaseOpenCode` *(el cero no es ninguna)*: `89eaf955…`.
+- **T016**: 16 `data` sintéticos en `testdata/opencode/filas/`. El `id` es columna: sus formas *(nulo, `""`, entero)* las pone el test sobre `evento.json`.
+- **T017**: 9 rojos, 25 hojas; todos por el stub, «clase 0, evento <nil>». (22): «se esperaba un evento que inspeccionar» *(H19)*. Hojas
+  añadidas al plan, nacidas rojas: (17/antes_que_incoherente), (17/event_id), (18/coste_cero) y (20/tal_cual).
+- **T018–T019**: verde `1b00c194…`, sin `internal/pricing`; lint 0; **765 / 0 / 0**; (22) en verde.
+
+### T020 · Censo *(declarado ANTES de mutar; prefijo `TestLlamadaOpenCode_`)* y mutaciones *(base `1b00c194…`; suite entera; edición inversa; md5)*
+| Mut. | Edición | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| m5 | `int(k.Output + k.Reasoning)` → `int(k.Output)` | PartidasSC012 | = · `ea606ea7` |
+| m6 | `TokensCacheCreation: 0` **y** `TokensCacheRead: int(k.Cache.Read + k.Cache.Write)` | PartidasSC012 | = · `1669ecbe` |
+| m7 | `int(k.Input)` → `int(k.Input + k.Cache.Read)` | PartidasSC012 | = · `e759c74a` |
+| m8 | `CostAvailable: false` → `true` | SinCoste/cost_available | = · `1be824c4` |
+| m9 | `Cost float64` en `datosOpenCode` **y** `CostUSD: d.Cost` | SinCoste/cost | = · `3ee005d9` |
+| m10 | `Created int64` en `Time` **y** `time.UnixMilli(d.Time.Created)` | OccurredAtEsCompleted | = · `1afab4b1` |
+| m11 | `if false && (errData != nil \|\| …)` | Incoherente/ ×7 | = · `55164d41` |
+| m12 | tras `modelo := …`, `if modelo == "" { return nil, IncoherenteOpenCode }` | SinModelo/ausente, /vacio, /no_textual | = · `fc955985` |
+| m13 | `sesion = ctx.SessionID` *(sin derivar)* | Referencias/sesion · CentinelasFueraDelEvento | = · `1aaa0dc9` |
+| m14 | `Derivar(ctx.Directory, …)` → `Derivar(ctx.Path, …)` | Referencias/proyecto | = · `875b52d2` |
+
+**Re-derivación por hoja**: (15) no lleva `reasoning` ni `cache` *(m5–m7 no la tocan)*; (18/coste_cero) usa `evento.json`, sin `$.cost` *(m9 no la
+toca)*; (21/sin_sesion) tiene sesión vacía *(m13 da `""` y m14 queda dentro de la guarda)*; (22) compara el JSON entero, pero m14 y m9 sólo meten
+hashes y un `0.25` sin centinela; todos los fixtures de evento llevan `model.id` *(m12)*, y `time.created` numérico *(m10)*.
+
+Las diez, **= declarado**, y restauradas a `1b00c194…` antes de la siguiente; directa e inversa comprobadas únicas, y cada mutante compilado, antes de mutar.

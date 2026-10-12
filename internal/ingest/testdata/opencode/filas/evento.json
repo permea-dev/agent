@@ -1,0 +1,1 @@
+{"role":"assistant","time":{"created":1760000000000,"completed":1760000004321},"model":{"providerID":"proveedor-sintetico","id":"modelo-sintetico-opencode","variant":"default"},"tokens":{"input":11,"output":5,"reasoning":2,"cache":{"read":13,"write":3}}}
