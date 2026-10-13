@@ -56,6 +56,7 @@ README.md · CHANGELOG.md                                            # B8
 - **`internal/config/codex.go:16` y `gemini.go:17`**: sólo el comentario, de «una de las DOS» a «una de las CUATRO». **`README.md`** y **`CHANGELOG.md`**.
 - **`.gitignore`**: excepción de las bases de testdata de `internal/sqlitero` *(dueño, 11-10)*: `!internal/sqlitero/testdata/**/*.db`, tras `*.db`.
 - **`.gitignore`**, B4: `!internal/ingest/testdata/opencode/**/*.db`, en la línea siguiente *(dueño: «B4 y B6 añaden la suya»)*.
+- **`.gitignore`**, B6: `!cmd/permea/testdata/opencode/**/*.db`, en la línea siguiente.
 
 **Nada más**: ni `internal/event/`, `project/`, `transport/` o `pricing/`, ni los lectores de Claude Code, Codex y Gemini.
 
@@ -133,6 +134,7 @@ carga)*. Sólo cambian la API y el contador; el registro guarda el md5 de partid
   '^FuzzBase$' -fuzztime 10m`, e ídem `FuzzWAL`. Un hallazgo queda en `testdata/fuzz/` como regresión.
 - **SC-007** *(D-010-P12)*: `git archive` de `4c6cafc` y de `HEAD`, `CGO_ENABLED=0 -trimpath -ldflags "-s -w -X main.version=…"`, 5 plataformas,
   Δ ≤ 102 400 B en cada una. Informativo en el corte de B6 *(lector ya enlazado)*; normativo en C1.
+  En linux/arm64, Δ de la Σ `FileSiz` de los `LOAD` *(`readelf -lW`)*, sin el relleno a 64 KB; el Δ del fichero, al lado y sin juzgar *(spec E-3)*.
 - **SC-016** *(D-010-P10)*: en la Fase 0 de B6, **antes de tocar `main.go`**, el binario de `4c6cafc` escribe el stderr de `--run` *(Claude Code,
   Codex y Gemini, en sandbox, sin OpenCode)* en `cmd/permea/testdata/opencode/referencia-run.stderr`, con su md5.
 - **SC-018**: `git diff 4c6cafc` de la frontera de FR-030 y `--diff-filter=M -- '*_test.go'` → vacíos; `os.Getenv` de producción → **4**.
@@ -152,7 +154,7 @@ carga)*. Sólo cambian la API y el contador; el registro guarda el md5 de partid
 | **D-010-P9** | El reloj, `ContextoOpenCode.Ahora` *(nil → `time.Now`)*, **inyectado en todo test de ingest con filas en curso**. En `cmd/permea`, **ningún fixture con filas en curso** *(PARA 11)* | SC-025 sin esperar 24 h, y ningún test que cambie de resultado 24 h después de generar sus fixtures *(H6)* |
 | **D-010-P10** | La referencia de SC-016, antes de tocar `main.go` | Como D-009-P11 |
 | **D-010-P11** | Los testdata de §6: guiones versionados, `esperado.json` e instantáneas por paso | Los tests no dependen de `sqlite3` |
-| **D-010-P12** | SC-007 se mide con `git archive` de las dos versiones, como en la prueba | El mismo instrumento que dio 51–66 KB |
+| **D-010-P12** | SC-007 se mide con `git archive` de las dos versiones, como en la prueba; en linux/arm64, el contenido de los `LOAD` *(E-3)* | El mismo instrumento que dio 51–66 KB; arm64 alinea a 64 KB |
 | **D-010-P13** | SC-017 detrás de `-tags sc017` | El GB nunca va al repo, y la suite no tiene SKIP |
 | **D-010-P14** | Clasificación: sin identificador → incoherente → evento; «sin modelo», marca sobre el evento | FR-021, por construcción |
 | **D-010-P15** | El forzado de SC-021 es **el A de 009** *(D-009-P12)* | Probado |

@@ -183,6 +183,12 @@ type agent struct {
 	geminiRaiz string
 	// gemini son los recuentos de Gemini de la última pasada; nil si el lector no estuvo activo (plan D-009-P7).
 	gemini *ingest.PasadaGemini
+	// opencodeDatos y opencodeUnica son la carpeta de datos de OpenCode, o la única base de `OPENCODE_DB` (P-010 P-8),
+	// resueltas una vez en `setup()`. Si existen se miran en cada pasada (FR-002). Vacías —un `agent` construido a mano en
+	// un test— significa que no se lee OpenCode (R-4).
+	opencodeDatos, opencodeUnica string
+	// opencode son los recuentos de OpenCode de la última pasada; nil si el lector no estuvo activo.
+	opencode *ingest.PasadaOpenCode
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -231,12 +237,19 @@ func setup() (*agent, error) {
 	if err != nil {
 		geminiRaiz = ""
 	}
+	// P-010 FR-001, FR-002: y con OpenCode.
+	opencodeDatos, opencodeUnica, err := config.OpenCodeDatos()
+	if err != nil {
+		opencodeDatos, opencodeUnica = "", ""
+	}
 	return &agent{
-		dir:        dir,
-		cfg:        cfg,
-		ictx:       newIngestContext(version, cfg, salt, machineID),
-		codexRaiz:  codexRaiz,
-		geminiRaiz: geminiRaiz,
+		dir:           dir,
+		cfg:           cfg,
+		ictx:          newIngestContext(version, cfg, salt, machineID),
+		codexRaiz:     codexRaiz,
+		geminiRaiz:    geminiRaiz,
+		opencodeDatos: opencodeDatos,
+		opencodeUnica: opencodeUnica,
 	}, nil
 }
 
@@ -365,6 +378,17 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
+	// P-010: OpenCode, tras Gemini y ANTES del único `st.Save` (FR-027). Activo sólo si EN ESTA PASADA existe la base de
+	// `OPENCODE_DB` o la carpeta de datos (P-10, FR-002).
+	a.opencode = nil
+	if a.opencodeActivo() {
+		n, err := a.generarOpenCode(st, ictx)
+		total += n
+		if err != nil {
+			return total, pasada, err
+		}
+	}
+
 	if err := st.Save(statePath); err != nil {
 		return total, pasada, err
 	}
@@ -439,6 +463,9 @@ func runOnce() error {
 	if a.gemini != nil {
 		fmt.Fprintln(os.Stderr, a.gemini.Resumen()) // P-009 FR-021: tras la de Codex, con el lector activo en esta pasada
 	}
+	if a.opencode != nil {
+		fmt.Fprintln(os.Stderr, a.opencode.Resumen()) // P-010 FR-024: tras la de Gemini, con el lector activo en esta pasada
+	}
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -504,6 +531,9 @@ func (a *agent) tick() error {
 		}
 		if a.gemini != nil && a.gemini.HayNovedades() {
 			fmt.Fprintln(os.Stderr, a.gemini.Resumen()) // P-009 FR-021: sólo con novedades
+		}
+		if a.opencode != nil && a.opencode.HayNovedades() {
+			fmt.Fprintln(os.Stderr, a.opencode.Resumen()) // P-010 FR-024: sólo con novedades
 		}
 	}
 

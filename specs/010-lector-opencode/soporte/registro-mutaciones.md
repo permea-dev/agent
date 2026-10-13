@@ -249,3 +249,43 @@ las dos variables *(grep)*, y `os.UserConfigDir` mira `XDG_CONFIG_HOME`, no `XDG
 | m34 | sin las dos líneas del sandbox *(y su comentario)* | (40/XDG_DATA_HOME), (40/OPENCODE_DB). Los tests de proceso de B1–B4 **no caen**: el binario aún no llama a `OpenCodeDatos` *(B6)* | = · `f0ebaae7` |
 
 Las cinco, **= declarado**, y restauradas a `a8593750…` y `98c03742…`; directa e inversa únicas y cada mutante compilado, antes de mutar.
+
+## B6 · Integración *(`cmd/permea/main.go`, `cmd/permea/opencode.go`)*
+
+- **T035** *(2026-10-12, sobre `b0d8535`)*. **(1)** `git diff 4c6cafc -- cmd/permea/main.go` vacío. Binario de `4c6cafc` *(`git archive` + `go build`)*,
+  en `env -i` con `HOME`, `USERPROFILE` y `XDG_CONFIG_HOME` temporales, Claude Code, Codex y Gemini *(los fixtures de 008 y 009)* y nada de OpenCode:
+  `rc=0`, stdout vacío. Con `<DATOS>`, `testdata/opencode/referencia-run.stderr`, **`83ede4146b4a9131089baa11a896b935`**: 8 líneas, sin rutas
+  *(privacidad 0, también `/tmp`)*. **(2)** Forzado A, con un test temporal ya borrado: `Load` → `<nil>`; `Append` → `<nil>`, 323 B; `Save` →
+  `permission denied`; uid 1000. **(3)** Esqueleto → **821 / 0 / 0**. Después, el campo pasa de `opencodeDir` a `opencodeDatos`, el nombre del plan.
+- **Fixtures**: `testdata/opencode/generar.sh` *(comprueba 0 filas en curso: PARA 11)*: `sana.db 7014d754` · `otra.db 210aa12b` · `centinelas.db
+  46ee35a1` · `corrupta.db f6f5be9a`. `.gitignore`: `!cmd/permea/testdata/opencode/**/*.db`; `git check-ignore` → 0. (48) usa I de `internal/sqlitero`,
+  sin copiarla a `cmd`: sus filas sin `completed` son de 1970, «abandonadas» desde la primera pasada; su resultado no depende del reloj.
+- **T036**: rojos (42)–(46), 5 «--- FAIL» por el esqueleto *(0 eventos `opencode`, sin línea)*; (41) ×2 nace verde. **T037**: verde, `main.go`
+  `f4c07e53…`, `opencode.go` `a47bebc2…`; lint 0; **829 / 0 / 0**. **T038**: los 237 de `cmd/permea`, verdes y sin tocar *(`git diff` → 0)*.
+  **T039**: (47)–(50) nacen verdes → **835 / 0 / 0**, `opencode_test.go` `7efb8c04…`.
+
+**T040 · Censo** *(ANTES de mutar)*. m35: los tests que comparan el stderr de `--run` entero o cuentan sus líneas son, además de (41), sólo los
+de la lista *(grep de `"--run"`: los demás buscan una subcadena o el código)*. Las bases de (50) se leen en orden léxico: `opencode-roto.db` antes
+que `opencode.db`, así que con m40 nada de OpenCode se encola en la 1.ª pasada, y (50/se_relee) ve 3.
+| Mut. | Edición | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| m35 | `a.opencode = nil` → `= ingest.NuevaPasadaOpenCode()` | (41) ×2 · (49) · `TestCodexRun_SinRaizEsLaSalidaDeLa040/{codex_home_vacia, raiz_inexistente}` · `TestCodexRun_LineaDeResumen` · `TestGeminiRun_SinRaizEsLaSalidaDeLa050/{gemini_cli_home_vacia, sin_tmp}` · `TestGeminiRun_LineaDeResumen` | = · `29752fdf` |
+| m36 | un `st.Save` antes de OpenCode | (43) | = · `760673dc` |
+| m37 | `tick`: `a.opencode != nil && a.opencode.HayNovedades()` → `a.opencode != nil` | (45) | = · `ceaec01a` |
+| m38 | `runOnce`: la línea `opencode:` antes que la de Gemini | (44) | = · `8ede8340` |
+| m39 | `setup()`: si la carpeta no existe, `opencodeDatos = ""` | (49) | = · `e8c91fd0` |
+| m40 | el error de una base: `continue` → `return total, err` | (50/pasada) | = · `c27e90e2` |
+| m41 | el error de una base escribe su entrada *(`Frontera` vacía)* | (50/se_relee) | = · `df624c23` |
+| m42 | `ev.ProjectRef = ruta` antes de encolar | (47) | = · `af2fe6b0` |
+| M-B6a | `generarOpenCode` escribe `m-b6a.tmp` en la carpeta de OpenCode | (48) | = · `8c3c0ac4` |
+
+**T040** *(13-10; base `f4c07e53…` · `a47bebc2…`, **835 / 0 / 0**; md5 del fichero mutado)*. m38 quedó puesta por una sesión cortada el 13-10; revertida
+por edición inversa; T040 rehecha entera. Las nueve, **= declarado**, restauradas a su md5; directa e inversa únicas y cada mutante compilado, antes de mutar.
+
+**T041 · SC-007** *(informativo; 2026-10-13; `git archive` de `4c6cafc` y el árbol de B6; `CGO_ENABLED=0 -trimpath -ldflags "-s -w -X main.version=0.7.0"`; go 1.22.2)*:
+| Plataforma | `4c6cafc` | B6 | Δ fichero | Δ contenido *(E-3)* |
+|---|---:|---:|---:|---:|
+| linux/arm64 *(fichero · Σ `FileSiz` de los `LOAD`)* | 5 308 568 · 5 252 492 | 5 439 640 · 5 331 036 | 131 072 *(sin juzgar)* | **78 544** |
+| linux/amd64 · darwin/amd64 · darwin/arm64 · windows/amd64 | 5 554 328 · 5 710 368 · 5 486 658 · 5 747 712 | 5 644 440 · 5 802 512 · 5 554 722 · 5 840 384 | 90 112 · 92 144 · 68 064 · 92 672 | — |
+
+Con E-3 *(el dueño, 12-10)*, las cinco ≤ 102 400 B. `readelf -lW` *(y `debug/elf`, igual)*: R E +38 416, R +39 968, RW +160; dos cruzan 64 KB *(2 × 65 536)*.

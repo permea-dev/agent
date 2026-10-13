@@ -3,6 +3,7 @@
 *.db
 !internal/sqlitero/testdata/**/*.db
 !internal/ingest/testdata/opencode/**/*.db
+!cmd/permea/testdata/opencode/**/*.db
 *.out
 *.exe
 *.test

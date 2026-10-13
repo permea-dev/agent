@@ -21,10 +21,10 @@
 | Fichero de `specs/010-lector-opencode/` | Techo | Hoy |
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
-| `plan.md` | **250** | 227 |
-| `tasks.md` *(este)* | **350** | 307 |
+| `plan.md` | **250** | 229 |
+| `tasks.md` *(este)* | **350** | 309 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 251 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 291 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -181,20 +181,22 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## B6 · Integración *(FR-002, FR-024, FR-026 a FR-029; SC-003, SC-006, SC-014, SC-016, SC-020, SC-021)* — nace `cmd/permea/opencode_test.go`
 
-- [ ] **T035** Fase 0, **en este orden**:
+- [x] **T035** Fase 0, **en este orden**:
   1. **Antes de tocar `main.go`** *(D-010-P10)*: la referencia de SC-016 con el binario de `4c6cafc`, y su md5. **Si `main.go` ya cambió, PARA.**
   2. El forzado A, comprobado *(`Load` pasa, `Append` pasa, `Save` falla)*.
   3. `cmd/permea/opencode.go` *(`generarOpenCode`, sin emitir)*, y en `main.go` los campos, `setup()` y `generate()`, con su firma de hoy.
-- [ ] **T036** [P] **Rojos (41) a (46)**, con `cola` y `capturarStderr` de `codex_test.go`, sin tocarlo. (41) nace verde; la valida m35.
-- [ ] **T037** **Verde**: OpenCode tras Gemini y antes del único `st.Save`; la activación en cada pasada; los errores por base *(D-010-P6, P7)*; la
+- [x] **T036** [P] **Rojos (41) a (46)**, con `cola` y `capturarStderr` de `codex_test.go`, sin tocarlo. (41) nace verde; la valida m35.
+- [x] **T037** **Verde**: OpenCode tras Gemini y antes del único `st.Save`; la activación en cada pasada; los errores por base *(D-010-P6, P7)*; la
   línea en `runOnce` y, con `HayNovedades`, en `tick`.
-- [ ] **T038** Comprobar y transcribir, sin tocarlos, que los `_test.go` de `cmd/permea` siguen verdes.
-- [ ] **T039** **Nacen verdes (47) a (50)**, porque se escriben tras el verde de T037: centinelas en la cola y en `state.json`; md5 y listado de I
+- [x] **T038** Comprobar y transcribir, sin tocarlos, que los `_test.go` de `cmd/permea` siguen verdes.
+- [x] **T039** **Nacen verdes (47) a (50)**, porque se escriben tras el verde de T037: centinelas en la cola y en `state.json`; md5 y listado de I
   tras `--run`; la carpeta creada después; y la base corrupta. Los validan m42, **M-B6a**, m39 y m40–m41. Ningún fixture de `cmd` con filas en curso
   *(PARA 11)*.
-- [ ] **T040** Censo y mutaciones **m35–m42** y **M-B6a**, con md5. **m35** declara, por nombre y hoja, los tests existentes de plan §Bloques
+- [x] **T040** Censo y mutaciones **m35–m42** y **M-B6a**, con md5. **m35** declara, por nombre y hoja, los tests existentes de plan §Bloques
   *(`TestCodexRun_*` y `TestGeminiRun_*`)*, y se comprueba antes de mutar que no hay más.
-- [ ] **T041** **SC-007, informativo**: las 5 plataformas, con el método de D-010-P12. Si pasa de 102 400 B, se adelgaza **antes** de B7 *(PARA 7)*.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B6 *(835 pass; m35–m42 y M-B6a = declarado; rehecha el 13-10)*.
+- [x] **T041** **SC-007, informativo**: las 5 plataformas, con el método de D-010-P12. Si pasa de 102 400 B, se adelgaza **antes** de B7 *(PARA 7)*.
+  > PARA 7 *(12-10)* resuelto con **E-3**: en linux/arm64, contenido +78 544 B *(fichero +131 072, sin juzgar)*; las otras, 68 064–92 672. [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B6.
 - [ ] **T042** ✋ Puertas y commit: `010 B6: OpenCode en run y daemon, antes de guardar el estado`.
 
 ## B7 · `--scan` *(FR-025, FR-026; SC-001, SC-002 en forma)*

@@ -15,8 +15,7 @@ por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada; 
 
 1. **Tres lectores hoy**, en `generate()`, antes del **único** `st.Save` *(`cmd/permea/main.go:368`)*: Claude Code, Codex *(`main.go:342-353`)* y Gemini,
    tras Codex *(`main.go:355-366`)*.
-2. **OpenCode 2.x guarda su consumo en una base SQLite**: `<XDG_DATA_HOME | ~/.local/share>/opencode/opencode.db`, con la misma regla en los tres SO
-   *(desc. D-9)*.
+2. **OpenCode 2.x guarda su consumo en una base SQLite**: `<XDG_DATA_HOME | ~/.local/share>/opencode/opencode.db`, igual en los tres SO *(desc. D-9)*.
    - Cada llamada al modelo es **una fila `assistant`** de `session_message`, con tokens, coste y modelo en `data` *(JSON; desc. D-2)*.
    - La fila **se reescribe en su sitio** hasta completarse *(desc. D-5)*.
    - El coste de OpenCode coincide con la tarifa de Permea, salvo el redondeo, si la salida es `output + reasoning` *(desc. D-4)*: con `google` y con
@@ -261,8 +260,8 @@ publican.
 - **SC-006** *(sólo lectura)*: sobre una base sintética viva *(una conexión de `sqlite3` abierta y transacciones en el WAL)*, una `--run` deja **iguales**
   las md5 de `opencode.db`, `-wal` y `-shm`, y el listado de la carpeta. En el ensayo de Windows *(W1)*, lo mismo contra la base real **con OpenCode
   cerrado**; con OpenCode abierto, ningún fichero nuevo en la carpeta *(E-1)*.
-- **SC-007** *(binario)*: el aumento frente al binario de `4c6cafc`, con las banderas de `.goreleaser.yaml`, es **≤ 100 KB** en **las 5 plataformas**. El
-  lector solo midió de 51 a 66 KB *(prueba §Tamaños)*. **Se mantiene** *(dueño, 11-10)*: si no cabe, se adelgaza el código y el tope no sube.
+- **SC-007** *(binario)*: frente al binario de `4c6cafc`, con las banderas de `.goreleaser.yaml`, crece **≤ 100 KB** en **las 5 plataformas**: el fichero; en
+  linux/arm64, su contenido *(Σ `FileSiz` de los `LOAD`, sin el relleno a 64 KB; E-3)*. **Se mantiene** *(dueño, 11-10)*: si no cabe, se adelgaza y el tope no sube.
 - **SC-008** *(dependencias)*: `go.mod` sin `require`, no hay `go.sum`, y `go list -m all` da una sola línea.
 - **SC-009** *(fuzzing)*:
   - `go test -fuzz`, durante **10 minutos por objetivo**, sobre dos objetivos: la base con bytes arbitrarios, y un `-wal` arbitrario junto a una base sana;
@@ -448,3 +447,4 @@ opencode (contraste, no se envía): coste según OpenCode $%.6f · fuera de los 
 | **Cierre de Q-5** | 2026-10-11 12:05 | **La consola de Anthropic** *(el dueño, 12:02)* coincide al token con la copia: salida 397 = 369 + 28 y escritura «(5m)». **Q-5, cerrada**; **SC-026, cumplido**. En §Límites, «partidas verificadas sólo con Google» deja paso a la **dependencia de P-033**. Nace **SC-027**, que FR-031 cita: la 0.7.0 no se publica sin P-033 en producción. Se condensan los puntos 1 y 3 del Contexto y la nota de SC-017, sin tocar nada normativo | Encargo 010 · cierre de Q-5 · 6/n |
 | **E-1** | 2026-10-11 12:35 | **El dueño** resuelve las discrepancias del plan *(7/n)* y los hallazgos del analyze *(8/n)*. **FR-005**: «Antes: el coste de una pasada **DEBE** ser proporcional a lo nuevo y a la lista en curso, no al tamaño de la tabla *(SC-017)*.» → «… a lo nuevo, a la lista en curso **y al número de sesiones** …» *(y §P-3 «Coste»)*. **SC-006**: «Antes: En el ensayo de Windows, lo mismo, contra la base real.» → W1 con OpenCode **cerrado**; abierto, sin ficheros nuevos. **SC-019**: «Antes: los textos nuevos, byte a byte iguales a los aprobados, también sobre el binario publicado.» → los de README y CHANGELOG, en T047. **SC-023**: «Antes: … con un contador independiente *(como 009 W2)*.» → W1 antes de publicar, W2 después de P-033. **Censo**: «Antes: `opencode.go`, `opencode_eventid.go`, `opencode_eventid_test.go`, `opencode_test.go` y `testdata/opencode/`» → los nombres del plan; y fuera de los `_test.go`, `internal/state/state.go` y los comentarios de `internal/config/{codex,gemini}.go`. **Nacen SC-028** *(el evento: FR-017 a FR-019)* **y SC-029** *(estabilidad: FR-008)* | Plan 7/n, DISCREPANCIAS 1–5; analyze 8/n, H1, H12, H18 |
 | **E-2** | 2026-10-12 | **El dueño** enmienda §P-3 y §Edge Cases. «Antes: una **renumeración** por `VACUUM`» y «*(renumera los rowid implícitos)*» → `VACUUM` **puede** renumerar: con SQLite 3.45.1 y `id text PRIMARY KEY` conserva los rowid; sin índices, los renumera *(medido en B4, T023)*. La defensa se mantiene y `vacuum/` prueba el caso. Para caber, §P-3 se condensa sin tocar nada normativo | Encargo 010 · B4 remate |
+| **E-3** | 2026-10-12 | **El dueño** cambia el instrumento de SC-007 en linux/arm64; el tope no cambia. «Antes: el aumento frente al binario de `4c6cafc` […] es **≤ 100 KB** en **las 5 plataformas**», medido en el fichero → en linux/arm64 se mide **el contenido de los segmentos cargables** *(Σ `FileSiz` de los `LOAD`)*, y el Δ del fichero se informa al lado, sin juzgar; en las otras cuatro, el fichero. Para caber, SC-007 y §Contexto 2 se condensan sin tocar nada normativo *(sale «El lector solo midió de 51 a 66 KB», que sigue en plan §Summary)* | Encargo 010 · B6 · PARA 7: la alineación a 64 KB *(fichero +131 072 B, contenido +78 544 B)* |
