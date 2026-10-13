@@ -141,3 +141,36 @@ en el primer `0x0A`, y toda base de OpenCode lo tiene en sus primeras páginas *
 | m46 | `signo * (salida + razonamiento)` → `signo * salida` | (53) | = · `f04293ca` *(salida 3, no 7)* |
 
 Las cuatro, **= declarado**, restauradas a `080fac42…` y `05910a1a…`; directa e inversa únicas y cada mutante compilado, antes de mutar.
+
+## Cierre · C1 *(`cmd/permea/main.go`, `cmd/permea/opencode.go`, `cmd/permea/gemini.go`)*
+
+- **C1 anterior** *(13-10, sobre `69bb5bf`)*: **PARA 7**. SC-007, darwin/amd64 **+104 528 B** *(tope 102 400)*; las otras cuatro, dentro.
+- **Diagnóstico** *(sin tocar el repo)*: el Δ de darwin/amd64 son 101 054 de contenido + 3 474 de alineación de página *(Mach-O, 4 096)*. B7 aporta
+  ~8,6 KB de contenido y ningún paquete nuevo. El bucle `evento:` estaba tres veces *(Codex, Gemini, OpenCode)*; compartido, `__TEXT` suelta una
+  página. Probados R1, R2 *(crece)*, R3 *(rompe m43 y m44)* y R1G.
+- **R1G** *(dueño, 13-10)*: `imprimirEventos(evs)` en `main.go`, compartido por `dryRunCodex`, `dryRunGemini` *(sin proyecto, vacía antes el
+  `ProjectRef`)* y `dryRunOpenCode`. Ningún `_test.go` cambia; frontera 0. `main.go` `29bccccd…`, `opencode.go` `5a56abbe…`, `gemini.go` `892d26e4…`.
+
+**Censo** *(ANTES de mutar)*. **mR1G**: de los `--scan` de los `_test.go` *(grep de `"--scan"` y de `referencia-scan`)*, miran la línea
+«N eventos generados» por el helper sólo los que comparan stderr byte a byte con una entrada de Codex o de Gemini:
+`TestGeminiScan_ClaudeYCodexComoLa050/codex` y `TestOpenCodeScan_LosDemasComoLa060/{codex, gemini}`, y sus padres. Las referencias de Claude Code y
+(54) van por la línea de `dryRun` *(`main.go:632`)*; (29), (37) de Codex y de Gemini, (51) y (53) buscan su línea con `Contains` o miran stdout.
+**m43–m46**, otra vez sobre R1G: las mismas ediciones *(cada una casa una vez)* y el mismo censo de §B7.
+
+| Mut. | Edición | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| mR1G | `imprimirEventos`: el recuento, `len(evs)` → `len(evs)-1` | `TestGeminiScan_ClaudeYCodexComoLa050/codex` · `TestOpenCodeScan_LosDemasComoLa060/{codex, gemini}` y los padres | = · `main.go` `857cb666` *(843 + 5; «1 eventos generados», no 2)* |
+| m43 | la de §B7 | (54) ×2 y su padre | = · `opencode.go` `46133aa7` *(`error: EOF` y `unexpected EOF`)* |
+| m44 | la de §B7 | los de §B7 | = · `78137cc8` *(las mismas 17 hojas FAIL; 821 + 17 + 10 que no corren)* |
+| m45 | la de §B7 | (51/disco) | = · `6facab99` *(y su padre)* |
+| m46 | la de §B7 | (53) | = · `dd519711` *(salida 3, no 7)* |
+
+Las cinco, **= declarado**, restauradas a `29bccccd…`, `5a56abbe…` y `892d26e4…`; directa e inversa únicas y cada mutante compilado, antes de mutar.
+
+**C1** *(2026-10-13, el árbol con R1G)*: gofmt, vet y lint 0; **848 / 0 / 0**; frontera 0 B; los 671 de los 43 `_test.go` de `4c6cafc`, verdes y sin
+cambios *(+177 nuevos)*; `os.Getenv` 4; SC-008: sin `require`, sin `go.sum`, `go list -m all` 1. **SC-007** *(Δ frente a `4c6cafc`)*:
+linux/amd64 94 208 · linux/arm64 contenido 84 624 *(fichero 131 072, sin juzgar)* · darwin/amd64 **100 432** *(holgura de `__TEXT` 846 B)* ·
+darwin/arm64 84 672 · windows/amd64 98 816. **SC-022**: privacidad 0 en las 5 874 líneas añadidas a `82e0b2d` y con `grep -a` en los 74 testdata
+*(44 binarios)*; los tres `generar.sh`, regenerados en `mktemp -d`: 41 ficheros iguales con `cmp`, y los 5 `-wal` difieren sólo en las sales y
+sus sumas *(0 páginas distintas)*; lo que no sale de un `generar.sh` es de procedencia registrada *(`filas/` de T016; referencias de `4c6cafc`;
+`corto-*`)*; ninguna huella de las copias. Compilan Windows y darwin, amd64 y arm64. `PENDIENTE` 1.

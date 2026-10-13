@@ -656,6 +656,21 @@ func esSesionCodex(path string) (bool, error) {
 	return primera.Type == "session_meta", nil
 }
 
+// imprimirEventos imprime la línea `evento:` aprobada de cada evento y, a stderr, el recuento: la de `--scan` de Codex,
+// Gemini y OpenCode (P-010 SC-007: una sola copia).
+func imprimirEventos(evs []event.Event) {
+	for _, ev := range evs {
+		ref := ev.ProjectRef
+		if len(ref) > 8 {
+			ref = ref[:8] + "…"
+		}
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
+			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
+	}
+	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", len(evs))
+}
+
 // dryRunCodex imprime los eventos de una sesión de Codex sin tocar estado ni cola (P-008 FR-020). Aplica las MISMAS
 // reglas que la emisión (`LeerFicheroCodex`), sobre un estado sólo en memoria que nunca se guarda. La línea `evento:` es
 // la aprobada (§Textos aprobados): la de Claude Code sin `cw5m=` ni `cw1h=`, que en Codex no existen.
@@ -667,16 +682,7 @@ func dryRunCodex(path string) error {
 	if err != nil {
 		return err
 	}
-	for _, ev := range evs {
-		ref := ev.ProjectRef
-		if len(ref) > 8 {
-			ref = ref[:8] + "…"
-		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
-			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
-	}
-	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", len(evs))
+	imprimirEventos(evs)
 	fmt.Fprintln(os.Stderr, pc.Resumen()) // P-008 FR-020: el resumen de Codex
 	return nil
 }

@@ -99,16 +99,7 @@ func dryRunOpenCode(path string) error {
 	if err != nil {
 		return err
 	}
-	for _, ev := range evs {
-		ref := ev.ProjectRef
-		if len(ref) > 8 {
-			ref = ref[:8] + "…"
-		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
-			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
-	}
-	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", len(evs))
+	imprimirEventos(evs)
 	fmt.Fprintln(os.Stderr, po.Resumen()) // P-010 FR-025: el resumen de OpenCode, a stderr como el de Codex y Gemini
 	if po.FormatoAnterior+po.EsquemaDesconocido > 0 {
 		return nil // contada en el resumen: no hay mensajes que contrastar

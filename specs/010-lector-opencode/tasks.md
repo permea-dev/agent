@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 229 |
-| `tasks.md` *(este)* | **350** | 317 |
+| `tasks.md` *(este)* | **350** | 319 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 143 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 176 |
 | `soporte/registro-mutaciones-archivo.md` *(B0 a B4 remate, íntegros; dueño, 13-10)* | **no cuenta** | 230 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
@@ -230,12 +230,14 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
 
-- [ ] **T051** **C1** · Puertas, con 0 SKIP en Linux:
+- [x] **T051** **C1** · Puertas, con 0 SKIP en Linux:
   - **SC-007** en las 5 plataformas;
   - **SC-008**;
   - **SC-018**;
   - **SC-022**: el grep de privacidad, más el prefijo de las claves de Anthropic, sobre `git diff 82e0b2d`, y testdata sólo de `generar.sh`;
   - compilan Windows y darwin; `PENDIENTE` → 1.
+  > 13-10: el primero, PARA 7 *(darwin/amd64 +104 528)*; R1G *(dueño)* y C1 entero: 848 / 0 / 0, darwin/amd64 +100 432, SC-022 completo.
+  > [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §Cierre.
 - [ ] **T052** **C2** · Medidas, con los sha256 de las dos copias congeladas antes y después *(PARA 9)*:
   - **SC-001** y **SC-003**, con `--scan` sobre la copia del 09-10 y dos `--run` con `OPENCODE_DB` = la copia *(sandbox, sin enrolar)*;
   - **SC-002**, la línea de contraste;
