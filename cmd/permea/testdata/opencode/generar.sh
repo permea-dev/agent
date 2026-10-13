@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Genera las bases SINTÉTICAS de los tests de OpenCode en `cmd/permea` (spec 010, B6). Nada sale de una base real.
+# Genera las bases SINTÉTICAS de los tests de OpenCode en `cmd/permea` (spec 010, B6 y B7). Nada sale de una base real.
 #
 #   bash cmd/permea/testdata/opencode/generar.sh
 #
@@ -85,6 +85,37 @@ b = bytearray(open(ruta, "rb").read())
 P = struct.unpack(">H", b[16:18])[0]
 b[(raiz - 1) * P] = 0x07
 open(ruta, "wb").write(b)
+
+# contraste.db (B7, `--scan`): el `session_v2` completo, el de internal/ingest/testdata/opencode/generar.sh, y dos sesiones con
+# una llamada cada una. La sesión A lleva en sus totales la llamada del título, que no está en los mensajes (D-2): entrada +38,
+# salida +3, razonamiento +4 (Δ`reasoning` ≠ 0, H13) y coste +0.000374.
+SESION_V2_COMPLETA = """CREATE TABLE `session_v2` (`id` text PRIMARY KEY, `project_id` text NOT NULL, `workspace_id` text, `parent_id` text,
+  `fork_session_id` text, `fork_boundary` text, `slug` text NOT NULL, `directory` text NOT NULL, `path` text, `title` text,
+  `version` text NOT NULL, `share_url` text, `summary_additions` integer, `summary_deletions` integer, `summary_files` integer,
+  `summary_diffs` text, `metadata` text, `cost` real DEFAULT 0 NOT NULL, `tokens_input` integer DEFAULT 0 NOT NULL,
+  `tokens_output` integer DEFAULT 0 NOT NULL, `tokens_reasoning` integer DEFAULT 0 NOT NULL,
+  `tokens_cache_read` integer DEFAULT 0 NOT NULL, `tokens_cache_write` integer DEFAULT 0 NOT NULL, `revert` text,
+  `permission` text, `agent` text, `model` text, `time_created` integer NOT NULL, `time_updated` integer NOT NULL,
+  `time_idle` integer, `time_viewed` integer, `idle_outcome` text, `time_compacting` integer, `time_archived` integer,
+  `time_suspended` integer, `resume_attempts` integer DEFAULT 0 NOT NULL)"""
+con = sqlite3.connect(os.path.join(OUT, "contraste.db"), isolation_level=None)
+con.execute(SESION_V2_COMPLETA)
+con.execute(MENSAJE)
+con.execute("CREATE UNIQUE INDEX `session_message_session_seq_idx` ON `session_message` (`session_id`,`seq`)")
+for sid, directorio, totales in (("s-contraste-a", "/sintetico/contraste-a", (0.012674, 138, 23, 11, 30, 4)),
+                                 ("s-contraste-b", "/sintetico/contraste-b", (0.0045, 200, 10, 3, 0, 0))):
+    con.execute("INSERT INTO session_v2(id, project_id, slug, directory, title, version, cost, tokens_input, tokens_output,"
+                " tokens_reasoning, tokens_cache_read, tokens_cache_write, time_created, time_updated)"
+                " VALUES (?,'prj-sintetico','slug-sintetico',?,'titulo-sintetico','2.0.26',?,?,?,?,?,?,?,?)",
+                (sid, directorio) + totales + (T0, T0))
+fila(con, "o-contraste-u", "s-contraste-a", 1, "user", usuario())
+for mid, sid, n, k, coste in (("o-contraste-1", "s-contraste-a", 1, (100, 20, 7, 30, 4), 0.0123),
+                              ("o-contraste-2", "s-contraste-b", 2, (200, 10, 3, 0, 0), 0.0045)):
+    d = llamada(n)
+    d["tokens"] = {"input": k[0], "output": k[1], "reasoning": k[2], "cache": {"read": k[3], "write": k[4]}}
+    d["cost"] = coste
+    fila(con, mid, sid, n + 1, "assistant", d)
+cerrar(con)
 PY
 mkdir "$T/out"
 python3 -I "$T/generar.py" "$T/out"

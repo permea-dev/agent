@@ -563,6 +563,14 @@ func (a *agent) tick() error {
 // imprimirlo en local no revela nada que no salga ya por la frontera. Los identificadores del
 // proveedor NUNCA se imprimen.
 func dryRun(path string) error {
+	// P-010 FR-025: una base SQLite se reconoce por su firma y se lee como OpenCode, ANTES que Codex (plan §5).
+	sqlite, err := esBaseSQLite(path)
+	if err != nil {
+		return err
+	}
+	if sqlite {
+		return dryRunOpenCode(path)
+	}
 	// P-008 FR-020, P-8: una sesión de Codex se reconoce por su primera línea y se lee como Codex.
 	codex, err := esSesionCodex(path)
 	if err != nil {

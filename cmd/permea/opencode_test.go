@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -309,4 +310,141 @@ func TestOpenCodeGenerate_BaseCorruptaNoRompe(t *testing.T) {
 			t.Errorf("con la base ya sana: %d eventos opencode; se esperaban 3 (2 + el suyo)", n)
 		}
 	})
+}
+
+// ═══ P-010 B7 · `--scan` DE UNA BASE DE OPENCODE ═══════════════════════════════════════════════════════════════════
+//
+// La línea `evento:` es la aprobada en 008 (`textoAprobado`), y el resumen y el contraste, los de spec §Textos de 010, leídos
+// por programa.
+
+// formatoOpenCode es la línea de spec §Textos que empieza por `prefijo`, leída por programa y sin rellenar.
+func formatoOpenCode(t *testing.T, prefijo string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", "..", "specs", "010-lector-opencode", "spec.md"))
+	if err != nil {
+		t.Fatalf("precondición: spec: %v", err)
+	}
+	for _, l := range strings.Split(string(b), "\n") {
+		if strings.HasPrefix(l, prefijo) {
+			return l
+		}
+	}
+	t.Fatalf("precondición: la spec no tiene la línea %q", prefijo)
+	return ""
+}
+
+// (51) · FR-025, SC-001 y SC-002 en forma: `--scan` de una base da una línea `evento:` aprobada por llamada, la línea
+// `opencode:` en stderr y la de contraste al final de stdout; y nada en disco: el listado del directorio de datos y el de
+// la carpeta de la base, iguales antes y después.
+func TestOpenCodeScan_EventosResumenYContraste(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	if err := os.MkdirAll(dataDir, 0o700); err != nil {
+		t.Fatalf("precondición: %v", err)
+	}
+	carpeta := t.TempDir()
+	base := filepath.Join(carpeta, "opencode.db")
+	escribir(t, base, fixtureOpenCode(t, "contraste.db"))
+	antesDatos, antesCarpeta := huellaCarpeta(t, dataDir), huellaCarpeta(t, carpeta)
+	codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", base)
+	if codigo != 0 {
+		t.Fatalf("código %d; stderr:\n%s", codigo, stderr)
+	}
+	lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+	t.Run("lineas_evento", func(t *testing.T) {
+		patron := patronDe(textoAprobado(t, "**Línea de `--scan` para Codex**"))
+		want := []string{"opencode modelo-sintetico-opencode 100 27 4 30 0.0000 false",
+			"opencode modelo-sintetico-opencode 200 13 0 0 0.0000 false"}
+		if len(lineas) != 3 {
+			t.Fatalf("%d líneas en stdout; se esperaban 2 `evento:` y el contraste:\n%s", len(lineas), stdout)
+		}
+		for i, l := range lineas[:2] {
+			m := patron.FindStringSubmatch(l)
+			if m == nil || strings.Join(m[1:9], " ") != want[i] {
+				t.Errorf("línea %d:\n%s\nse esperaba la aprobada con %q", i, l, want[i])
+			}
+		}
+	})
+	t.Run("resumen", func(t *testing.T) {
+		if want := lineaOpenCode(t, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0); !strings.Contains(stderr, want+"\n") {
+			t.Errorf("stderr no lleva la línea de spec §Textos %q:\n%s", want, stderr)
+		}
+	})
+	t.Run("contraste", func(t *testing.T) {
+		patron := regexp.MustCompile(strings.ReplaceAll(patronDe(formatoOpenCode(t, "opencode (contraste")).String(),
+			`%\.6f`, `([0-9]+\.[0-9]{6})`))
+		if !patron.MatchString(lineas[len(lineas)-1]) {
+			t.Errorf("la última línea de stdout no es la de contraste de spec §Textos:\n%s\npatrón %s", stdout, patron)
+		}
+	})
+	t.Run("disco", func(t *testing.T) {
+		despuesDatos, despuesCarpeta := huellaCarpeta(t, dataDir), huellaCarpeta(t, carpeta)
+		if despuesDatos != antesDatos || despuesCarpeta != antesCarpeta {
+			t.Errorf("--scan dejó algo en disco; datos antes:\n%s\ndespués:\n%s\ncarpeta antes:\n%s\ndespués:\n%s",
+				antesDatos, despuesDatos, antesCarpeta, despuesCarpeta)
+		}
+		for _, f := range []string{"state.json", "queue.jsonl"} {
+			if _, err := os.Stat(filepath.Join(dataDir, f)); !os.IsNotExist(err) {
+				t.Errorf("--scan dejó %s en el directorio de datos (err %v)", f, err)
+			}
+		}
+	})
+}
+
+// (52) · FR-026: sin una base de OpenCode, `--scan` de Claude Code, de Codex y de Gemini da la salida de la 0.6.0, byte a byte.
+// Las referencias son las del binario de `4c6cafc`: las de Claude Code y Codex, idénticas a las de 008 y 009 (`cmp`), se
+// reutilizan; la de Gemini es nueva. Nace verde; lo valida m44.
+func TestOpenCodeScan_LosDemasComoLa060(t *testing.T) {
+	for _, c := range []struct{ hoja, fichero, referencia string }{
+		{"claude", filepath.Join("testdata", "codex", "claude.jsonl"), filepath.Join("codex", "referencia-scan-claude")},
+		{"codex", filepath.Join("testdata", "codex", "sesion.jsonl"), filepath.Join("gemini", "referencia-scan-codex")},
+		{"gemini", filepath.Join("testdata", "gemini", "sesion.jsonl"), filepath.Join("opencode", "referencia-scan-gemini")},
+	} {
+		t.Run(c.hoja, func(t *testing.T) {
+			_ = testutil.Sandbox(t)
+			wantOut, errOut := os.ReadFile(filepath.Join("testdata", c.referencia+".stdout"))
+			wantErr, errErr := os.ReadFile(filepath.Join("testdata", c.referencia+".stderr"))
+			if errOut != nil || errErr != nil || len(wantOut) == 0 {
+				t.Fatalf("precondición: la referencia %s: %v, %v", c.referencia, errOut, errErr)
+			}
+			codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", c.fichero)
+			if codigo != 0 || stdout != string(wantOut) || stderr != string(wantErr) {
+				t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nno es la salida de la 0.6.0", codigo, stdout, stderr)
+			}
+		})
+	}
+}
+
+// (53) · SC-002 en forma, D-1, D-2: el contraste es la Σ de `$.cost` de las `assistant` y, fuera de los mensajes, los totales
+// de `session_v2` menos su Σ, con la salida como `output + reasoning`. `contraste.db` lleva Δ`reasoning` ≠ 0 (H13): entrada
+// 338 − 300, salida (33 + 14) − (30 + 10) y coste 0.017174 − 0.0168. Lo valida m46.
+func TestOpenCodeScan_ContrasteFueraDeLosMensajes(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	base := filepath.Join(t.TempDir(), "opencode.db")
+	escribir(t, base, fixtureOpenCode(t, "contraste.db"))
+	codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", base)
+	lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+	want := fmt.Sprintf(formatoOpenCode(t, "opencode (contraste"), 0.0168, 38, 7, 0.000374)
+	if got := lineas[len(lineas)-1]; codigo != 0 || got != want {
+		t.Errorf("código %d; la última línea de stdout:\n%s\nse esperaba:\n%s\nstderr:\n%s", codigo, got, want, stderr)
+	}
+}
+
+// (54) · FR-026: en `--scan`, un `.jsonl` vacío y otro de 10 bytes, más cortos que la firma de SQLite, dan el código, el stdout
+// y el stderr de la 0.6.0, byte a byte. Las referencias son las del binario de `4c6cafc`, que salió con 0. Nace verde; lo valida m43.
+func TestOpenCodeScan_FicherosCortosComoLa060(t *testing.T) {
+	for _, c := range []struct{ hoja, sufijo string }{{"vacio", "vacio"}, {"diez_bytes", "10"}} {
+		t.Run(c.hoja, func(t *testing.T) {
+			_ = testutil.Sandbox(t)
+			fichero := filepath.Join("testdata", "opencode", "corto-"+c.sufijo+".jsonl")
+			wantOut := fixtureOpenCode(t, "referencia-scan-corto-"+c.sufijo+".stdout")
+			wantErr := fixtureOpenCode(t, "referencia-scan-corto-"+c.sufijo+".stderr")
+			if n := len(fixtureOpenCode(t, "corto-"+c.sufijo+".jsonl")); n >= 16 || len(wantErr) == 0 {
+				t.Fatalf("precondición: %d bytes (< 16) y la referencia de stderr no vacía (%d bytes)", n, len(wantErr))
+			}
+			codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", fichero)
+			if codigo != 0 || stdout != string(wantOut) || stderr != string(wantErr) {
+				t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nno es la salida de la 0.6.0", codigo, stdout, stderr)
+			}
+		})
+	}
 }

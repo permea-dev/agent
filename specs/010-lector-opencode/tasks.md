@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 229 |
-| `tasks.md` *(este)* | **350** | 312 |
+| `tasks.md` *(este)* | **350** | 313 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 119 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 143 |
 | `soporte/registro-mutaciones-archivo.md` *(B0 a B4 remate, íntegros; dueño, 13-10)* | **no cuenta** | 230 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
@@ -200,15 +200,16 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B6 *(835 pass; m35–m42 y M-B6a = declarado; rehecha el 13-10)*.
 - [x] **T041** **SC-007, informativo**: las 5 plataformas, con el método de D-010-P12. Si pasa de 102 400 B, se adelgaza **antes** de B7 *(PARA 7)*.
   > PARA 7 *(12-10)* resuelto con **E-3**: en linux/arm64, contenido +78 544 B *(fichero +131 072, sin juzgar)*; las otras, 68 064–92 672. [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B6.
-- [ ] **T042** ✋ Puertas y commit: `010 B6: OpenCode en run y daemon, antes de guardar el estado`.
+- [x] **T042** ✋ Puertas y commit: `010 B6: OpenCode en run y daemon, antes de guardar el estado` *(13-10: `e515258`)*.
 
 ## B7 · `--scan` *(FR-025, FR-026; SC-001, SC-002 en forma)*
 
-- [ ] **T043** [P] **Rojos (51) y (53)**, y **(52) nacido verde**, en `cmd/permea/opencode_test.go`, con los textos de spec §Textos leídos por
-  programa. El fixture de (53) lleva **Δ`reasoning` ≠ 0** *(H13)*.
-- [ ] **T044** **Verde**: `esBaseSQLite`, **antes** de `esSesionCodex`, y `dryRunOpenCode` con la línea de contraste *(plan §5)*.
-- [ ] **T045** Censo y mutaciones **m43–m46**, con md5. **m44** declara, por nombre y hoja, los diez tests existentes de `--scan` de plan §Bloques
-  *(como m36 en 009)*.
+- [x] **T043** [P] **Rojos (51) y (53)**, y **(52) y (54) nacidos verdes**, en `cmd/permea/opencode_test.go`, con los textos de spec §Textos leídos
+  por programa. El fixture de (53) lleva **Δ`reasoning` ≠ 0** *(H13)*. **(54)**: un `.jsonl` vacío y otro de 10 B, como en la 0.6.0 *(dueño, 13-10)*.
+- [x] **T044** **Verde**: `esBaseSQLite`, **antes** de `esSesionCodex`, y `dryRunOpenCode` con la línea de contraste *(plan §5)*.
+- [x] **T045** Censo y mutaciones **m43–m46**, con md5. **m44** declara, por nombre y hoja, los diez tests existentes de `--scan` de plan §Bloques
+  *(como m36 en 009)*. **m43**, redefinida *(dueño, 13-10)*: un fichero de menos de 16 B da error → (54); la de antes, equivalente.
+  > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B7 *(848 pass; m43–m46 = declarado; m44, uno más; talla M)*.
 - [ ] **T046** ✋ Puertas y commit: `010 B7: scan de OpenCode con la linea de contraste`.
 
 ## B8 · README y CHANGELOG *(FR-031; P-12)*

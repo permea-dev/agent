@@ -1,0 +1,2 @@
+evento: tool=gemini model=modelo-sintetico-gemini in=100 out=10 cw=0 cr=0 cost=$0.0000 cost_avail=false project_ref= event_id=f943b002b9d88c5ea8f509195d86dc32
+evento: tool=gemini model=modelo-sintetico-gemini in=200 out=12 cw=0 cr=0 cost=$0.0000 cost_avail=false project_ref= event_id=3db0f93b27c2d03e8fbbac45672bba52

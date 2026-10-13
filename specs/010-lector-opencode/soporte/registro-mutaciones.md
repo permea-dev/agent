@@ -117,3 +117,27 @@ quedan con su evidencia original; las «cambia» se repiten con el protocolo, co
 Las trece «cambia», **= censo nuevo**, cada una con la suite entera y restaurada a su md5 antes de la siguiente; directa e inversa únicas y cada
 mutante compilado, antes de mutar. Ninguna línea cambió: todas se escriben como en su bloque. (24) cae sólo como padre con mB1 y mB3 *(818 + 15 y
 816 + 17 de 835)*. M-B1b no deja `-shm` en el árbol. Con las 42 «igual», **55 de 55 = declarado** sobre la suite de hoy.
+
+## B7 · `--scan` *(`cmd/permea/main.go`, `cmd/permea/opencode.go`)*
+
+- **T042**: es `e515258`. **T043** *(2026-10-13, sobre `f9f5cca`)*: `contraste.db` `b5674858…`, de `generar.sh` *(las cuatro de B6 salen idénticas)*.
+  Referencias de la 0.6.0, del binario de `4c6cafc` *(`git archive` + `go build`; `env -i` y HOME temporal)*: Claude Code y Codex = las de 008 y 009
+  *(`cmp`)*; Gemini, `referencia-scan-gemini.stdout` `9d1223c9…` y `.stderr` `2597191a…`; (54), `corto-vacio.jsonl` *(0 B)* y `corto-10.jsonl` `23f6edc2…`:
+  código 0, stdout vacío, `referencia-scan-corto-vacio.stderr` `0f668709…` y `-10.stderr` `8465902f…`. Rojos (51/lineas_evento, /resumen, /contraste)
+  y (53): la base va por Claude Code, stdout vacío y `skip: invalid character 'S'…` *((51/disco) pasa)*; (52) ×3 y (54) ×2 nacen verdes.
+- **T044**: verde, `main.go` `080fac42…`, `opencode.go` `05910a1a…`; el resumen, a stderr como `main.go:680` y `gemini.go:123`; lint 0; **848 / 0 / 0**.
+- **Desviación de tamaño** *(tasks §Presupuesto: se declara en el corte)*: **+121** de producción *(`main.go` 8, `opencode.go` 113)* frente a ~80: más del 50 %. B7 pasa a **M**; SC-007 se juzga en C1.
+
+**T045 · Censo** *(ANTES de mutar; (51) `TestOpenCodeScan_EventosResumenYContraste`, (52) `…LosDemasComoLa060`, (53) `…ContrasteFueraDeLosMensajes`, (54) `…FicherosCortosComoLa060`)*.
+m44: el grep de `"--scan"` da los diez de plan §Bloques y **uno más**, `TestRetirada_LasExcepcionesDeD0045/--scan con "plain"`; los de `ayuda_test.go`
+no llegan a `dryRun`. m43: de los `--scan` de los `_test.go`, sólo (54) pasa un fichero de menos de 16 B *(el menor de los demás, 624 B)*.
+**La m43 de antes** *(el bloque de `esBaseSQLite` tras el de Codex; `d2b27a71`, 845 / 0 / 0)* es **equivalente** *(dueño, 13-10)*: el `Scanner` de Codex corta
+en el primer `0x0A`, y toda base de OpenCode lo tiene en sus primeras páginas *(las hojas de índice)*; esa línea no es JSON, y se sigue por SQLite.
+| Mut. | Edición | Declarado | Cayó · md5 mutado |
+|---|---|---|---|
+| m43 | `io.ReadFull` corto: `return false, nil` → `return false, err` | (54/vacio), (54/diez_bytes) y su padre | = · `2a3cb7c6` *(código 1, `error: EOF` y `unexpected EOF`)* |
+| m44 | `return string(firma) == "SQLite format 3\x00", nil` → `return true, nil` | (52) ×3 · `TestScan_UnEventoPorMensaje` · `TestScan_LineaConCuatroPartidasYEventID` · `TestScan_LineaConDesgloseDeLaEscritura` · `TestScan_LaSalidaQueCreceValeSuMaximo` · `TestCodexScan_EventosYResumen` · `TestCodexScan_ClaudeCodeComoLa040` · `TestCodexScan_FormatoAnterior` · `TestGeminiScan_EventosYResumen` · `TestGeminiScan_ClaudeYCodexComoLa050/{claude, codex}` · `TestRetirada_LasExcepcionesDeD0045/--scan con "plain"`; de los que tienen hojas tras un `Fatalf`, sólo el padre | = · `ce7f83cd` *(818 + 17 + las 10 hojas que no corren)* |
+| m45 | `dryRunOpenCode` guarda su estado en `<datos>/state.json` | (51/disco) | = · `d02f7cf7` *(y su padre)* |
+| m46 | `signo * (salida + razonamiento)` → `signo * salida` | (53) | = · `f04293ca` *(salida 3, no 7)* |
+
+Las cuatro, **= declarado**, restauradas a `080fac42…` y `05910a1a…`; directa e inversa únicas y cada mutante compilado, antes de mutar.
