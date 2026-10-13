@@ -174,3 +174,13 @@ darwin/arm64 84 672 · windows/amd64 98 816. **SC-022**: privacidad 0 en las 5 8
 *(44 binarios)*; los tres `generar.sh`, regenerados en `mktemp -d`: 41 ficheros iguales con `cmp`, y los 5 `-wal` difieren sólo en las sales y
 sus sumas *(0 páginas distintas)*; lo que no sale de un `generar.sh` es de procedencia registrada *(`filas/` de T016; referencias de `4c6cafc`;
 `corto-*`)*; ninguna huella de las copias. Compilan Windows y darwin, amd64 y arm64. `PENDIENTE` 1.
+
+**C2** *(2026-10-13, sobre `ffcdb30`; binario de `git archive`; copias en su sitio, sólo lectura)*: el sha256 de las dos copias, **igual antes y
+después** y al registrado *(sin publicarlo: SC-022)*; el listado de sus carpetas, igual *(ni `-wal` ni `-shm`)*.
+**SC-001** = en `--scan` y en `--run`: 8 eventos `gemini-3.8-flash`, 59 321 · 692 · 3 999 · 0, y el resumen de la spec. **SC-003**: la 2.ª `--run`, 0
+*(sandbox `mktemp -d`, sin enrolar ni `endpoint`, en `unshare -rn`: sin red; nada fuera del sandbox)*. **SC-002**: $0.047386 y 538 · 5 · $0.000174.
+**Anthropic**: 24 eventos *(19 + 5)*. **SC-009**: `FuzzBase` 10 min, 65 932 entradas; `FuzzWAL` 10 min, 1 382 338; 0 fallos; el corpus, en la
+caché de Go. **SC-017** × 3 *(1 GB)*: 1.ª pasada 5,62 · 5,49 · 6,47 s; siguiente 3,7 · 3,4 · 35,6 ms; 75 páginas *(0,030 %)*. **Equivalencia** con
+la sonda B: los 13 testdata *(10 bases)* y las dos copias, 53 tablas, **0 diferencias** en recuentos, sumas y sha256 de `data` *(en las copias,
+también = `sqlite3` con `immutable=1`)*; las otras 29 bases de 010, 59 tablas, 0. Sólo cambia la redacción de 5 errores *(mismo paso y causa)*.
+En las copias, la equivalencia sólo vale sobre `session_message` y `session_v2`; las demás tablas no se leen *(13-10)*.

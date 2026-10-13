@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 229 |
-| `tasks.md` *(este)* | **350** | 319 |
+| `tasks.md` *(este)* | **350** | 322 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 176 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 186 |
 | `soporte/registro-mutaciones-archivo.md` *(B0 a B4 remate, íntegros; dueño, 13-10)* | **no cuenta** | 230 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
@@ -238,7 +238,7 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   - compilan Windows y darwin; `PENDIENTE` → 1.
   > 13-10: el primero, PARA 7 *(darwin/amd64 +104 528)*; R1G *(dueño)* y C1 entero: 848 / 0 / 0, darwin/amd64 +100 432, SC-022 completo.
   > [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §Cierre.
-- [ ] **T052** **C2** · Medidas, con los sha256 de las dos copias congeladas antes y después *(PARA 9)*:
+- [x] **T052** **C2** · Medidas, con los sha256 de las dos copias congeladas antes y después *(PARA 9)*:
   - **SC-001** y **SC-003**, con `--scan` sobre la copia del 09-10 y dos `--run` con `OPENCODE_DB` = la copia *(sandbox, sin enrolar)*;
   - **SC-002**, la línea de contraste;
   - la copia de `anthropic`, de control: 24 eventos;
@@ -247,7 +247,10 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   - **equivalencia**: el lector portado = el de la prueba *(`tmp/sonda-sqlite/b-propio/lector/`)* sobre los 13 testdata y las dos copias congeladas. Se
     comparan recuentos, sumas y sha256 de `data` por tabla. Las copias se abren en su sitio, en solo lectura e `immutable=1`, con su sha256 antes y
     después. Una diferencia → **PARA**.
-- [ ] **T053** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-019)*.
+  > 13-10: copias intactas; SC-001, SC-002 y SC-003 exactos; anthropic 24; fuzz 2 × 10 min, 0 fallos; SC-017 × 3 cumple; equivalencia, 0 diferencias *(en las copias, sólo vale
+  > sobre `session_message` y `session_v2`; las demás tablas no se leen)*.
+- [x] **T053** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-019)*.
+  > 13-10: rc 0, 5 artefactos; zip de Windows `e6e086e6…`; los tres textos de spec §Textos, en `permea.exe`; `dist/` borrado.
 - [ ] **T054** ✋ **C4 · W1** *(plan D-010-W)*: OpenCode cerrado, y luego abierto; `sonda-a.exe` como contador. **SC-006** y **SC-023**.
 - [ ] **T055** **C5** · El cuerpo del PR, que dice **«la etiqueta espera a SC-027 (P-033)»**.
 - [ ] **T056** ✋ **C6** · Fusión del PR con merge commit *(pregunta 1 del reporte del plan)*.
