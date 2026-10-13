@@ -184,3 +184,11 @@ caché de Go. **SC-017** × 3 *(1 GB)*: 1.ª pasada 5,62 · 5,49 · 6,47 s; sigu
 la sonda B: los 13 testdata *(10 bases)* y las dos copias, 53 tablas, **0 diferencias** en recuentos, sumas y sha256 de `data` *(en las copias,
 también = `sqlite3` con `immutable=1`)*; las otras 29 bases de 010, 59 tablas, 0. Sólo cambia la redacción de 5 errores *(mismo paso y causa)*.
 En las copias, la equivalencia sólo vale sobre `session_message` y `session_v2`; las demás tablas no se leen *(13-10)*.
+
+**C4 · W1** *(2026-10-13, Windows, OpenCode 2.0.26; `permea-w1.exe` `17412735…` y `sonda-a.exe` `9AEED898…` como contador independiente; sandbox con
+su propio perfil de usuario, sin enrolar)*: **Paso 1**, OpenCode cerrado, sobre una copia de `opencode.db` y su `-wal`/`-shm`: `--run` encola 24
+eventos = 24 filas completadas del contador, 24 `event_id` distintos; input 142 950 · output + reasoning 2 645 · cache.read 53 510 · cache.write 11
+995, iguales; 0 con coste, 0 de otras herramientas, 0 líneas ilegibles. **SC-006**: md5 y listado de la copia, iguales antes y después. La 2.ª
+`--run`, 0. **Paso 2**, OpenCode abierto y `--daemon` sobre la base real: primer ciclo 24 = 24; tras dos prompts, 2 eventos nuevos = 2 filas nuevas;
+26 = 26, cada uno una vez; 142 956 · 2 655 · 62 238 · 20 754, iguales; **E-1**: 0 ficheros nuevos en la carpeta real *(11 entradas antes y después)*.
+**SC-006** y **SC-023**, cumplen en Windows.

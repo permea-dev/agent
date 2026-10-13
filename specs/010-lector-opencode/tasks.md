@@ -251,7 +251,10 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   > sobre `session_message` y `session_v2`; las demás tablas no se leen)*.
 - [x] **T053** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows y `strings` con los textos *(SC-019)*.
   > 13-10: rc 0, 5 artefactos; zip de Windows `e6e086e6…`; los tres textos de spec §Textos, en `permea.exe`; `dist/` borrado.
-- [ ] **T054** ✋ **C4 · W1** *(plan D-010-W)*: OpenCode cerrado, y luego abierto; `sonda-a.exe` como contador. **SC-006** y **SC-023**.
+- [x] **T054** ✋ **C4 · W1** *(plan D-010-W)*: OpenCode cerrado, y luego abierto; `sonda-a.exe` como contador. **SC-006** y **SC-023**.
+  > 13-10: Windows, OpenCode 2.0.26, sin enrolar y en sandbox. Paso 1 (cerrado, sobre copia): 24 eventos = 24 filas de `sonda-a`, tokens iguales; SC-006, md5 y listado de la
+  > copia iguales; 2.ª `--run` 0. Paso 2 (abierto, `--daemon`): 2 prompts → 2 eventos = 2 filas nuevas; 26 = 26, cada uno una vez; tokens iguales; E-1, 0 ficheros nuevos en la
+  > carpeta real. **TODO IGUAL**.
 - [ ] **T055** **C5** · El cuerpo del PR, que dice **«la etiqueta espera a SC-027 (P-033)»**.
 - [ ] **T056** ✋ **C6** · Fusión del PR con merge commit *(pregunta 1 del reporte del plan)*.
 - [ ] **T057** ✋ **C7** · 🛑 **BLOQUEADA hasta SC-027**:
