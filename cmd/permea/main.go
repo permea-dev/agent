@@ -183,6 +183,12 @@ type agent struct {
 	geminiRaiz string
 	// gemini son los recuentos de Gemini de la última pasada; nil si el lector no estuvo activo (plan D-009-P7).
 	gemini *ingest.PasadaGemini
+	// opencodeDatos y opencodeUnica son la carpeta de datos de OpenCode, o la única base de `OPENCODE_DB` (P-010 P-8),
+	// resueltas una vez en `setup()`. Si existen se miran en cada pasada (FR-002). Vacías —un `agent` construido a mano en
+	// un test— significa que no se lee OpenCode (R-4).
+	opencodeDatos, opencodeUnica string
+	// opencode son los recuentos de OpenCode de la última pasada; nil si el lector no estuvo activo.
+	opencode *ingest.PasadaOpenCode
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -231,12 +237,19 @@ func setup() (*agent, error) {
 	if err != nil {
 		geminiRaiz = ""
 	}
+	// P-010 FR-001, FR-002: y con OpenCode.
+	opencodeDatos, opencodeUnica, err := config.OpenCodeDatos()
+	if err != nil {
+		opencodeDatos, opencodeUnica = "", ""
+	}
 	return &agent{
-		dir:        dir,
-		cfg:        cfg,
-		ictx:       newIngestContext(version, cfg, salt, machineID),
-		codexRaiz:  codexRaiz,
-		geminiRaiz: geminiRaiz,
+		dir:           dir,
+		cfg:           cfg,
+		ictx:          newIngestContext(version, cfg, salt, machineID),
+		codexRaiz:     codexRaiz,
+		geminiRaiz:    geminiRaiz,
+		opencodeDatos: opencodeDatos,
+		opencodeUnica: opencodeUnica,
 	}, nil
 }
 
@@ -365,6 +378,17 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
+	// P-010: OpenCode, tras Gemini y ANTES del único `st.Save` (FR-027). Activo sólo si EN ESTA PASADA existe la base de
+	// `OPENCODE_DB` o la carpeta de datos (P-10, FR-002).
+	a.opencode = nil
+	if a.opencodeActivo() {
+		n, err := a.generarOpenCode(st, ictx)
+		total += n
+		if err != nil {
+			return total, pasada, err
+		}
+	}
+
 	if err := st.Save(statePath); err != nil {
 		return total, pasada, err
 	}
@@ -439,6 +463,9 @@ func runOnce() error {
 	if a.gemini != nil {
 		fmt.Fprintln(os.Stderr, a.gemini.Resumen()) // P-009 FR-021: tras la de Codex, con el lector activo en esta pasada
 	}
+	if a.opencode != nil {
+		fmt.Fprintln(os.Stderr, a.opencode.Resumen()) // P-010 FR-024: tras la de Gemini, con el lector activo en esta pasada
+	}
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -505,6 +532,9 @@ func (a *agent) tick() error {
 		if a.gemini != nil && a.gemini.HayNovedades() {
 			fmt.Fprintln(os.Stderr, a.gemini.Resumen()) // P-009 FR-021: sólo con novedades
 		}
+		if a.opencode != nil && a.opencode.HayNovedades() {
+			fmt.Fprintln(os.Stderr, a.opencode.Resumen()) // P-010 FR-024: sólo con novedades
+		}
 	}
 
 	if a.cfg.Endpoint == "" {
@@ -533,6 +563,14 @@ func (a *agent) tick() error {
 // imprimirlo en local no revela nada que no salga ya por la frontera. Los identificadores del
 // proveedor NUNCA se imprimen.
 func dryRun(path string) error {
+	// P-010 FR-025: una base SQLite se reconoce por su firma y se lee como OpenCode, ANTES que Codex (plan §5).
+	sqlite, err := esBaseSQLite(path)
+	if err != nil {
+		return err
+	}
+	if sqlite {
+		return dryRunOpenCode(path)
+	}
 	// P-008 FR-020, P-8: una sesión de Codex se reconoce por su primera línea y se lee como Codex.
 	codex, err := esSesionCodex(path)
 	if err != nil {
@@ -618,6 +656,21 @@ func esSesionCodex(path string) (bool, error) {
 	return primera.Type == "session_meta", nil
 }
 
+// imprimirEventos imprime la línea `evento:` aprobada de cada evento y, a stderr, el recuento: la de `--scan` de Codex,
+// Gemini y OpenCode (P-010 SC-007: una sola copia).
+func imprimirEventos(evs []event.Event) {
+	for _, ev := range evs {
+		ref := ev.ProjectRef
+		if len(ref) > 8 {
+			ref = ref[:8] + "…"
+		}
+		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
+			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
+			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
+	}
+	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", len(evs))
+}
+
 // dryRunCodex imprime los eventos de una sesión de Codex sin tocar estado ni cola (P-008 FR-020). Aplica las MISMAS
 // reglas que la emisión (`LeerFicheroCodex`), sobre un estado sólo en memoria que nunca se guarda. La línea `evento:` es
 // la aprobada (§Textos aprobados): la de Claude Code sin `cw5m=` ni `cw1h=`, que en Codex no existen.
@@ -629,16 +682,7 @@ func dryRunCodex(path string) error {
 	if err != nil {
 		return err
 	}
-	for _, ev := range evs {
-		ref := ev.ProjectRef
-		if len(ref) > 8 {
-			ref = ref[:8] + "…"
-		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
-			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
-	}
-	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", len(evs))
+	imprimirEventos(evs)
 	fmt.Fprintln(os.Stderr, pc.Resumen()) // P-008 FR-020: el resumen de Codex
 	return nil
 }

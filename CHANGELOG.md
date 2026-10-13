@@ -3,6 +3,33 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
+## 0.7.0 — 2026-10-13
+
+### Nuevo
+- Lee también el consumo de OpenCode 2.x, de `~/.local/share/opencode` (o de `$XDG_DATA_HOME/opencode`, o de la base que indique
+  `OPENCODE_DB`), si existe. Cada llamada al modelo es un evento con `tool = opencode`. La base sólo se lee.
+  (`specs/010-lector-opencode/spec.md`, FR-001, FR-002, FR-003, FR-012)
+- Los eventos de OpenCode llevan sus tokens y su modelo, sin coste: el coste lo calcula la plataforma. El razonamiento cuenta como salida.
+  (`specs/010-lector-opencode/spec.md`, D-1, P-2)
+- `--scan` acepta también una base de OpenCode y añade una línea de contraste con el coste según OpenCode, que no se envía.
+  (`specs/010-lector-opencode/spec.md`, FR-025)
+
+### Sin cambios
+- Claude Code, Codex y Gemini se leen exactamente como en la 0.6.0. Sin carpeta de OpenCode, la salida no cambia.
+  (`specs/010-lector-opencode/spec.md`, FR-026)
+
+### Requiere
+- Una plataforma que cobre a 5 minutos la escritura de caché de OpenCode con modelos de Anthropic. Por eso esta versión se publica
+  cuando la plataforma ya lo hace. (`specs/010-lector-opencode/spec.md`, SC-027)
+
+### Limitaciones conocidas
+- La llamada que pone título a cada sesión no queda entre los mensajes: el consumo enviado queda por debajo de la factura, un 0,37 %
+  del coste en la medición. (`specs/010-lector-opencode/spec.md`, D-2)
+- Una llamada en curso más de 24 horas se cuenta como «abandonada» y no se envía. (`specs/010-lector-opencode/spec.md`, P-3)
+- Las bases de OpenCode 1.x se cuentan como «formato anterior» y no se envían. (`specs/010-lector-opencode/spec.md`, P-9, FR-022)
+- Con proveedores distintos de Google y Anthropic, el modelo puede no casar con el catálogo de la plataforma, y el evento llega sin
+  coste. (`specs/010-lector-opencode/spec.md`, P-5)
+
 ## 0.6.0 — 2026-10-08
 
 ### Nuevo

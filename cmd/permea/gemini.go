@@ -107,19 +107,12 @@ func dryRunGemini(path string) error {
 	if err != nil {
 		return err
 	}
-	for _, ev := range evs {
-		ref := ev.ProjectRef
-		if slug == "" {
-			ref = "" // sin la forma `<slug>/chats/…`, no hay proyecto
+	if slug == "" {
+		for i := range evs {
+			evs[i].ProjectRef = "" // sin la forma `<slug>/chats/…`, no hay proyecto
 		}
-		if len(ref) > 8 {
-			ref = ref[:8] + "…"
-		}
-		fmt.Printf("evento: tool=%s model=%s in=%d out=%d cw=%d cr=%d cost=$%.4f cost_avail=%t project_ref=%s event_id=%s\n",
-			ev.Tool, ev.Model, ev.TokensInput, ev.TokensOutput, ev.TokensCacheCreation, ev.TokensCacheRead,
-			ev.CostUSD, ev.CostAvailable, ref, ev.EventID)
 	}
-	fmt.Fprintf(os.Stderr, "%d eventos generados (dry-run, nada transmitido)\n", len(evs))
+	imprimirEventos(evs)
 	fmt.Fprintln(os.Stderr, pg.Resumen()) // P-009 FR-022: el resumen de Gemini
 	return nil
 }
