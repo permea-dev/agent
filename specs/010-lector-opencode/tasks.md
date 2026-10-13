@@ -22,10 +22,13 @@
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 229 |
-| `tasks.md` *(este)* | **350** | 309 |
+| `tasks.md` *(este)* | **350** | 312 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 291 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 119 |
+| `soporte/registro-mutaciones-archivo.md` *(B0 a B4 remate, íntegros; dueño, 13-10)* | **no cuenta** | 230 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
+
+El archivo del registro **no cuenta para el techo** de 300, como `docs/archivo/` en la plataforma: es texto cerrado, movido sin tocar.
 
 | Bloque | Producción | Test | Fixtures | Registro |
 |---|---:|---:|---|---:|

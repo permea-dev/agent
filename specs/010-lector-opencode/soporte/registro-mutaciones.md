@@ -3,234 +3,14 @@
 **Por qué existe**: como en 007, 008 y 009, `tasks.md` guarda las casillas y una remisión, y aquí van las transcripciones. Techo: **300**
 líneas *(tasks §Presupuesto)*.
 
-## B0 · Documentos
+## B0 a B4 remate · Archivados *(13-10, íntegros, en [`registro-mutaciones-archivo.md`](./registro-mutaciones-archivo.md), que no cuenta para el techo)*
 
-### T001 · Línea base *(2026-10-11, sobre `0256098`; sólo documentos desde `82e0b2d`)*
-
-```
-$ git log --oneline -2
-0256098 010 remate del analyze: enmienda E-1, SC-028 y SC-029, mutaciones re-derivadas
-4f7658a 010 plan y tareas: lector propio en internal/sqlitero y frontera por rowid
-$ git diff 82e0b2d --name-only                      4 rutas, todas bajo specs/010-lector-opencode/
-$ gofmt -l .                                        (vacío)
-$ go vet ./...                                      (limpio)
-$ golangci-lint run
-0 issues.
-$ go test -count=1 -v ./...                         671 «--- PASS», 0 «--- FAIL», 0 «--- SKIP» · 9 paquetes ok
-$ git diff 4c6cafc -- <frontera de FR-030> | wc -l
-0
-$ git diff 4c6cafc --name-only --diff-filter=M -- '*_test.go' | wc -l
-0
-$ grep -c require go.mod ; ls go.sum
-0 ; no existe
-```
-
-## B1 · Lector *(`internal/sqlitero`)*
-
-### T003 · Fase 0 *(2026-10-11, sobre `f486c55`)*
-Origen `tmp/sonda-sqlite/b-propio/lector/lector.go` **`f6b47fa8…`** → portado `7e89b932…` *(`package sqlitero`, su comentario, stubs y `ErrCorrupta`/`ErrNoSoportada`)*. Suite **671 / 0 / 0**.
-
-### T004 · Testdata *(`generar.sh`: `sqlite3` 3.45.1 y `python3` 3.12; 13 ficheros, 1 183 216 B; sin `-shm`)*
-md5: `esperado.json 2aac2bcd` · `i/opencode.db 68833bf4` · `i/…-wal d2b041e4` · `r/opencode.db 68833bf4` · `r/…-wal df39662e` · `s/opencode.db 1ef488f7` ·
-`profundo.db de0010d9` · `raros/`: `desborda 577ef045` · `p512 8dc7c104` · `p65536 8fdced77` · `reserva e7329296` · `utf16 8d057446` · `without_rowid 65490471`.
-
-### T005 · Rojos *(55 tests nuevos = 40 hojas + 15 semillas; los 10 numerados del plan)*
-```
-FAIL TestCabecera/utf16, TestTablas/without_rowid   errores de texto, sin ErrNoSoportada
-FAIL TestBuscar ×4, TestRecorrerDesde ×2            «sin implementar» (stubs)
-FAIL TestErroresSinRuta/inexistente                 open /tmp/…/CENTINELA-dir/opencode.db: no such file or directory
-FAIL TestCorruptas ×4                               «ciclo en el arbol» · «pagina 2147483647 fuera…» · «base corrupta o truncada» ×2, sin ErrCorrupta
-```
-Nacen verdes las otras 26 hojas y las 15 semillas.
-
-### T006 · Verde *(md5 `6acf4700…`)*
-Poda, `Buscar`, `Paginas`, errores tipados y `sinRuta`; 17 arreglos de lint sin `nolint`; regresión de uno de ellos *(22 FAIL)* corregida con `finCab`;
-(10) con `leerTodo`. **726 / 0 / 0** · lint 0.
-
-### T007 y T008 · Censo *(declarado ANTES de mutar)* y mutaciones *(base `6acf4700…`; suite entera; edición inversa; md5)*
-| Mut. | Edición | Declarado | Cayó · md5 mutado |
-|---|---|---|---|
-| mB1 | `if cab[18] == 2 \|\| cab[19] == 2 {` → `if false {` | TestInstantaneas/I, /R · TestEstable/sin_cambio | = · `3ba4bfee` |
-| mB2 | `if s0 != be.Uint32(fr[16:]) \|\| …` → `if false {` | TestInstantaneas/R | = · `72cb83c6` |
-| mB3 | `if local == total {` → `if true {` | TestInstantaneas/I, /R, /S · TestDesbordamiento/8k, /64k | = · `a65c0040` |
-| mB4 | `cadena[:ultimoCommit]` → `cadena[:len(cadena)]` | TestInstantaneas/I, **/R** | = · `efd8ea23` |
-| mB5 | `if clave <= desde {` → `… && false {` | TestRecorrerDesde/paginas | = · `ccfdfb13` |
-| mB6 | `if clave >= rowid {` → `if clave > rowid {` | TestBuscar/clave | = · `c69e8143` |
-| mB7 | en `Abrir`, `return nil, sinRuta(err)` → `return nil, err` | TestErroresSinRuta/inexistente | = · `f3be0653` |
-| mB8 | el tope `… \|\| int64(total) > …` fuera | TestCorruptas/carga_enorme · FuzzBase/seed#9 | = · `55be00aa` |
-| mB9 | `return err == nil && …` → `return true \|\| (…)` | TestEstable/cambia | = · `95049b2b` |
-| mB10 | el `if` del `CREATE` → `if false {` **y** `case 0x02, 0x0a:` de `recorrer` → `case 0xFF:` | TestTablas/without_rowid | = · `be78256c` |
-| M-B1a | `enc != 1 && enc != 0 {` → `… && false {` | TestCabecera/utf16 | = · `de485931` |
-| M-B1b | tras `b := &Base{…}`, `os.Create(ruta + "-shm")` | TestSoloLectura/listado, /md5 | = · `196bddd1` |
-
-- **mB5**: la primera forma *(`if false {`)* no compilaba y no cuenta; redefinida el 11-10.
-- **mB7**: el guion no pudo revertirla, porque su texto mutado no era único; se revirtió anclada en `os.Open` *(md5 = base)* y se repitió limpia.
-- **M-B1b**: co-caída (10/md5) no declarada en la primera derivación: la hoja compara todos los ficheros de la carpeta; corregida por decisión del dueño (11-10), sin tocar el test.
-
-### Desviaciones ratificadas por el dueño *(2026-10-11 16:50; equivalencia con la prueba, en C2)*
-| Desviación | Dónde |
-|---|---|
-| R se rompe en la `}` de una celda de `data`, en el frame 34, no en el último byte de la hoja | T004 |
-| (1/utf16), (6/without_rowid) y (9) nacen rojos | T005 |
-| La co-caída (2/R) de mB4, declarada antes de mutar | T007 |
-| 17 arreglos de lint, con su regresión cazada y corregida: el lector ya no es byte a byte el de la prueba *(desviación de D-3)* | T006 |
-| Tests al +52 % *(683 líneas frente a ~450)* | T005 |
-
-## B2 · Identidad *(`internal/ingest/opencode_eventid.go`)*
-
-### T010–T012 *(2026-10-11, sobre `f373016`)*
-Stub → **726 / 0 / 0**. Rojos de T011, con su razón real: `TestEventIDOpenCode_VectoresDelContrato/{llamada,otra_llamada}`
-*(«ok = false; se esperaba un event_id»)* y `TestEventIDOpenCode_EspacioDeNombresPropio` *(«= "", ok false»; su precondición, el literal de Gemini contra
-`derivarEventIDGemini`, pasa)*. Nace verde `TestEventIDOpenCode_SinIDNoHayEventID` *(m3)*. Verde: la derivación replicada, con `dominioEventID`,
-`bytesEventID` y `tipoRespuesta`; md5 `0a3c19d4…`; lint 0; **731 / 0 / 0**.
-
-### T013 · Censo *(declarado ANTES de mutar)* y mutaciones *(base `0a3c19d4…`; suite entera; edición inversa; md5)*
-| Mut. | Edición | Declarado | Cayó · md5 mutado |
-|---|---|---|---|
-| m1 | `herramientaOpenCode = "opencode"` → `"gemini"` | VectoresDelContrato/llamada, /otra_llamada · EspacioDeNombresPropio | = · `496b16d5` |
-| m2 | `_, _ = h.Write(longitud[:])` → `// m2: sin prefijo de longitud` | VectoresDelContrato/llamada, /otra_llamada | = · `e5868ac3` |
-| m3 | `if id == "" {` → `if id == "" && false {` | SinIDNoHayEventID | = · `30ad5835` |
-| m4 | `…, tipoRespuesta, id}` → `…, tipoRespuesta, "m4", id}` | VectoresDelContrato/llamada, /otra_llamada | = · `bb31b82d` |
-
-Las cuatro, **= declarado**, y restauradas a `0a3c19d4…` antes de la siguiente; directa e inversa comprobadas únicas antes de mutar.
-
-## B3 · Una llamada *(`internal/ingest/opencode.go`)*
-
-### T015–T019 *(2026-10-12, sobre `b65752d`)*
-- **T015**: stub `427e86a1…` → **731 / 0 / 0**. Para compilar los rojos, las tres constantes de `ClaseOpenCode` *(el cero no es ninguna)*: `89eaf955…`.
-- **T016**: 16 `data` sintéticos en `testdata/opencode/filas/`. El `id` es columna: sus formas *(nulo, `""`, entero)* las pone el test sobre `evento.json`.
-- **T017**: 9 rojos, 25 hojas; todos por el stub, «clase 0, evento <nil>». (22): «se esperaba un evento que inspeccionar» *(H19)*. Hojas
-  añadidas al plan, nacidas rojas: (17/antes_que_incoherente), (17/event_id), (18/coste_cero) y (20/tal_cual).
-- **T018–T019**: verde `1b00c194…`, sin `internal/pricing`; lint 0; **765 / 0 / 0**; (22) en verde.
-
-### T020 · Censo *(declarado ANTES de mutar; prefijo `TestLlamadaOpenCode_`)* y mutaciones *(base `1b00c194…`; suite entera; edición inversa; md5)*
-| Mut. | Edición | Declarado | Cayó · md5 mutado |
-|---|---|---|---|
-| m5 | `int(k.Output + k.Reasoning)` → `int(k.Output)` | PartidasSC012 | = · `ea606ea7` |
-| m6 | `TokensCacheCreation: 0` **y** `TokensCacheRead: int(k.Cache.Read + k.Cache.Write)` | PartidasSC012 | = · `1669ecbe` |
-| m7 | `int(k.Input)` → `int(k.Input + k.Cache.Read)` | PartidasSC012 | = · `e759c74a` |
-| m8 | `CostAvailable: false` → `true` | SinCoste/cost_available | = · `1be824c4` |
-| m9 | `Cost float64` en `datosOpenCode` **y** `CostUSD: d.Cost` | SinCoste/cost | = · `3ee005d9` |
-| m10 | `Created int64` en `Time` **y** `time.UnixMilli(d.Time.Created)` | OccurredAtEsCompleted | = · `1afab4b1` |
-| m11 | `if false && (errData != nil \|\| …)` | Incoherente/ ×7 | = · `55164d41` |
-| m12 | tras `modelo := …`, `if modelo == "" { return nil, IncoherenteOpenCode }` | SinModelo/ausente, /vacio, /no_textual | = · `fc955985` |
-| m13 | `sesion = ctx.SessionID` *(sin derivar)* | Referencias/sesion · CentinelasFueraDelEvento | = · `1aaa0dc9` |
-| m14 | `Derivar(ctx.Directory, …)` → `Derivar(ctx.Path, …)` | Referencias/proyecto | = · `875b52d2` |
-
-**Re-derivación por hoja**: (15) no lleva `reasoning` ni `cache` *(m5–m7 no la tocan)*; (18/coste_cero) usa `evento.json`, sin `$.cost` *(m9 no la
-toca)*; (21/sin_sesion) tiene sesión vacía *(m13 da `""` y m14 queda dentro de la guarda)*; (22) compara el JSON entero, pero m14 y m9 sólo meten
-hashes y un `0.25` sin centinela; todos los fixtures de evento llevan `model.id` *(m12)*, y `time.created` numérico *(m10)*.
-
-Las diez, **= declarado**, y restauradas a `1b00c194…` antes de la siguiente; directa e inversa comprobadas únicas, y cada mutante compilado, antes de mutar.
-
-## B4 · Base y frontera *(`internal/ingest/opencode_base.go`, `internal/state/state.go`)*
-
-### T022–T023 *(2026-10-12, sobre `c63cf85`)*
-- **T022**: `FileState.Frontera` *(`omitempty`)*, `Frontera` y `EnCurso` → `state.go` `7622236a…`; esqueleto → **765 / 0 / 0**; `internal/state`: 10 «--- PASS», sin tocar sus tests.
-- **T023**: `generar.sh` `d773524d…` *(Python `sqlite3`, SQLite 3.45.1; conexión retenida para los `-wal` de `frontera/`)*: 28 ficheros, 668 505 B. md5:
-  `frontera/paso1–2` `c564552b` + `-wal 3535469c` · `paso3` `c564552b` + `-wal 07e01470` · `inverso/paso1–3` `1ea02836 4d32c776 271e9131` ·
-  `lista_borrada/paso1–2` `7d560547 5a13808c` · `vacuum/antes` `35931d5d` · `despues` `7bca728f` · `borrada_h/paso1–2` `abdbe429 78732391` ·
-  `abandono/paso1–3` `5c9a9bbc 0106ea3d 2e74ae4d` · `abandono_1h` `f8436203` · `clases` `53af85e7` · `dos_sesiones` `d5324c9b` · `centinelas` `50893cd6` ·
-  `formatos/`: `v1 38041872` · `without_rowid b153e8d0` · `utf16 4e70c51b` · `sin_columna 930dda16` · `corrupta` `6daa9b6b` · `esperado.json` `88c8eb27`.
-- **Hallazgo (SC-024)**: con `id text PRIMARY KEY`, el `VACUUM` de SQLite 3.45.1 **conserva** los rowid *(la tabla tiene índice)*; sin índices, los
-  renumera. `vacuum/` lleva `session_message` sin clave ni índices, y el guion comprueba que el `VACUUM` renumeró.
-- **`.gitignore`**: `!internal/ingest/testdata/opencode/**/*.db`; `git check-ignore`: 0 de 24 bases y 0 de 3 `-wal`. Privacidad con `grep -a`: 0.
-
-### T024–T025
-- **Rojos**: 16 tests y 43 «--- FAIL», todos por el esqueleto *(resumen `""`, sin eventos, sin entrada, sin error)*. Nace verde (36/otras): la valida m29.
-- **Verde** `7c3a011b…`; lint 0; **809 / 0 / 0**. (24/paginas) cayó con 12 > 10: las `assistant` de `frontera/` desbordaban la página de 1 KB y cada
-  `Buscar(25)` leía su desbordamiento. Se corrige el **fixture** *(relleno 500, y el guion lo comprueba)*, no la cota.
-- **SC-017** *(informativa, una vez; 1 039 265 792 B, 253 727 páginas, 250 000 filas, 2 500 sesiones)*: 1.ª pasada **29,3 s > 20 s: no cumple**; la
-  siguiente, con 10 nuevas, **43,6 ms y 75 páginas (0,030 %): cumple**. Se anota y se sigue *(normativa en C2)*.
-
-### T026 · Censo *(declarado ANTES de mutar; prefijo `TestBaseOpenCode_`)* y T027 · mutaciones *(base `7c3a011b…`; suite entera; edición inversa; md5)*
-| Mut. | Edición | Declarado | Cayó · md5 mutado |
-|---|---|---|---|
-| m15 | `case c.huella(fila) != fr.Huella:` → `… && false:` *(`case false:` no compilaba: `fila` sin usar)* | VacuumRenumera/ninguna_falta, /literal | = · `8443cd75` |
-| m16 | `return false, nil // la fila H ya no está` → `return true, …` | BorradaH/salen, /reinicio | = · `ad9ec2b9` |
-| m17 | en el bucle de la lista, `if true { c.lista = append(c.lista, e); continue }` | EnCursoSeCompleta · OrdenInverso · FilaDeLaListaBorrada · Abandono/paso2, /paso3 · **Inestable/quieta** | = · `49906409` |
-| m18 | antes de `c.clasificar(e.Rowid, fila)`, `if c.abandonada(fila) { …Abandonadas++; continue }` | Abandono/paso2 | = · `05c0d7ae` |
-| m19 | `return false && c.ahora.Sub(…) > abandonoOpenCode` | Abandono/paso2, /paso3, **/1h** · Clases/literal | = · `80ec170d` |
-| m20 | `desde, c.h, c.huellaH = previo.Offset, …` → `desde, … = math.MinInt64, …` | SegundaPasadaSinCambios/linea, /paginas · EnCursoSeCompleta · OrdenInverso · FilaDeLaListaBorrada · Abandono/paso2, /paso3, **/1h** | = · `a2a79d6b` |
-| m21 | antes del `continue // la sesión se borró`, `c.cuenta.Abandonadas++` | FilaDeLaListaBorrada | = · `00f323dc` |
-| m22 | `fr != nil {` → `fr == nil { desde = previo.Offset } else {` | EntradaSinCampo · **EstadoJSON/estado_060** | = · `2ff3148c` |
-| m23 | `c.cuenta.Reiniciadas++` → comentario | VacuumRenumera/literal · BorradaH/reinicio | = · `e5d8c81d` |
-| m24 | `intentosOpenCode = 5` → `1` | Inestable/una | = · `6fa948ec` |
-| m25 | antes del `return` de `errInestableOpenCode`, `st.Files[ruta] = l.estado` | Inestable/quieta | = · `d20bbe16` |
-| m26 | `if visto && previo.Size == …` → `if false && visto && …` | Formatos/anterior_segunda | = · `ed322233` |
-| m27 | `n != "opencode-next.db"` → `true` | `TestListarOpenCode` | = · `becdd4ad` |
-| m28 | `return event.Ref(c.sal, textoDeValor(…))` → `return textoDeValor(…)` | HuellaConSal | = · `7868fe1a` |
-| m29 | `state.go`: `json:"frontera,omitempty"` → `json:"frontera"` | EstadoJSON/otras · `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos` | = · `9835d068` |
-
-**Re-derivación** *(en negrita, las co-caídas que plan §Bloques no lista)*. Sólo m22 toca las entradas sin `frontera`: (28) y (36/estado_060) recorren
-desde 23. Los formatos se deciden antes de la frontera *(m22 no toca (34))*. Las de la lista y del recorrido sólo tocan pasadas con frontera:
-- **m17**: (24) no cae *(la fila sigue en curso, y lee menos páginas)*, ni (31/1h) *(su fila sigue en curso)*. Sí (33/quieta): su tercera pasada no
-  consulta la 25.
-- **m19 y m20**: caen en (31/1h): la primera pasada no abandona la de 25 h, y la segunda recorre otra vez desde el principio.
-- **m20**: (29) y (30) no caen *(reinician)*, ni (33/quieta) *(sólo exige que salga la 25)*. **m18**: (31/paso3) no cae *(la lista ya está vacía)*.
-- **m15**: sólo (29) tiene una fila distinta en H. **m28**: H y la lista se comparan con la misma función; sólo (38) mira la huella.
-- **m29**: el `"frontera": null` no lleva identificadores *(los tests de 008 y 009 sobre `state.json` no caen)*; (36/bases) busca `"frontera":{`.
-
-Las quince, **= declarado**, y restauradas a su md5 antes de la siguiente; directa e inversa únicas y cada mutante compilado, antes de mutar.
-
-## B4 remate · SC-017 en tope y `VACUUM` puede renumerar
-
-**Decisiones del dueño (2026-10-12)**: `tokens` nulo es incoherente *(B3)*; las desviaciones de B4, aceptadas; y la enmienda E-2 de la spec *(`VACUUM` **puede** renumerar)*.
-
-### SC-017 · Perfil antes de tocar *(base `7c3a011b…` y `1b00c194…`; la base de 1 GB de `TestSC017`, en `t.TempDir()`)*
-1.ª pasada **23,6 s** *(en B4, 29,3 s)*; 16,8 s de CPU en la pasada. Las 10 de más tiempo acumulado:
-| Función | Acum. | % |
-|---|---|---|
-| `testing.tRunner` | 16,81 s | 98,0 |
-| `ingest.LeerBaseOpenCode` · `TestSC017_CosteDeLaPasada` · `leerBaseOpenCode` | 16,80 s | 97,9 |
-| `ingest.(*clasificadorOpenCode).emitir` | 10,24 s | 59,7 |
-| `ingest.LlamadaOpenCode` | 8,63 s | 50,3 |
-| `encoding/json.Unmarshal` | 8,53 s | 49,7 |
-| `sqlitero.(*Base).recorrer` · `recorrer.func1` · `(*Tabla).RecorrerDesde` | 6,56 s | 38,2 |
-
-**Dónde se va**: el JSON, **8,5 s** *(51 %)*, con `checkValid` 5,3 s: **la hipótesis se confirma**, `data` se analiza dos veces por fila
-*(`clasificar` 3,4 s y `LlamadaOpenCode` 5,0 s)*. Además, `Resolutor.Derivar` con receptor nil, **2,8 s** *(250 000 `os.Lstat`: el test no
-lleva resolutor; `generate()` crea uno por pasada)*, y el `growslice` de `emitir`, 1,25 s. `sqlitero` propio, ≈ 2,6 s *(`carga` 1,9 s, `ReadAt` 1,2 s)*:
-**no es el cuello**, y `lector.go` no se toca. Memoria: 3,7 GB asignados, 1,5 GB en `carga`, y cada llamada retenía su fila entera hasta `emitir`.
-
-**Cambios, sin cambiar la conducta**:
-- `clasificar` analiza `data` **una vez**, con `datosOpenCode` *(da error en los mismos casos que `tiempoOpenCode`: sus campos de más son
-  `json.RawMessage`)*, y pasa lo leído a `LlamadaOpenCode` por `FilaOpenCode.leida` *(no exportado; nil → analiza `Data`, como en B3)*. La llamada
-  guarda una copia del `id`, no la fila.
-- `emitir`: sin resolutor, uno para la base *(la caché optimiza, no decide: P-004)*; `evs` con su capacidad.
-
-### SC-017 · Después *(`814d5a7e…` y `4e2c4c19…`; **809 / 0 / 0**)*
-Perfil: 1.ª pasada **5,4 s**, 5,3 s de CPU *(antes 16,8)*; 2,8 GB asignados *(antes 3,7)*. Las 10 de más tiempo acumulado:
-`tRunner` 5,32 s · `LeerBaseOpenCode`, `TestSC017`, `leerBaseOpenCode` 5,31 s · `recorrer`, `recorrer.func1`, `RecorrerDesde` 4,33 s ·
-`json.Unmarshal` 3,74 s *(un análisis por fila)* · `RecorrerDesde.func3` 3,46 s · `leerBaseOpenCode.func2` 3,38 s. `Lstat` ya no aparece.
-
-**Tres medidas**, cada una con su ventana y su base nueva de 1 039 265 792 B:
-| Medida | 1.ª pasada *(≤ 20 s)* | Siguiente *(≤ 50 ms)* | Páginas *(≤ 1 %)* |
-|---|---|---|---|
-| 1 | 5,205 s | 3,309 ms | 75 *(0,030 %)* |
-| 2 | 5,114 s | 2,715 ms | 75 *(0,030 %)* |
-| 3 | 5,149 s | 9,281 ms | 75 *(0,030 %)* |
-
-**Cumple**, con margen de ≈ 3,9× en la primera y ≥ 5× en la siguiente *(W1, en Windows, será más lenta)*.
-
-### Mutaciones tocadas *(declarado ANTES de mutar)*
-Ninguna línea de anclaje de m5–m29 cambia ni se mueve de función. Pero `datosOpenCode` y `errData` ahora también vienen de `clasificar`: se repiten
-**m9, m10 y m11** con el protocolo completo *(bases `814d5a7e…` y `4e2c4c19…`)*, y se re-derivan con los tests de B4, que en B3 no existían:
-- **m9** *(`Cost float64`)* y **m10** *(`Created int64`)*: todas las bases de B4 llevan `$.cost` y `$.time.created` numéricos *(o sin `created`)*, y
-  ningún test de B4 mira `cost_usd` ni `occurred_at`: **mismo declarado** que en B3.
-- **m11** *(sin incoherentes)*: además de las 7 de B3, **(32) Clases/literal** *(`o-clases-nojson` y `o-clases-negativa` salen como eventos:
-  incoherentes 0)*. (32/identidad) no cae: la identidad se cumple igual.
-
-Las demás siguen valiendo, con su md5 de base nuevo: m5–m8 y m12–m14 sobre `opencode.go` `814d5a7e…`; m15–m28 sobre `opencode_base.go` `4e2c4c19…`;
-m29, `state.go` sin cambios *(`7622236a…`)*.
-
-| Mut. | Edición *(la de B3)* | Declarado | Cayó · md5 mutado |
-|---|---|---|---|
-| m9 | `Cost float64` en `datosOpenCode` **y** `CostUSD: d.Cost` | `TestLlamadaOpenCode_SinCoste/cost` | = · `eb641a34` |
-| m10 | `Created int64` en `Time` **y** `time.UnixMilli(d.Time.Created)` | `TestLlamadaOpenCode_OccurredAtEsCompleted` | = · `59320c5f` |
-| m11 | `if false && (errData != nil \|\| …)` | `TestLlamadaOpenCode_Incoherente/` ×7 · **`TestBaseOpenCode_Clases/literal`** | = · `00ce22d1` |
-
-Las tres, **= declarado**, y restauradas a `814d5a7e…`; directa e inversa únicas y cada mutante compilado, antes de mutar.
+- **B0** · T001 sobre `0256098`: **671 / 0 / 0**, lint 0, frontera 0; sin mutaciones.
+- **B1** · `lector.go` `6acf4700…`: mB1–mB10, M-B1a y M-B1b, **12 de 12 = declarado**.
+- **B2** · `opencode_eventid.go` `0a3c19d4…`: m1–m4, **4 de 4 = declarado**.
+- **B3** · `opencode.go` `1b00c194…`, `814d5a7e…` desde el remate: m5–m14, **10 de 10 = declarado**.
+- **B4** · `opencode_base.go` `7c3a011b…`, `4e2c4c19…` desde el remate; `state.go` `7622236a…`: m15–m29, **15 de 15 = declarado**.
+- **B4 remate** · SC-017 cumple *(5,1–5,2 s; 75 páginas)*; m9–m11 repetidas sobre `814d5a7e…` y `4e2c4c19…`: **3 de 3 = declarado**.
 
 ## B5 · Ubicación *(`internal/config/opencode.go`, `internal/testutil/sandbox.go`)*
 
@@ -289,3 +69,51 @@ por edición inversa; T040 rehecha entera. Las nueve, **= declarado**, restaurad
 | linux/amd64 · darwin/amd64 · darwin/arm64 · windows/amd64 | 5 554 328 · 5 710 368 · 5 486 658 · 5 747 712 | 5 644 440 · 5 802 512 · 5 554 722 · 5 840 384 | 90 112 · 92 144 · 68 064 · 92 672 | — |
 
 Con E-3 *(el dueño, 12-10)*, las cinco ≤ 102 400 B. `readelf -lW` *(y `debug/elf`, igual)*: R E +38 416, R +39 968, RW +160; dos cruzan 64 KB *(2 × 65 536)*.
+
+## Re-censo de las 55 *(dueño, 12-10; 2026-10-13, sobre `e515258`, **835 / 0 / 0**)*
+
+**Sobre el papel, sin mutar**: para cada mutación, sobre el código de hoy, las hojas de la suite actual que caerían, frente a lo declarado. Bases de
+hoy = las finales: `lector.go` `6acf4700…` · `opencode_eventid.go` `0a3c19d4…` · `opencode.go` `814d5a7e…` · `opencode_base.go` `4e2c4c19…` · `state.go`
+`7622236a…` · `config/opencode.go` `a8593750…` · `sandbox.go` `98c03742…` · `main.go` `f4c07e53…` · `cmd/permea/opencode.go` `a47bebc2…`. Las «igual»
+quedan con su evidencia original; las «cambia» se repiten con el protocolo, con el censo nuevo **declarado aquí ANTES de mutar** *(en negrita, lo nuevo)*.
+(17) `TestLlamadaOpenCode_Identificador` · (18) `_SinCoste` · (23)–(38) `TestBaseOpenCode_*` *(B4)* · (41)–(50) `cmd/permea` *(B6)*.
+| Mut. | Veredicto · razón | Censo nuevo *(sólo «cambia»)* | Cayó · md5 mutado |
+|---|---|---|---|
+| mB1 | **cambia**: con un `-wal`, `walHuella` queda nil y `Estable()` nunca es cierto: `frontera/` da «cambió 5 veces». (33/sin_ruta) espera ese error; (48) sólo mira md5 y la línea | TestInstantaneas/I, /R · TestEstable/sin_cambio · **(23) · (24)** *(el padre: sus hojas no corren)* · **(25) · (28) · (33/una), (33/quieta) · (36/bases), (36/estado_060)** | = · `4feffcb3` |
+| mB2 | igual: ningún `-wal` posterior tiene frames con sales buenas y suma mala; el byte de `tocarWAL` no completa un frame | — | original |
+| mB3 | **cambia**: en `frontera/` *(páginas de 1 KB)* el `CREATE` de `session_v2` *(999 B)* desborda la página 1: `Tabla` da `errCorta`. Las demás bases, de 4 KB, no desbordan | TestInstantaneas/I, /R, /S · TestDesbordamiento/8k, /64k · **(23) · (24)** *(el padre)* · **(25) · (28) · (33/una), (33/quieta) · (36/bases), (36/estado_060)** | = · `b9e69007` |
+| mB4 | igual: los `-wal` de `frontera/` acaban en commit; I, en (48), sólo se mira por md5 y la línea | — | original |
+| mB5 | **cambia**: sin poda, `RecorrerDesde(25)` lee las 25 hojas de `frontera/`: 30 páginas > esquema + 6 | TestRecorrerDesde/paginas · **(24/paginas)** | = · `4c8e7ff8` |
+| mB6 | igual: en `frontera/`, H y la fila en curso son el rowid 25, al que lleva el puntero derecho; las demás bases son de una hoja | — | original |
+| mB7 | igual: en B4 y B6, `os.Stat` va antes de `Abrir`: ninguna base que falte llega a `Abrir` | — | original |
+| mB8 | igual: ninguna base posterior declara una carga mayor que la base | — | original |
+| mB9 | **cambia**: (33) depende de que `Estable()` falle | TestEstable/cambia · **(33/una), (33/quieta), (33/sin_ruta)** | = · `81ddd484` |
+| mB10 | **cambia**: `formatos/without_rowid` se acepta y su raíz de índice *(0x0a)* da «tipo de página desconocido»: error, no «esquema desconocido» | TestTablas/without_rowid · **(34/without_rowid)** | = · `89700202` |
+| M-B1a | igual: `formatos/utf16` sigue en «esquema desconocido» por otro camino: en UTF-16, `"table"` no casa y la tabla «no existe» | — | original |
+| M-B1b | **cambia**: el `-shm` aparece en la carpeta de (48) | TestSoloLectura/listado, /md5 · **(48)** | = · `3c99191f` |
+| m1 | **cambia**: `tool` sale `"gemini"`: (18/tool), y `cola(…, "opencode")` vacía en B6. (44), (45) y (48) no cuentan por herramienta | VectoresDelContrato/llamada, /otra_llamada · EspacioDeNombresPropio · **(18/tool) · (42) · (43) · (46) · (47) · (49) · (50/pasada), (50/se_relee)** | = · `4c2df440` |
+| m2 · m4 | igual: los tests posteriores calculan el `event_id` con la misma `derivarEventIDOpenCode`; sólo los vectores son literales | — | original |
+| m3 | **cambia**: el `id` vacío deriva: (17) ve evento o incoherente, y la fila `""` de `clases.db` sale como evento | SinIDNoHayEventID · **(17/ausente), (17/vacio), (17/no_textual), (17/antes_que_incoherente) · (32/literal)** | = · `c50474ea` |
+| m5 · m6 · m7 | igual: ningún test de B4 ni de B6 mira partidas | — | original |
+| m8 | igual: ningún test posterior mira `cost_available`, y `Append` no valida | — | original |
+| m9 · m10 · m11 | igual: re-derivadas en el remate con B4; B6 no mira `cost_usd` ni `occurred_at`, y sus fixtures no tienen incoherentes | — | original *(remate)* |
+| m12 | **cambia**: `o-clases-sinmodelo` pasa a incoherente | SinModelo/ausente, /vacio, /no_textual · **(32/literal)** | = · `7b2fdcb3` |
+| m13 | **cambia**: el `session_id` en claro: (37) con sesión, y `s-CENTINELA-sesion` en la cola | Referencias/sesion · CentinelasFueraDelEvento · **(37/o-dos-1), (37/o-dos-2) · (47)** | = · `f58482e6` |
+| m14 | **cambia**: `dos_sesiones.db` no tiene `path`: `Derivar("")`. En (47), `Derivar` del `path` es un hash | Referencias/proyecto · **(37/o-dos-1), (37/o-dos-2)** | = · `3d984f1f` |
+| m15 · m16 | igual: en B6, la segunda pasada ve la misma fila H | — | original |
+| m17 · m18 · m21 | igual: los fixtures de B6 no tienen filas en curso *(PARA 11)*; (48) hace una sola pasada | — | original |
+| m19 | igual: sólo I, en (48), tiene filas viejas en curso, y (48) sólo mira md5 y la línea | — | original |
+| m20 | **cambia**: la segunda pasada de B6 vuelve a emitir las de `sana.db`. (43) y (49) no tienen estado previo de OpenCode | SegundaPasadaSinCambios/linea, /paginas · EnCursoSeCompleta · OrdenInverso · FilaDeLaListaBorrada · Abandono/paso2, /paso3, /1h · **(45) · (46) · (50/se_relee)** | = · `0f28e577` |
+| m22 | igual: en B6, una entrada lleva `frontera` o no existe *(Offset 0: desde 0, todas)* | — | original |
+| m23 · m24 · m25 | igual: en B6 no hay reinicios ni bases que cambien al leerlas | — | original |
+| m26 · m27 | igual: B6 no tiene bases de formato anterior ni `opencode-next.db` | — | original |
+| m28 | **cambia**: la huella en claro de `o-CENTINELA-llamada` queda en `state.json` | HuellaConSal · **(47)** | = · `2fb91dd8` |
+| m29 | igual: `"frontera": null` no lleva identificadores, y B6 no mira la forma de las entradas | — | original |
+| m30 | igual: con `XDG_DATA_HOME` vacía, la ruta es `opencode`, relativa al directorio del test, que no existe: inactivo, como sin mutar | — | original |
+| m31 · m32 · m33 | igual: el sandbox deja `OPENCODE_DB` vacía, y ningún test de B6 la pone | — | original |
+| m34 | igual: el binario ya llama a `OpenCodeDatos`, pero con el `HOME` del sandbox, y sin `XDG_DATA_HOME` ni `OPENCODE_DB` en el entorno del runner *(`env`)* | — | original |
+| m35–m42 · M-B6a | igual: corridas el 13-10 con esta misma suite | — | original |
+
+Las trece «cambia», **= censo nuevo**, cada una con la suite entera y restaurada a su md5 antes de la siguiente; directa e inversa únicas y cada
+mutante compilado, antes de mutar. Ninguna línea cambió: todas se escriben como en su bloque. (24) cae sólo como padre con mB1 y mB3 *(818 + 15 y
+816 + 17 de 835)*. M-B1b no deja `-shm` en el árbol. Con las 42 «igual», **55 de 55 = declarado** sobre la suite de hoy.
