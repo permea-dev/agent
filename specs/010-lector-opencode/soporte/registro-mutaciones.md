@@ -192,3 +192,17 @@ eventos = 24 filas completadas del contador, 24 `event_id` distintos; input 142 
 `--run`, 0. **Paso 2**, OpenCode abierto y `--daemon` sobre la base real: primer ciclo 24 = 24; tras dos prompts, 2 eventos nuevos = 2 filas nuevas;
 26 = 26, cada uno una vez; 142 956 · 2 655 · 62 238 · 20 754, iguales; **E-1**: 0 ficheros nuevos en la carpeta real *(11 entradas antes y después)*.
 **SC-006** y **SC-023**, cumplen en Windows.
+
+**C6–C9** *(2026-10-13)*: **C6**, PR #7 con merge commit `fa1cf39`; la rama, borrada en local y en remoto *(`ls-remote`: sólo `main`)*. El árbol de
+`main` = el de la rama `e240b44`: desde C1 *(`ffcdb30`)* sólo cambian `CHANGELOG.md` y dos ficheros de `specs/010`, ningún `.go`, así que el 848 / 0
+/ 0 de C1 vale para `main`. **C7**, etiqueta anotada `v0.7.0` sobre `fa1cf39`; workflow `release` en verde; publicada a las 2026-10-13T18:25:21Z, sin
+borrador ni prerelease, con 6 assets. **C8**, descarga anónima: `sha256sum -c` OK ×5; Scoop en 0.7.0, con el hash del zip de Windows `70c958c1…4acb`;
+el cask en 0.7.0, con sus 4 hashes iguales a los publicados; el binario de Linux responde 0.7.0; los tres textos de spec §Textos, una vez cada uno,
+en el binario de Linux y en `permea.exe`; el README empaquetado trae «### OpenCode». **C9 · W2**, en la instalación real de Windows: Scoop 0.6.0 →
+0.7.0, hash OK; `--run`, 2 034 eventos transmitidos y confirmados = 2 008 de Claude Code + 26 de OpenCode *(«opencode: llamadas 26 · eventos 26», el
+resto a 0)*. En la plataforma, eventos `opencode`: 0 antes, 26 después, de la 0.7.0, con 26 `event_id` distintos, 0 con coste y 142 956 · 2 655 ·
+62 238 · 20 754 *(entrada · salida · lectura · escritura)* = el contador de W1; por modelo, `gemini-3.8-flash` 19 y `claude-sonnet-5` 5 *(los de la
+medición del 11-10)*, y `claude-haiku-4-5-20251001` 2 *(los de W1)*. Simulacro de avisos: 0 antes y 0 después. **SC-023 cumple en la instalación
+real.** **Hallazgo, para la plataforma** *(no es del agente)*: OpenCode con la API de Anthropic manda el modelo con fecha
+*(`claude-haiku-4-5-20251001`)*; el catálogo de tarifas de la plataforma casa por igualdad y sólo tiene `claude-haiku-4-5`, así que esos 2 eventos
+quedan sin coste reparado. Va como ficha al backlog de la plataforma.

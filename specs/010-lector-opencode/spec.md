@@ -1,6 +1,6 @@
 # 010 · «Lector de OpenCode» — Especificación
 
-**Feature Branch**: `010-lector-opencode` · **Created**: 2026-10-11 · **Status**: **Ratificada** el 2026-10-11 *(P-1 a P-12; P-3, reescrita
+**Feature Branch**: `010-lector-opencode` · **Created**: 2026-10-11 · **Status**: **Cerrada (2026-10-13)** *(ratificada el 2026-10-11: P-1 a P-12; P-3, reescrita
 por el dueño como frontera por rowid; Q-1 a Q-4 siguen abiertas; Q-5, cerrada; E-1 el 11-10)* · **Cabeza de partida**: `4c6cafc` *(sobre `6a952bf`, cierre de la 0.6.0)*
 **Input**:
 - las decisiones del dueño D-1 y D-2 *(2026-10-09)* y D-3 *(2026-10-11)*;
