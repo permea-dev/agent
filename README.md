@@ -1,9 +1,10 @@
 # Permea — medidor de coste de IA (local-first, multi-herramienta)
 
-Agente local que lee los logs de uso de herramientas de IA (Claude Code, Codex CLI y Gemini
-CLI), calcula **en local** el coste de Claude Code y transmite al backend de equipo
-**únicamente metadato derivado** — nunca contenido. Funciona sin conexión: los eventos
-pendientes se persisten y se transmiten **exactamente una vez** al recuperarse la red.
+Agente local que lee los logs de uso de herramientas de IA (Claude Code, Codex CLI, Gemini
+CLI y OpenCode), calcula **en local** el coste de Claude Code y transmite al backend de
+equipo **únicamente metadato derivado** — nunca contenido. Funciona sin conexión: los
+eventos pendientes se persisten y se transmiten **exactamente una vez** al recuperarse la
+red.
 
 ## Garantía de frontera
 `internal/event/event.go` define un struct CERRADO: el único dato que puede salir de
@@ -68,8 +69,8 @@ Los mismos tres pasos que muestra `permea help`:
 
 **3. Medir y enviar.**
 
-> ⚠️ **La primera pasada envía todo el historial que conserven Claude Code, Codex CLI y Gemini CLI**, no sólo lo
-> que uses a partir de ahora. Las siguientes envían sólo lo nuevo.
+> ⚠️ **La primera pasada envía todo el historial que conserven Claude Code, Codex CLI, Gemini CLI y
+> OpenCode**, no sólo lo que uses a partir de ahora. Las siguientes envían sólo lo nuevo.
 
     permea --run       # mide y envía una vez
     permea --daemon    # o lo deja en marcha: mide y envía cada cierto tiempo
@@ -139,7 +140,7 @@ servidor**, sobre lo que ya llegó.
 
 ## Modos de ejecución
 
-    permea --scan <fichero.jsonl>   # prueba en seco: un evento por mensaje (por respuesta, en Codex y en Gemini), sin tocar estado ni cola
+    permea --scan <fichero>         # prueba en seco: un evento por mensaje (por respuesta en Codex y Gemini; por llamada en una base de OpenCode), sin tocar estado ni cola
     permea --run                    # una pasada: escanea, encola y drena al backend
     permea --daemon                 # bucle continuo: cada sync_interval genera y transmite
 
@@ -155,15 +156,18 @@ servidor**, sobre lo que ya llegó.
 - **Al final de cada pasada, dos líneas por stderr con sólo recuentos**: lo leído y lo emitido; y los
   mensajes que crecieron entre líneas, los que esperan a cerrarse, las líneas releídas, las tardías y
   las que no traen el desglose de la caché. Con Codex activo, una tercera línea, `codex: …`, con sus
-  recuentos, y con Gemini activo, otra, `gemini: …`.
+  recuentos, y con Gemini activo, otra, `gemini: …`. Con OpenCode activo, una línea más,
+  `opencode: …`.
 - **`--scan`** imprime por evento las cuatro partidas de tokens (`in=`, `out=`, `cw=`, `cr=`), el
   desglose de la escritura de caché por duración (`cw5m=`, `cw1h=`), el coste y el `event_id`. Como
-  lee un fichero completo, cierra todos sus mensajes al final. En una sesión de Codex o de Gemini la
-  línea no lleva `cw5m=` ni `cw1h=`, y el coste es 0.
-- **`--run`** hace una pasada: descubre los logs de Claude Code y las sesiones de Codex y de Gemini, lee lo nuevo
-  por offset, encola de forma durable en `queue.jsonl` lo que está cerrado y, si hay `endpoint`
-  configurado, drena la cola por HTTPS autenticado. Lo que sigue abierto se queda para la pasada
-  siguiente, y lo avisa: «N mensajes siguen abiertos: se enviarán en la próxima pasada».
+  lee un fichero completo, cierra todos sus mensajes al final. En una sesión de Codex, de Gemini o
+  de OpenCode la línea no lleva `cw5m=` ni `cw1h=`, y el coste es 0. `--scan` admite también una
+  base de OpenCode, y añade una línea de contraste con el coste según OpenCode, que no se envía.
+- **`--run`** hace una pasada: descubre los logs de Claude Code, las sesiones de Codex y de Gemini y
+  las bases de OpenCode, lee lo nuevo por offset, encola de forma durable en `queue.jsonl` lo que
+  está cerrado y, si hay `endpoint` configurado, drena la cola por HTTPS autenticado. Lo que sigue
+  abierto se queda para la pasada siguiente, y lo avisa: «N mensajes siguen abiertos: se enviarán en
+  la próxima pasada».
 - **`--daemon`** repite lo anterior cada `sync_interval`; un mensaje en espera se cierra a su hora
   aunque su fichero no crezca, y el resumen sólo se escribe en los ciclos con novedades. Errores de
   red/5xx se reintentan con backoff acotado (máx. 5 reintentos, tope 5 min) y el lote permanece en
@@ -192,6 +196,21 @@ Las llamadas internas de la CLI (compresión, enrutado) y los intentos fallidos 
 así que el agente no los ve. Gemini CLI borra por defecto las sesiones de más de 30 días. Si la carpeta no
 existe, no cambia nada. Antigravity no guarda su consumo en estas sesiones y el agente no lo lee.
 
+### OpenCode
+
+Si existe `~/.local/share/opencode` (o `$XDG_DATA_HOME/opencode`), el agente lee también el consumo
+de OpenCode: su base `opencode.db` y las de sus canales (`opencode-<canal>.db`), con la misma regla
+en Linux, macOS y Windows. Con `OPENCODE_DB` apuntando a una base por ruta absoluta, lee sólo esa.
+La base se abre sólo para leer. Cada llamada al modelo es un evento con `tool = opencode`, sus
+tokens y su modelo; el razonamiento cuenta como salida. El coste no lo calcula el agente: los
+eventos salen con `cost_available = false`, aunque OpenCode guarde el suyo. Las partidas se han
+comprobado con modelos de Google y de Anthropic; con otros proveedores, un modelo cuyo nombre no
+case con el catálogo de la plataforma llega sin coste. Hace falta OpenCode 2.x; las bases de la 1.x
+se cuentan como «formato anterior» y no se envían. La llamada que pone título a cada sesión no queda
+entre sus mensajes y el agente no la ve: en la medición fue un 0,37 % del coste. Una llamada en
+curso se espera hasta 24 horas; pasado ese tiempo se cuenta como «abandonada» y no se envía. Si la
+carpeta no existe, no cambia nada.
+
 ## Coste y tarifas
 
 El coste de Claude Code se calcula **en local**, en **USD**, con una tabla empaquetada en el binario
@@ -209,7 +228,7 @@ Anthropic del catálogo de tarifas de la plataforma (`permea-dev/permea-platform
   tarifa entera a **1 hora**. Es la misma hipótesis que declara el catálogo de la plataforma.
 - **Limitación 2**: el **«modo rápido»** no se distingue; un evento en modo rápido quedaría
   infravalorado.
-- **Codex y Gemini**: el agente no calcula su coste; lo pone la plataforma (ver «Codex CLI» y «Gemini CLI»).
+- **Codex, Gemini y OpenCode**: el agente no calcula su coste; lo pone la plataforma (ver «Codex CLI», «Gemini CLI» y «OpenCode»).
 
 ## Configuración y rutas por SO
 
@@ -251,7 +270,8 @@ La versión del binario (`agent_version` en el evento) se inyecta con
 ### Estructura
     cmd/permea        punto de entrada (subcomandos enroll/status/project join + modos scan/run/daemon)
     internal/event    LA FRONTERA (struct cerrado del evento)
-    internal/ingest   lectores por herramienta (claude_code, codex, gemini) + tests de frontera
+    internal/ingest   lectores por herramienta (claude_code, codex, gemini, opencode) + tests de frontera
+    internal/sqlitero lector propio de SQLite, de sólo lectura (bases de OpenCode)
     internal/pricing  cálculo de coste local (tabla empaquetada)
     internal/state    escaneo incremental idempotente
     internal/transport cliente HTTPS + cola offline + entrega exactamente-una-vez

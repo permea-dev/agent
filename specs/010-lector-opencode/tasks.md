@@ -22,7 +22,7 @@
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 229 |
-| `tasks.md` *(este)* | **350** | 313 |
+| `tasks.md` *(este)* | **350** | 317 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
 | `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 143 |
 | `soporte/registro-mutaciones-archivo.md` *(B0 a B4 remate, íntegros; dueño, 13-10)* | **no cuenta** | 230 |
@@ -210,18 +210,22 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
 - [x] **T045** Censo y mutaciones **m43–m46**, con md5. **m44** declara, por nombre y hoja, los diez tests existentes de `--scan` de plan §Bloques
   *(como m36 en 009)*. **m43**, redefinida *(dueño, 13-10)*: un fichero de menos de 16 B da error → (54); la de antes, equivalente.
   > Transcripción: [`soporte/registro-mutaciones.md`](./soporte/registro-mutaciones.md) §B7 *(848 pass; m43–m46 = declarado; m44, uno más; talla M)*.
-- [ ] **T046** ✋ Puertas y commit: `010 B7: scan de OpenCode con la linea de contraste`.
+- [x] **T046** ✋ Puertas y commit: `010 B7: scan de OpenCode con la linea de contraste` *(13-10: `80ddc2e`)*.
 
 ## B8 · README y CHANGELOG *(FR-031; P-12)*
 
-- [ ] **T047** ✋ **El dueño aprueba los textos**: «### OpenCode» en el README y la entrada `0.7.0` del CHANGELOG. Claude los propone en un encargo
+- [x] **T047** ✋ **El dueño aprueba los textos**: «### OpenCode» en el README y la entrada `0.7.0` del CHANGELOG. Claude los propone en un encargo
   aparte, con estos límites:
   - D-2, el 0,37 %;
   - el abandono a las 24 h;
   - partidas verificadas con Google y Anthropic;
   - la dependencia de P-033.
-- [ ] **T048** **Rojo**, transcrito: `grep -c '^## 0.7.0' CHANGELOG.md` → 0; `grep -c '^### OpenCode' README.md` → 0.
-- [ ] **T049** README y CHANGELOG *(`## 0.7.0 — PENDIENTE`)*, con los textos **sacados por programa** de lo aprobado. `cmp` sin diferencias.
+  > Aprobados el 2026-10-13: `readme-opencode.md` `3220bb7f…`, `readme-retoques.txt` *(R1 a R3)* `348b71e8…`, `changelog-070.md` `6c423dcb…`.
+- [x] **T048** **Rojo**, transcrito: `grep -c '^## 0.7.0' CHANGELOG.md` → 0; `grep -c '^### OpenCode' README.md` → 0 *(13-10)*.
+- [x] **T049** README y CHANGELOG *(`## 0.7.0 — PENDIENTE`)*, con los textos **sacados por programa** de lo aprobado. `cmp` sin diferencias
+  *(13-10: sección y bloque, `cmp` 0; R1 y R2, partidas por el ajuste de línea, casan unidas; R3, `grep -F` 1)*.
+  > Remate *(dueño, 13-10)*: la sección, a 100 columnas *(`v2-readme-opencode.md` `104dc6dd…`)*, y R4 a R9 *(`v2-readme-retoques.txt`
+  > `4e410c95…`)*; cada «pasa a», 1; cada «de», 0; `cmp` 0 ×2. `b8.py` lo hace todo desde HEAD.
 - [ ] **T050** ✋ Puertas y commit: `010 B8: README y CHANGELOG de la 0.7.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
