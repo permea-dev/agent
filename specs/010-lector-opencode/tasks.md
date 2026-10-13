@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 450 | 450 |
 | `plan.md` | **250** | 229 |
-| `tasks.md` *(este)* | **350** | 322 |
+| `tasks.md` *(este)* | **350** | 327 |
 | `contracts/event-id-opencode.md` | **80** | 73 |
-| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 186 |
+| `soporte/registro-mutaciones.md` *(nace en T001)* | **300** | 194 |
 | `soporte/registro-mutaciones-archivo.md` *(B0 a B4 remate, íntegros; dueño, 13-10)* | **no cuenta** | 230 |
 | `soporte/prueba-sqlite.md` · `soporte/medicion-anthropic.md` | 200 · 150 *(cerrados)* | 168 · 144 |
 
@@ -255,12 +255,14 @@ Una mutación que no compila o que panica **no cuenta**: (9) recupera el pánico
   > 13-10: Windows, OpenCode 2.0.26, sin enrolar y en sandbox. Paso 1 (cerrado, sobre copia): 24 eventos = 24 filas de `sonda-a`, tokens iguales; SC-006, md5 y listado de la
   > copia iguales; 2.ª `--run` 0. Paso 2 (abierto, `--daemon`): 2 prompts → 2 eventos = 2 filas nuevas; 26 = 26, cada uno una vez; tokens iguales; E-1, 0 ficheros nuevos en la
   > carpeta real. **TODO IGUAL**.
-- [ ] **T055** **C5** · El cuerpo del PR, que dice **«la etiqueta espera a SC-027 (P-033)»**.
+- [x] **T055** **C5** · El cuerpo del PR, que dice **«la etiqueta espera a SC-027 (P-033)»**.
+  > 13-10: SC-027 cumplido: P-033 en producción desde el 12-10, y su test del vector da 0,043348. Por decisión del dueño, la fecha de la 0.7.0 entra aquí, en la rama
+  > (`PENDIENTE` → 0), y C7 sólo etiqueta. El cuerpo del PR, fuera del repo.
 - [ ] **T056** ✋ **C6** · Fusión del PR con merge commit *(pregunta 1 del reporte del plan)*.
 - [ ] **T057** ✋ **C7** · 🛑 **BLOQUEADA hasta SC-027**:
   - P-033 en producción;
   - la plataforma repara las 5 filas de la medición en **0,043348**;
-  - después, `## 0.7.0 — <fecha>` *(`PENDIENTE` → 0)*, `git tag -a v0.7.0` y push.
+  - después, `git tag -a v0.7.0` y push *(la fecha, ya en C5: dueño, 13-10)*.
 - [ ] **T058** **C8** · Los tres canales en `0.7.0`, y `strings` del binario publicado.
 - [ ] **T059** ✋ **C9 · W2**: `scoop update`, `--run`, y en la plataforma, eventos `opencode` = las filas nuevas del contador *(SC-023)*.
 

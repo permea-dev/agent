@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.7.0 — PENDIENTE
+## 0.7.0 — 2026-10-13
 
 ### Nuevo
 - Lee también el consumo de OpenCode 2.x, de `~/.local/share/opencode` (o de `$XDG_DATA_HOME/opencode`, o de la base que indique
