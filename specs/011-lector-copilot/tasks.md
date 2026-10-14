@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 400 | 338 |
 | `plan.md` | **250** | 236 |
-| `tasks.md` *(este)* | **350** | 283 |
+| `tasks.md` *(este)* | **350** | 285 |
 | `contracts/event-id-copilot.md` | **80** | 78 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 84 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 183 |
 | `soporte/registro-archivo.md` *(§B0–§B2, íntegros; dueño, 14-10)* | **no cuenta** | 197 |
 | `soporte/descubrimiento.md` · `-muestra-2.md` · `-muestra-3.md` | 200 · 80 · 60 *(cerrados)* | 200 · 80 · 60 |
 
@@ -171,19 +171,21 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B4 · Integración *(FR-002, FR-021, FR-023 a FR-026; SC-003, SC-006, SC-011, SC-015, SC-018, SC-019)* — nace `cmd/permea/copilot_test.go`
 
-- [ ] **T025** Fase 0, **en este orden**:
+- [x] **T025** Fase 0, **en este orden**:
   1. **Antes de tocar `main.go`** *(D-011-P9)*: la referencia de SC-015 con el binario de `15c4c47`, y su md5. **Si `main.go` ya cambió, PARA.**
   2. El forzado A, comprobado *(`Load` pasa, `Append` pasa, `Save` falla)*.
   3. `cmd/permea/copilot.go` *(`generarCopilot`, sin emitir)*, y en `main.go` los campos, `setup()` y `generate()`.
-- [ ] **T026** [P] **Rojos (28) a (32)**, y **(27)**, nacido verde *(lo valida m30)*, con `cola` y `capturarStderr` de `codex_test.go`, sin tocarlo.
-- [ ] **T027** **Verde**: Copilot CLI tras OpenCode y antes del único `st.Save`; la activación en cada pasada; los errores por fichero *(D-011-P5)*; la
+- [x] **T026** [P] **Rojos (28) a (32)**, y **(27)**, nacido verde *(lo valida m30)*, con `cola` y `capturarStderr` de `codex_test.go`, sin tocarlo.
+- [x] **T027** **Verde**: Copilot CLI tras OpenCode y antes del único `st.Save`; la activación en cada pasada; los errores por fichero *(D-011-P5)*; la
   línea en `runOnce` y, con `HayNovedades`, en `tick`.
-- [ ] **T028** Comprobar y transcribir, sin tocarlos, que los `_test.go` de `cmd/permea` siguen verdes.
-- [ ] **T029** **Nacen verdes (33) a (36)**, escritos tras el verde de T027: centinelas en la cola y en `state.json`; md5 y listado de la raíz y sus `.lock`
+- [x] **T028** Comprobar y transcribir, sin tocarlos, que los `_test.go` de `cmd/permea` siguen verdes.
+- [x] **T029** **Nacen verdes (33) a (36)**, escritos tras el verde de T027: centinelas en la cola y en `state.json`; md5 y listado de la raíz y sus `.lock`
   tras `--run`; la carpeta creada después; y el fichero ilegible. Los validan m37, **M-B4a**, m34 y m35–m36.
-- [ ] **T030** Censo y mutaciones **m30–m37** y **M-B4a**, con md5. **m30** declara, **por nombre y hoja**, los tests existentes que caen *(los
+- [x] **T030** Censo y mutaciones **m30–m37** y **M-B4a**, con md5. **m30** declara, **por nombre y hoja**, los tests existentes que caen *(los
   `*_SinRaiz*` y `*_LineaDeResumen` de Codex, Gemini y OpenCode)*, y se comprueba antes de mutar que no hay más.
-- [ ] **T031** **SC-007, informativo**, como T022.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B4 *(940 pass; m30–m37 y M-B4a = declarado; PARA 2 en m31 resuelto por la enmienda del censo del dueño, m31 → también (33))*.
+- [x] **T031** **SC-007, informativo**, como T022.
+  > Transcripción: §B4 *(lector enlazado: Δ máx. +25 184 B en darwin/amd64; arm64 `LOAD` +21 488; todas ≤ 102 400)*.
 - [ ] **T032** ✋ Puertas y commit: `011 B4: Copilot CLI en run y daemon, antes de guardar el estado`.
 
 ## B5 · `--scan` *(FR-022, FR-023; SC-001, SC-002 y SC-023 en forma)*

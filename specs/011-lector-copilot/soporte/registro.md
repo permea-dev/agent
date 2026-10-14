@@ -82,3 +82,102 @@ ninguna espera llevó el nombre de una suite.
 
 **T022 · SC-007, informativo**: lo mismo que tras B2 *(Δ fichero 0 en las 5; arm64 `LOAD` +256; `__TEXT` darwin/amd64 846 → 718 B)*. El lector sigue sin
 enlazar hasta B4.
+
+## B4 · Integración *(`cmd/permea/copilot.go`, `cmd/permea/main.go`)*
+
+- **T025 · Fase 0** *(sobre `57d6b2f`)*, en este orden:
+  1. `git diff 15c4c47 -- cmd/permea/main.go` **vacío**. La referencia de SC-015, con **el binario de `15c4c47`**: `git archive` en un `mktemp -d`, un
+     test temporal que sólo vivió allí, y el escenario de (27) *(Claude Code, Codex, Gemini y OpenCode en `testutil.Sandbox`, sin Copilot)*. Resultado:
+     rc 0, stdout vacío; con `<DATOS>`, **`cmd/permea/testdata/copilot/referencia-run.stderr` `9c5267df…`**, 8 líneas, sin rutas.
+  2. Forzado A, en el mismo temporal: `Load` → `<nil>`; `Append` → `<nil>` *(310 B)*; `Save` → *permission denied*; uid 1000.
+  3. Esqueleto: `cmd/permea/copilot.go` *(`copilotActivo`, `generarCopilot` sin emitir)*; en `main.go`, los campos `copilotRaiz` y `copilot`, `setup()` y el
+     bloque de `generate()` tras OpenCode.
+- **Incidencia, la tercera** *(sin efecto en los resultados)*: la espera previa a la referencia **se bloqueó contra sí misma**. Un `heredoc` que escribía el
+  guion dejó «go test» en la línea de órdenes de la espera. **Frenó unos 10 min a la sesión de la plataforma.** Se pararon las dos órdenes. Desde entonces,
+  los guiones se escriben antes, en otra orden, y la espera sólo mira su fichero.
+- **T026 · Rojos** *(libre 1.41; 16:32:44 → :57, 12,5 s)*: **927 / 7 / 0**.
+  - **Caen por el esqueleto** *(«0 eventos copilot_cli», «el primer copilot_cli en -1», «se esperaban 3»)*: (28), (29), (30/linea), (30/orden_cola), (31) y (32),
+    con su padre.
+  - **(27) ×2 nace verde y está declarado** *(927 − 924)*.
+- **T027 · Verde**: `copilot.go` `35626e45…` *(`generarCopilot`; errores por fichero con `sinRuta`, D-011-P5)* y `main.go` `1b0efb8b…` *(la línea en
+  `runOnce` tras OpenCode, y en `tick` con `HayNovedades`)*. **934 / 0 / 0** *(libre 1.83; 10,0 s)*.
+- **T028**: `git diff 15c4c47 --name-only --diff-filter=M -- '*_test.go'` → vacío. Los `_test.go` existentes de `cmd/permea` siguen verdes y sin tocar.
+- **T029 · Nacen verdes** (33)–(36), escritos tras el verde: **940 / 0 / 0** *(libre 1.68; 11,8 s)*; `copilot_test.go` `53cf99c7…`. Vet y lint 0; gofmt vacío.
+  Los fixtures son los sintéticos de `internal/ingest/testdata/copilot/`: `cmd` no lleva sesiones propias.
+
+**T030 · Censo** *(ANTES de mutar)*: (27)–(36) = `TestCopilot{Run_SinCopilotEsLaSalidaDeLa070, Run_SoloCopilot, Generate_EncolaAntesDeGuardar,
+Run_LineaDeResumen, Demonio_SoloConNovedades, Run_SegundaPasadaCero, Run_NadaDelProveedorViaja, Run_SoloLectura, Activacion_EnCadaPasada,
+Generate_FicheroIlegibleNoRompe}`.
+- **Los tests existentes que comparan el stderr de `--run` entero o cuentan sus líneas** *(grep de `len(lineas)` y `referencia` en `cmd/permea`; los demás
+  buscan una subcadena, y los de `tick` usan agentes sin raíz de Copilot)*. Son, POR NOMBRE, los 8 de **«E»**:
+  - `TestCodexRun_SinRaizEsLaSalidaDeLa040/{codex_home_vacia,raiz_inexistente}` y `TestCodexRun_LineaDeResumen`;
+  - `TestGeminiRun_SinRaizEsLaSalidaDeLa050/{gemini_cli_home_vacia,sin_tmp}` y `TestGeminiRun_LineaDeResumen`;
+  - `TestOpenCodeRun_SinOpenCodeEsLaSalidaDeLa060/{opencode_db_vacia,xdg_vacia}` y `TestOpenCodeRun_LineaDeResumen`.
+- **Ajustes a plan §Bloques, declarados aquí**:
+  - **m31** → además (31), (32) y (36/se_relee): con el estado guardado ANTES, el offset de Copilot no se guarda, y la pasada siguiente lo relee todo;
+  - **m34** → además (27) ×2 y «E»: sin comprobar la carpeta, toda `--run` en sandbox da Copilot por activo *(aviso y línea de más)*;
+  - **m35** → además (36/se_relee): la pasada abortada no guarda el estado, y la siguiente relee la sesión sana.
+
+| Mut. | Edición | Declarado |
+|---|---|---|
+| m30 | `a.copilot = nil` → `= ingest.NuevaPasadaCopilot()` | (27) ×2, (35) y «E» |
+| m31 | el bloque de Copilot, después del `st.Save` | (29), (31), (32), (36/se_relee) |
+| m32 | `tick`: sin `&& a.copilot.HayNovedades()` | (31) |
+| m33 | el bloque de Copilot, antes que el de OpenCode | (30/orden_cola) |
+| m34 | `copilotActivo`: sólo `a.copilotRaiz != ""`, sin `os.Stat` | (27) ×2, (35) y «E» |
+| m35 | un fichero que no se puede leer → `return total, err` | (36/pasada), (36/se_relee) |
+| m36 | un fichero que no se puede leer avanza su offset *(`Offset = Size`)* | (36/se_relee) |
+| m37 | `ev.ProjectRef = ruta` antes de encolar | (33) |
+| M-B4a | `generarCopilot` crea `<raíz>/.lector` | (34) |
+
+**T030 · Observado, hasta el PARA** *(cada una: md5 del verde, `bash ~/bin/libre.sh` sola, suite y `comprobar.py`; antes, una prueba en seco de las 9)*:
+- **En la prueba en seco**, la reversión de m32 falló por un ancla duplicada *(`if a.copilot != nil {` está también en `runOnce`)* y dejó m32 puesta en
+  `main.go`. **Ninguna suite había corrido.** Se ancló a dos líneas y `main.go` volvió a `1b0efb8b`; m31 y m33 se volvieron a probar sobre el verde.
+
+| Mut. | md5 mutado | Suite | |
+|---|---|---|---|
+| m30 | `main.go` `f1dcb6ba` | 924 / 16 | ✅ = declarado: (27) ×2, (35) y los 8 de «E» |
+| m31 | `main.go` `1d60e136` | 934 / 6 | 🛑 **≠ declarado**. **De más: (33)** `TestCopilotRun_NadaDelProveedorViaja`. De menos: nada |
+
+**🛑 PARA 2** *(16:59)*. **m31 se queda puesta** *(`main.go` `1d60e136`)*. **Motivo de la caída de (33)**: con el `st.Save` antes de Copilot, `state.json` no
+llega a tener la entrada del fichero de Copilot, y (33) tiene como precondición que esa clave esté *(«precondición: state.json no tiene la ruta del fichero
+como clave»)*. **Es un fallo del censo, no del código**: m31 queda detectada por una hoja más de las que se declararon. **Sin decisión del dueño no se sigue**
+*(m32–m37, M-B4a, T031)*.
+
+**Enmienda del censo de m31** *(dueño, 14-10, opción (a); encargo 13/n)*: «Antes: m31 → (29), (31), (32), (36/se_relee)» → **m31 → (29), (31), (32), (33),
+(36/se_relee)**. **Por qué**: la precondición de (33) *(que `state.json` tenga como clave la ruta del fichero de Copilot)* depende de «encolar → guardar».
+Con el `st.Save` antes de Copilot, esa entrada no llega al disco. **(33) no se toca.** m31 se revierte, se repite contra el censo enmendado y se sigue.
+
+**T030 · Observado tras la enmienda** *(encargo 13/n; m31 revertida por edición inversa → `main.go` `1b0efb8b`, el del verde)*:
+
+| Mut. | md5 mutado | Suite *(libre «inicio»)* | = declarado |
+|---|---|---|:-:|
+| m31 *(repetida)* | `main.go` `1d60e136` | 934 / 6 *(1.60)* | ✅ con la enmienda: (29), (31), (32), (33), (36/se_relee) |
+| m32 | `main.go` `9b0874e6` | 939 / 1 *(1.26)* | ✅ (31) |
+| m33 | `main.go` `9b1146cb` | 938 / 2 *(1.02)* | ✅ (30/orden_cola) |
+| m34 | `copilot.go` `f0d033ed` | 924 / 16 *(0.77)* | ✅ (27) ×2, (35) y «E» |
+| m35 | `copilot.go` `1d62ee5f` | 937 / 3 *(0.61)* | ✅ (36/pasada), (36/se_relee) |
+| m36 | `copilot.go` `bcf336f3` | 938 / 2 *(0.90)* | ✅ (36/se_relee) |
+| m37 | `copilot.go` `eff393a1` | 939 / 1 *(0.82)* | ✅ (33) |
+| M-B4a | `copilot.go` `9d38dd3b` | 939 / 1 *(0.83)* | ✅ (34) |
+
+**B4: 9 de 9 = declarado** *(m30 antes del PARA; m31, con la enmienda)*. Al final, `main.go` `1b0efb8b` y `copilot.go` `35626e45`, los del verde. Cada suite,
+7–12 s.
+
+**T031 · SC-007, con el lector ya enlazado** *(`git archive 15c4c47` con `0.7.0` frente al árbol con `0.8.0`; banderas de goreleaser)*:
+
+| Plataforma | 0.7.0 | Tras B4 | Δ fichero | Nota |
+|---|---:|---:|---:|---|
+| linux/amd64 | 5 648 536 | 5 673 112 | **+24 576** | |
+| linux/arm64 | 5 439 640 | 5 439 640 | 0 | Σ `FileSiz` de los `LOAD`: 5 337 116 → 5 358 604, **+21 488** *(normativo, E-3)* |
+| darwin/amd64 | 5 810 800 | 5 835 984 | **+25 184** | `__TEXT` saltó una página: holgura 846 → **3 733** B |
+| darwin/arm64 | 5 571 330 | 5 588 450 | **+17 120** | holgura de `__TEXT` 14 144 → 2 157 B |
+| windows/amd64 | 5 846 528 | 5 870 592 | **+24 064** | |
+
+**Todas ≤ 102 400 B.** La mayor, darwin/amd64, gasta el **24,6 %** del tope. Quedan B5 *(`--scan`)* y B6 *(textos)*.
+
+**Puertas del corte** *(libre 0.71; 18:49:27 → :35)*:
+- **940 / 0 / 0**; vet y lint 0 *(libre 0.79)*; gofmt vacío;
+- frontera de FR-027 vacía; ningún `*_test.go` existente modificado *(los 848 de la 0.7.0, verdes)*; `go.mod` sin `require`; sin `go.sum`; `os.Getenv` → 5;
+- **`PRIV`**: 0 en `git diff 15c4c47`; 0 en los 3 ficheros nuevos; 0 con `grep -raEc` en `cmd/permea/testdata/copilot/` *(1)* y en
+  `internal/ingest/testdata/copilot/` *(52)*.
