@@ -24,8 +24,8 @@
 | `plan.md` | **250** | 236 |
 | `tasks.md` *(este)* | **350** | 285 |
 | `contracts/event-id-copilot.md` | **80** | 78 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 183 |
-| `soporte/registro-archivo.md` *(§B0–§B2, íntegros; dueño, 14-10)* | **no cuenta** | 197 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 62 |
+| `soporte/registro-archivo.md` *(§B0–§B6, íntegros; dueño, 14-10)* | **no cuenta** | 453 |
 | `soporte/descubrimiento.md` · `-muestra-2.md` · `-muestra-3.md` | 200 · 80 · 60 *(cerrados)* | 200 · 80 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -218,19 +218,22 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
 
-- [ ] **T041** **C1** · Puertas, con 0 SKIP en Linux:
+- [x] **T041** **C1** · Puertas, con 0 SKIP en Linux:
   - **SC-007** en las 5 plataformas;
   - **SC-008** y **SC-016**;
   - **SC-020**: el patrón `PRIV` de §Puertas sobre `git diff 15c4c47` y, con `grep -raE`, sobre los testdata;
   - compilan Windows y darwin; `PENDIENTE` → 1.
-- [ ] **T042** **C2** · Medidas sobre **las 3 copias congeladas** *(`-14`, `-14b` y `-14c`)*, en su sitio y en sólo lectura, con sus sha256 antes y
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(953 / 0; los 848 intactos; SC-007 máx. +33 760 B; PRIV 0 en 011)*.
+- [x] **T042** **C2** · Medidas sobre **las 3 copias congeladas** *(`-14`, `-14b` y `-14c`)*, en su sitio y en sólo lectura, con sus sha256 antes y
   después *(PARA 9)*:
   - **SC-001**, **SC-002** y **SC-003** sobre `-14b` *(`--run` con `COPILOT_HOME` = la copia, sandbox sin enrolar; `--scan` de F)*;
   - **SC-004** sobre D, **SC-009** sobre E, **SC-023** sobre G;
   - y `-14`, igual que A+B y C en `-14b`.
 
   Contraste independiente: un guion `python3 -I` fuera del repo cuenta registros, partidas y créditos. Una diferencia → **PARA**.
-- [ ] **T043** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows, y `strings` con los textos *(SC-017)*. `dist/` borrado.
+  > Transcripción: §Cierre *(TODO IGUAL; sha256 de las 3 copias iguales)*.
+- [x] **T043** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows, y `strings` con los textos *(SC-017)*. `dist/` borrado.
+  > Transcripción: §Cierre *(zip `8be731d5…`; los 3 textos en `permea.exe`)*.
 - [ ] **T044** ✋ **C4 · W1** *(plan D-011-W)*: Copilot cerrado, y luego abierto con un `/compact`; el contador `python3 -I`. **SC-006** y **SC-022** *(W1, con el control de créditos)*.
 - [ ] **T045** **C5** · El cuerpo del PR, fuera del repo; la fecha de la 0.8.0 entra en la rama *(`PENDIENTE` → 0)*.
 - [ ] **T046** ✋ **C6** · Fusión del PR con merge commit.
