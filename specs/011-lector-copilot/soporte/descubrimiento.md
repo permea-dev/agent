@@ -182,7 +182,7 @@ tomada el 2026-10-14, y la documentación pública de GitHub.
 - **P-1 · Fuente** *(D-2 de la spec)*: `session.usage_record` **y** `session.compaction_complete` con `success: true`, que lleva un consumo que no está en
   ningún `usage_record` *([muestra 2](descubrimiento-muestra-2.md), M2)*. Una línea = un evento. Se ignoran los `model.*`, los `shutdown` y los checkpoints.
 - **P-2 · Partidas**: las de Q4. La salida = `outputTokens` *(el razonamiento va dentro)*.
-- **P-3 · `event_id`**: de `accounting.usageId`, o de `(sourceSessionId, sequence)` si falta, con espacio de nombres `copilot`. **Nunca** de `providerCallId`.
+- **P-3 · `event_id`**: de `accounting.usageId`, o de `(sourceSessionId, sequence)` si falta, con espacio de nombres `copilot_cli` *(D-1 de la spec)*. **Nunca** de `providerCallId`.
 - **P-4 · Modelo**: `usage.model` tal cual *(`gpt-6-luna`)*. `modelDisplayName` no viaja.
 - **P-5 · Sesión y proyecto**: `session_ref` desde `accounting.sourceSessionId` *(= carpeta = `session.start.sessionId`)*; `project_ref` desde el `context.cwd` del
   último `start` o `resume` anterior. No se lee `workspace.yaml`.
