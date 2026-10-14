@@ -24,7 +24,7 @@ tomada el 2026-10-14, y la documentación pública de GitHub.
 ## Q1 · Dónde y en qué forma
 
 - **Ruta** *(LEÍDO EN LA DOCUMENTACIÓN)*: `~/.copilot` por defecto, y **`COPILOT_HOME` sustituye la ruta entera**. La copia es
-  `<raíz>/session-state/`. La documentación no dice explícitamente que `session-state/` se mueva con la variable *(pregunta abierta 1)*.
+  `<raíz>/session-state/`. **Confirmado**: `<COPILOT_HOME>/session-state/<id>/` *([muestra 2](descubrimiento-muestra-2.md), M3)*.
 - **Por sesión** *(MEDIDO)*, en `session-state/<id>/`, donde **el nombre de la carpeta es `data.sessionId` de `session.start`**:
 
   | Fichero | A+B | C | Forma |
@@ -125,7 +125,7 @@ tomada el 2026-10-14, y la documentación pública de GitHub.
 - **Cuándo se escribe cada `usage_record`** *(MEDIDO)*: inmediatamente tras su llamada y **antes** de `assistant.message`, `turn_end` y el checkpoint. En las tres
   sesiones, **Σ `usage_record` = `shutdown`** exactamente.
 - **Sin `shutdown`**, con los `usage_record` como fuente, **no se perdería nada de lo ya escrito**; como mucho, la llamada en vuelo al morir.
-  **NO SE PUDO MEDIR**: no hay una sesión matada *(`taskkill /F`, `kill -9`, corte de luz)*. Hace falta esa muestra para confirmarlo.
+  **Confirmado** con una sesión matada: se pierde como mucho la llamada en curso *([muestra 2](descubrimiento-muestra-2.md), M1)*.
 
 ## Q7 · El modelo y Auto *(MEDIDO)*
 
@@ -169,7 +169,7 @@ tomada el 2026-10-14, y la documentación pública de GitHub.
 | Hueco | Cómo se cerraría |
 |---|---|
 | **Linux y macOS** *(ruta, LF, `COPILOT_HOME`)* | una sesión corta en cada uno, con y sin `COPILOT_HOME`, con sha256 y `find` de la raíz |
-| **Sesiones largas o con compactación** *(¿`usage_record` de la compactación? ¿se reescribe `events.jsonl`?)* | una sesión con `/compact` o que llegue al límite de contexto; contar las líneas y comprobar que los offsets sólo crecen |
+| **Compactación** | **medida**: consume créditos fuera de los `usage_record` *([muestra 2](descubrimiento-muestra-2.md), M2)* |
 | **Varios modelos en una sesión** *(`/model` a mitad)* | sesión con dos modelos de pago; ver `usage.model` por línea y `modelMetrics` con dos claves |
 | **Llamadas con herramientas y subagentes** *(`toolCounts`, `agentMetrics` distinto de `main`)* | una sesión que edite ficheros y lance un subagente |
 | **Una sesión matada** *(Q6)* | `taskkill /F` a mitad de respuesta; comparar Σ `usage_record` con lo que diga la facturación |
