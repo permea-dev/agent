@@ -22,9 +22,10 @@
 |---|---:|---:|
 | `spec.md` | 400 | 338 |
 | `plan.md` | **250** | 236 |
-| `tasks.md` *(este)* | **350** | 281 |
+| `tasks.md` *(este)* | **350** | 283 |
 | `contracts/event-id-copilot.md` | **80** | 78 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 201 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 84 |
+| `soporte/registro-archivo.md` *(§B0–§B2, íntegros; dueño, 14-10)* | **no cuenta** | 197 |
 | `soporte/descubrimiento.md` · `-muestra-2.md` · `-muestra-3.md` | 200 · 80 · 60 *(cerrados)* | 200 · 80 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -147,8 +148,8 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B3 · Fichero, frontera y tramos *(FR-004, FR-005, FR-007 a FR-009, FR-020; SC-003, SC-004, SC-006, SC-010, SC-013, SC-014, SC-023)* — `copilot_fichero_test.go`
 
-- [ ] **T018** Fase 0: `PasadaCopilot` *(`Resumen`, `HayNovedades`)* y `LeerFicheroCopilot`, que no emite, en `internal/ingest/copilot_contexto.go`.
-- [ ] **T019** Testdata: `generar.sh` gana `ficheros/`:
+- [x] **T018** Fase 0: `PasadaCopilot` *(`Resumen`, `HayNovedades`)* y `LeerFicheroCopilot`, que no emite, en `internal/ingest/copilot_contexto.go`.
+- [x] **T019** Testdata: `generar.sh` gana `ficheros/`:
   - `dos_llamadas.jsonl`;
   - `tramos.jsonl` *(`start` con `/sintetico/x`, registro, `resume` con `/sintetico/y`, registro; `sourceSessionId` = `sessionId`)*;
   - `cortado/{paso1,paso2}.jsonl` *(paso 1: `start` X, registro y un `system.message` de 64 KB; paso 2: además, `resume` Y y registro)*;
@@ -159,12 +160,13 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   - `esperado.json`.
 
   md5 al registro.
-- [ ] **T020** [P] **Rojos (15) a (26)**, cada pasada con su **línea de resumen literal**; (16/valores) afirma `event.Ref` y `Derivar` *(SC-021)*; (18), una
+- [x] **T020** [P] **Rojos (15) a (26)**, cada pasada con su **línea de resumen literal**; (16/valores) afirma `event.Ref` y `Derivar` *(SC-021)*; (18), una
   sola hoja con las dos pasadas. **Nace verde**, y se declara así, **(26)** *(el stub no escribe; lo valida m29)*.
-- [ ] **T021** **Verde**: plan §2, D-011-P2 y P-4, y `Resumen()` con el texto de spec §Textos.
-- [ ] **T022** **SC-007, informativo**: las 5 plataformas, D-011-P7. Si pasa de 102 400 B, se adelgaza antes de B4 *(PARA 7)*.
-- [ ] **T023** Censo y mutaciones **m21–m29** y **M-B3a**, con md5, con las co-caídas de plan §Bloques: m21 → (16), (17); m23 → (24/sesion), (21/sin_start);
+- [x] **T021** **Verde**: plan §2, D-011-P2 y P-4, y `Resumen()` con el texto de spec §Textos.
+- [x] **T022** **SC-007, informativo**: las 5 plataformas, D-011-P7. Si pasa de 102 400 B, se adelgaza antes de B4 *(PARA 7)*.
+- [x] **T023** Censo y mutaciones **m21–m29** y **M-B3a**, con md5, con las co-caídas de plan §Bloques: m21 → (16), (17); m23 → (24/sesion), (21/sin_start);
   m27 → (20), (23); M-B3a → (16/valores), (16/una_sesion). Vigilancia de privacidad sobre `ficheros/` → 0.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 *(924 pass; m21–m29 y M-B3a = declarado, con M-B3a → (24/sesion) declarada en el censo; (17) reforzado antes del censo)*.
 - [ ] **T024** ✋ Puertas y commit: `011 B3: fichero de Copilot CLI por offset, con contexto por tramo`.
 
 ## B4 · Integración *(FR-002, FR-021, FR-023 a FR-026; SC-003, SC-006, SC-011, SC-015, SC-018, SC-019)* — nace `cmd/permea/copilot_test.go`

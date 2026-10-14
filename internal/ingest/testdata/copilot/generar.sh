@@ -11,6 +11,9 @@
 # el test lo crea en su copia de `t.TempDir()`.
 # B2 (T011): `lineas/`, una línea (o tres) por fichero: los registros de `RegistroCopilot`, cada clase, y las líneas que NO son
 # registro (el falso marcador escapado dentro de un texto, y tres `model.*`). Ids `u-…` (usageId), `r-…` (requestId), `c-…`, `q-…`.
+# B3 (T019): `ficheros/`, sesiones enteras para `LeerFicheroCopilot`: tramos, el corte en dos pasadas, la línea larga (≥ 64 KB),
+# la línea final sin LF, el truncado, la repetida, las clases de SC-010, un subagente, una sesión matada, la corrupta, sin `start`,
+# sin `cwd` y una carpeta para la sólo lectura. `esperado.json` guarda la línea de resumen de una pasada de cada fichero.
 set -euo pipefail
 AQUI=$(cd "$(dirname "$0")" && pwd)
 command -v python3 >/dev/null || { echo "falta python3" >&2; exit 1; }
@@ -151,6 +154,101 @@ escribir(os.path.join(L, "model_aux.jsonl"),
          + linea("model.model_call_success", {"kind": "model_call_success", "requestMessages": falso,
                                               "modelCall": {"model": "modelo-sintetico-2", "initiator": "agent"}}, 23)
          + linea("model.response", {"kind": "response", "response": {"content": falso}}, 24))
+
+# --- B3 · ficheros/ -------------------------------------------------------------------------------------------------
+F = os.path.join(AQUI, "ficheros")
+shutil.rmtree(F, ignore_errors=True)
+X, Y = "/sintetico/x", "/sintetico/y"
+
+
+def l(tipo, datos, n, **sobre):
+    """Una línea como `linea`, con campos de la envoltura de más (p. ej. `agentId`)."""
+    d = json.loads(linea(tipo, datos, n))
+    d.update(sobre)
+    return json.dumps(d, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+
+def u(n, **kw):
+    return l(U, usage(n, **kw), n)
+
+
+def reanudar(n, cwd):
+    return l("session.resume", {"resumeTime": "2026-01-01T00:01:00.000Z", "eventCount": 3, "selectedModel": "auto",
+                                "context": {"cwd": cwd}}, n)
+
+
+def sistema(n, tam=66000):
+    return l("system.message", {"role": "system", "content": "texto-9 " * (tam // 8)}, n)
+
+
+def fichero(nombre, *lineas, lf=True):
+    contenido = "".join(lineas)
+    escribir(os.path.join(F, nombre), contenido if lf else contenido.rstrip("\n"))
+
+
+ESPERADO = {}
+
+
+def resumen(nombre, reg, ev, comp=0, rep=0, sid=0, inc=0, smod=0):
+    ESPERADO[nombre] = (f"copilot_cli: registros {reg} · eventos {ev} · compactaciones {comp} · repetidas {rep} · "
+                        f"sin identificador {sid} · incoherentes {inc} · sin modelo {smod}")
+
+
+ini = inicio(s1, 1, X)
+fichero("dos_llamadas.jsonl", ini, u(21), u(22)); resumen("dos_llamadas.jsonl", 2, 2)
+fichero("linea_larga.jsonl", ini, sistema(2), u(23), u(24)); resumen("linea_larga.jsonl", 2, 2)
+fichero("tramos.jsonl", ini, u(25), reanudar(3, Y), u(26)); resumen("tramos.jsonl", 2, 2)
+paso1 = [ini, u(27), sistema(4)]
+fichero("cortado/paso1.jsonl", *paso1); resumen("cortado/paso1.jsonl", 1, 1)
+fichero("cortado/paso2.jsonl", *paso1, reanudar(5, Y), u(28)); resumen("cortado/paso2.jsonl", 2, 2)
+fichero("sin_lf.jsonl", ini, u(29), lf=False); resumen("sin_lf.jsonl", 0, 0)
+fichero("sin_lf_completo.jsonl", ini, u(29)); resumen("sin_lf_completo.jsonl", 1, 1)
+fichero("truncado/largo.jsonl", ini, u(30), u(31)); resumen("truncado/largo.jsonl", 2, 2)
+fichero("truncado/corto.jsonl", ini, u(30)); resumen("truncado/corto.jsonl", 1, 1)
+fichero("repetida.jsonl", ini, u(32), l(U, usage(32), 33)); resumen("repetida.jsonl", 2, 1, rep=1)
+# SC-010: evento sin modelo · compactación · el mismo usageId repetido · sin usageId · cr + cw > input · partida no entera
+sin_modelo = l(U, usage(33, quitar=("model",)), 34)
+fichero("clases.jsonl", ini, sin_modelo, l(C, compactacion(7), 35), l(U, usage(33, quitar=("model",)), 36),
+        u(34, usage_id=""), u(35, inp=100, cr=90, cw=20), u(36, cambiar={"outputTokens": 7.5}))
+resumen("clases.jsonl", 6, 2, comp=1, rep=1, sid=1, inc=2, smod=1)
+# Un subagente síncrono (muestra 3): sus registros, con `initiator: sub-agent`, `agentId`, otro `sourceSessionId` y
+# `parentToolCallId`; declara otro modelo, pero el registro trae el cobrado.
+sub = []
+for n in (38, 39):
+    d = usage(n)
+    d["usage"].update({"initiator": "sub-agent", "interactionType": "conversation-subagent", "parentToolCallId": "t-1"})
+    d["usage"]["accounting"]["sourceSessionId"] = f"s-{9:024d}"
+    sub.append(l(U, d, n, agentId="a-1"))
+fichero("subagente.jsonl", ini, u(37),
+        l("tool.execution_start", {"toolCallId": "t-1", "toolName": "task", "model": "modelo-sintetico-1",
+                                   "arguments": {"prompt": "texto-10"}}, 40),
+        l("subagent.started", {"toolCallId": "t-1", "agentName": "task", "model": "modelo-subagente"}, 41, agentId="a-1"),
+        l("subagent.configured", {"model": "modelo-subagente", "multiTurn": True}, 42, agentId="a-1"),
+        l("session.model_change", {"source": "agent", "newModel": "modelo-subagente"}, 43),
+        sub[0], sub[1],
+        l("subagent.completed", {"toolCallId": "t-1", "model": "modelo-subagente", "firstDispatchedModel": "modelo-sintetico-1",
+                                 "totalTokens": 214}, 44, agentId="a-1"),
+        u(45))
+resumen("subagente.jsonl", 4, 4)
+# Una sesión matada a mitad del 2.º prompt (muestra 2, M1): del 2.º sólo quedan su inicio y una auxiliar.
+fichero("matada.jsonl", ini, u(46), l("assistant.message", {"content": "texto-11"}, 47),
+        l("session.usage_checkpoint", {"totalNanoAiu": 1, "totalPremiumRequests": 1}, 48),
+        l("user.message", {"content": "texto-12"}, 49), l("assistant.turn_start", {"turnId": "0"}, 50),
+        l("model.turn_started", {"kind": "turn_started", "model": "modelo-sintetico-2"}, 51),
+        l("model.model_call_success", {"kind": "model_call_success", "requestMessages": "texto-13"}, 52))
+resumen("matada.jsonl", 1, 1)
+fichero("corrupta.jsonl", ini, u(53), '{"type":"session.usage_record","data":{"usage":{texto-14\n', u(54))
+resumen("corrupta.jsonl", 2, 2)
+fichero("sin_start.jsonl", u(55), u(56)); resumen("sin_start.jsonl", 2, 2)
+sin_cwd = json.loads(inicio(s1, 1)); sin_cwd["data"].pop("context")
+fichero("sin_cwd.jsonl", json.dumps(sin_cwd, separators=(",", ":")) + "\n", u(57)); resumen("sin_cwd.jsonl", 1, 1)
+# Para la sólo lectura: una carpeta con sus `.lock` y `checkpoints/`.
+escribir(os.path.join(F, "solo_lectura", ".session-operation-locks", s1 + ".lock"))
+escribir(os.path.join(F, "solo_lectura", s1, ".workspace-fork.lock"))
+escribir(os.path.join(F, "solo_lectura", s1, "checkpoints", "index.md"), "# texto-15\n")
+escribir(os.path.join(F, "solo_lectura", s1, "events.jsonl"), ini + u(58) + u(59))
+resumen("solo_lectura/" + s1 + "/events.jsonl", 2, 2)
+escribir(os.path.join(F, "esperado.json"), json.dumps(ESPERADO, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
 PY
 python3 -I "$T/generar.py" "$AQUI"
-( cd "$AQUI" && find sesiones lineas -type f | LC_ALL=C sort | xargs md5sum )
+( cd "$AQUI" && find sesiones lineas ficheros -type f | LC_ALL=C sort | xargs md5sum )
