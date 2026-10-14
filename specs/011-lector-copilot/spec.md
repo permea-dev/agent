@@ -1,6 +1,6 @@
 # 011 · «Lector de Copilot CLI» — Especificación
 
-**Feature Branch**: `011-lector-copilot` · **Created**: 2026-10-14 · **Status**: **Ratificada el 2026-10-14** *(D-1 a D-6 y P-1 a P-11, del dueño; E-1, muestra 3)* ·
+**Feature Branch**: `011-lector-copilot` · **Created**: 2026-10-14 · **Status**: **Ratificada el 2026-10-14** *(D-1 a D-6 y P-1 a P-11, del dueño; E-1, muestra 3; E-2, remate del analyze)* ·
 **Cabeza de partida**: `872b4f3` *(sobre `15c4c47`, cierre de la 0.7.0)*
 **Input**:
 - las decisiones del dueño D-1 a D-6 *(2026-10-14)*;
@@ -198,7 +198,7 @@ Las referencias son las de `descubrimiento-muestra-2.md` *(copia `congelada-2026
   - y `--scan` sobre el `events.jsonl` de F da 1 evento *(15 369 de entrada con caché → `tokens_input` 3, salida 5, lectura 9 692, escritura 5 674)*.
   - La copia conserva sus sha256.
 - **SC-002** *(control de créditos — D-4)*: sobre la copia, **Σ eventos × la tarifa de `gpt-6-luna`** *(USD por millón: entrada 0,10 · salida 0,50 ·
-  escritura 0,125 · lectura 0,01)* = **Σ créditos × 0,01** = **$0.006163905** *(616 390 500 nanoAIU)*. La línea de control de `--scan`, sumada sobre los 4
+  escritura 0,125 · lectura 0,01)* = **Σ créditos × 0,01** = **$0.00616390500** *(616 390 500 nanoAIU)*. La línea de control de `--scan`, sumada sobre los 4
   ficheros, da esa cifra.
 - **SC-003** *(segunda pasada)*: una segunda `--run` sobre la copia da **0** eventos `copilot_cli`, y ningún fichero se abre *(contador en el test)*.
 - **SC-004** *(sesión matada — m2 M1)*: el fichero de D da **1** evento. Un fixture con la última línea sin LF da 0 eventos de esa línea; al añadirle el LF,
@@ -238,17 +238,17 @@ Las referencias son las de `descubrimiento-muestra-2.md` *(copia `congelada-2026
   `copilot_cli: fichero omitido: …`, y `state.json` se guarda sin avanzar ese offset.
 - **SC-019** *(orden de escritura y sin otras herramientas)*: con el forzado de 008 SC-015 *(`Save` falla)*, la cola tiene los eventos de Copilot CLI, y la
   pasada siguiente los reencola con los **mismos** `event_id`; sólo con Copilot CLI, `--run` encola y termina con 0.
-- **SC-020** *(privacidad del repo público)*: en el diff de 011, el `grep` de privacidad de los encargos da **0**; `testdata` sólo lleva ficheros
-  **sintéticos**; nada del contenido de las copias se publica.
+- **SC-020** *(privacidad del repo público)*: el patrón `PRIV` de `tasks.md` §Puertas da **0** en el diff de 011 y, con `grep -raE`, en los `testdata/copilot/`
+  y su `generar.sh`; `testdata` sólo lleva ficheros **sintéticos**; nada del contenido de las copias se publica.
 - **SC-021** *(el evento — FR-016 a FR-018)*: el 100 % de los eventos `copilot_cli` llevan `cost_usd = 0` y `cost_available = false`; `occurred_at` = la
   `timestamp` de la línea en UTC; `session_ref` = `event.Ref(sal, sessionId)` y `project_ref` = `Derivar(cwd, sal)`; sin `start`, `session_ref` vacío.
 - **SC-022** *(ensayo en Windows)*: con Copilot CLI escribiendo, el agente emite cada registro **una vez**, cumple SC-006, y sus eventos cuadran **al token**
   con un contador independiente:
   - **W1**, antes de publicar *(sandbox, `COPILOT_HOME` propio)*: además, **Σ créditos × 0,01** de la línea de control = Σ eventos × la tarifa de SC-002;
-  - **W2**, en la instalación real, después de publicar: el **coste que calcula la plataforma** para esos eventos = **Σ créditos × 0,01**, al redondeo por
-    evento de la plataforma.
+  - **W2**, en la instalación real, después de publicar, **evento a evento**: `ROUND(créditos × 0,01, 6)` = el **coste que calcula la plataforma** para ese
+    evento *(la plataforma redondea por evento)*.
 - **SC-023** *(subagente — E-1, m3)*: `--scan` sobre el `events.jsonl` de G *(`congelada-2026-10-14c`)* da **4** eventos `gpt-6-luna`, 2 de ellos del subagente,
-  con `tokens_input` 12, `tokens_output` 343, lectura 26 457 y escritura 26 828; **ninguno** con `gpt-5.6-luna`; la línea de control da **$0.003790770**. Con
+  con `tokens_input` 12, `tokens_output` 343, lectura 26 457 y escritura 26 828; **ninguno** con `gpt-5.6-luna`; la línea de control da **$0.00379077000**. Con
   `--run`, los 4 llevan el **mismo** `session_ref`.
 
 ## Textos propuestos *(P-8, P-9)*
@@ -263,9 +263,10 @@ copilot_cli: fichero omitido: %v
 ```
 **Control** *(sólo en `--scan`, stdout, tras el resumen; D-4)*:
 ```
-copilot_cli (control, no se envía): créditos según Copilot %d nanoAIU · equivalente $%.9f a 0,01 por crédito
+copilot_cli (control, no se envía): créditos según Copilot %d nanoAIU · equivalente $%d.%011d a 0,01 por crédito
 ```
-«Créditos» = Σ `copilotUsage.totalNanoAiu` de los registros que dieron evento; el equivalente, `nanoAIU / 10⁹ × 0,01`.
+«Créditos» = Σ `copilotUsage.totalNanoAiu` de los registros que dieron evento; el equivalente, `nanoAIU / 10¹¹` USD, **exacto con 11 decimales**, en enteros
+*(`nanoAIU / 10¹¹` y `nanoAIU % 10¹¹`)*: sin truncar ni redondear *(E-2)*.
 
 ## Preguntas abiertas *(con cómo se cerrarían)*
 
@@ -334,3 +335,4 @@ veredicto.
 | **Borrador** | 2026-10-14 | Primera redacción, con D-1 a D-6 del dueño, y P-1 a P-11 y Q-1 a Q-3 para ratificar | Encargo 011 · la spec · 3/n |
 | **Ratificación** | 2026-10-14 | **El dueño ratifica todo** *(«Ratifico todo»)*: P-1 a P-11 **(a)**, tal cual, con sus `DECIDÍ YO`: la `0.8.0` *(M-2)*, el tipo `compactacion` *(P-1)*, la línea de control con 9 decimales *(§Textos)*, sin `start` → `session_ref` vacío *(P-3)* y sin recuento de carpetas vacías *(D-6)* | Encargo 011 · muestra 3 y ratificación · 4/n |
 | **E-1** | 2026-10-14 | **Muestra 3** *(un subagente síncrono)*: sus registros son `usage_record` del mismo fichero; cuadran con la tarifa de `gpt-6-luna`, el modelo del registro, y no con la de `gpt-5.6-luna`, el que declara el subagente; y Σ registros = `shutdown`. **P-10**: «Antes: • subagentes y *workflows*: sin muestra; `agentMetrics` sólo trae `main` […] · **(a)**, salvo subagentes: recomiendo una muestra antes de W1» → subagentes en segundo plano y *workflows* sin muestra; el síncrono, medido; la muestra, hecha. **Q-1**, cerrada. **§Límites**: «Antes: subagentes y *workflows* […] *(Q-1 a Q-3)*» → «subagentes en segundo plano y *workflows* […] *(Q-2, Q-3)*». **§Dependencias**: «Antes: la tarifa de `gpt-6-luna` *(la de SC-002)* antes de W2» → las de `gpt-6-luna` y `gpt-5.6-luna` ya están en la plataforma. **Nacen** el caso límite «Subagente» y **SC-023**. D-2, P-1, P-3 y P-5, sin cambios | `soporte/descubrimiento-muestra-3.md`, S1–S5 |
+| **E-2** | 2026-10-14 | **Remate del analyze** *(6/n)*. **§Textos**, la línea de control: «Antes: `equivalente $%.9f`» → `$%d.%011d`, **exacta con 11 decimales**, en enteros, sin truncar ni redondear; **SC-002** «Antes: $0.006163905» → $0.00616390500, y **SC-023** «Antes: $0.003790770» → $0.00379077000. **SC-022 W2**: «Antes: … = Σ créditos × 0,01, al redondeo por evento» → **evento a evento**, `ROUND(créditos × 0,01, 6)` = el coste de la plataforma. **SC-020**: «Antes: el `grep` de privacidad de los encargos» → el patrón `PRIV` de `tasks.md` §Puertas, también con `grep -raE` sobre los testdata y `generar.sh`. **D-4** queda respaldada por la **constitución 1.1.0** *(§II, enmendada el 14-10: sin coste fiable de la herramienta, el evento va sin coste y lo calcula la plataforma)*. Lo demás del analyze *(co-caídas, nacidos verdes, `~/bin/libre.sh`, R-1)* va a `plan.md` y `tasks.md`, sin tocar nada normativo de la spec | Encargo 011 · remate del analyze · 7/n *(K1, M9, M10)* |

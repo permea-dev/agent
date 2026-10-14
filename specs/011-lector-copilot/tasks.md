@@ -4,7 +4,7 @@
 [contracts/event-id-copilot.md](./contracts/event-id-copilot.md)
 **Base**: `d81c39d` *(el código, el de `15c4c47`)*. **Línea base a preservar** *(sobre `15c4c47`, encargo 5/n)*: `go test -count=1 -v ./...` → **848**
 «--- PASS», 0 FAIL, 0 SKIP · `go vet` limpio · `golangci-lint run` → **0**. Los tamaños de la 0.7.0, en plan §Technical Context.
-**49 tareas · 12 ✋ · 40 tests nuevos** *(34 rojos y 6 nacidos verdes)* **· 43 mutaciones** *(plan §Bloques)*.
+**50 tareas · 12 ✋ · 40 tests nuevos** *(30 rojos y 10 nacidos verdes)* **· 44 mutaciones** *(plan §Bloques)*.
 *Unidades*: aquí, «tests» son los rojos **numerados** del plan, (1)–(40). El registro cuenta **hojas**.
 
 ## Formato: `[ID] [P?] [✋?] Descripción`
@@ -12,7 +12,7 @@
 - **[P]**: sin dependencia de decisión entre sí. No quiere decir que se editen a la vez.
 - **✋**: la ejecuta **el dueño**: commits, PR, fusión, etiqueta, aprobación de textos y ensayos en Windows. Claude no hace git de escritura. Cada
   commit lleva su mensaje previsto, **sin tildes ni ñ**.
-- **(1)…(40)** son los rojos, y **m1…m42** y **M-B4a** las mutaciones de plan §Bloques. Lo que se añada aquí se llama **M-B2a**, **M-B3a**…
+- **(1)…(40)** son los rojos, y **m1…m42**, **M-B3a** y **M-B4a** las mutaciones de plan §Bloques. Lo que se añada aquí se llama **M-B2a**, **M-B3b**…
 - **No se renumera**: una tarea añadida después recibe el siguiente número libre.
 - **Las transcripciones** van a `soporte/registro.md`, que nace en T001, y cada tarea deja una remisión.
 
@@ -20,9 +20,9 @@
 
 | Fichero de `specs/011-lector-copilot/` | Techo | Hoy |
 |---|---:|---:|
-| `spec.md` | 400 | 336 |
-| `plan.md` | **250** | 235 |
-| `tasks.md` *(este)* | **350** | — |
+| `spec.md` | 400 | 338 |
+| `plan.md` | **250** | 236 |
+| `tasks.md` *(este)* | **350** | 277 |
 | `contracts/event-id-copilot.md` | **80** | 78 |
 | `soporte/registro.md` *(nace en T001)* | **300** | — |
 | `soporte/descubrimiento.md` · `-muestra-2.md` · `-muestra-3.md` | 200 · 80 · 60 *(cerrados)* | 200 · 80 · 60 |
@@ -40,13 +40,13 @@
 
 ## Una suite a la vez, con la carga vigilada
 
-Antes de **cada** `go test` o `golangci-lint` *(puertas, rojos, verdes y mutaciones)*, **en una orden aparte**, se lanza `libre.sh`:
+Antes de **cada** `go test` o `golangci-lint` *(puertas, rojos, verdes y mutaciones)*, **en una orden aparte**, se lanza **`~/bin/libre.sh`**:
 - 0 procesos de suite, **del agente o de la plataforma**;
 - carga de 1 min **< U = 2,0** en 3 muestras seguidas, cada 10 s;
 - tope de 45 min.
 
-Mientras dice «no libre», se espera; al tope, **PARA 13**. El guion es el de la plataforma *(14-10)*: vive en el scratchpad de la sesión y no se versiona.
-Excluye su PID y el de su padre.
+Mientras dice «no libre», se espera; al tope, **PARA 13**. El guion es el de la plataforma *(14-10)*, en **`~/bin/libre.sh`** *(md5 `ab647c01…`)*: lo usan
+los dos repos y **no se versiona** *(dueño, 14-10)*. Excluye su PID y el de su padre.
 
 ## 🛑 Lo que PARA
 
@@ -64,13 +64,13 @@ Excluye su PID y el de su padre.
 10. **Se ejecuta `copilot`**, o un `--run` o `--daemon` sobre la instalación real fuera de W1/W2.
 11. **El lector lee una línea de un tipo que no es de D-2** más allá de la envoltura, o un campo fuera de FR-012.
 12. **Un test que abre un testdata en su sitio**: siempre una copia en `t.TempDir()`.
-13. **`libre.sh` llega a su tope.**
+13. **`~/bin/libre.sh` llega a su tope**, o su md5 no es `ab647c01…`.
 
 ## Puertas en cada corte
 
 ```sh
 gofmt -l . ; go vet ./... ; golangci-lint run          # → vacío, limpio, 0 issues
-go test -count=1 ./...                                 # → 848 + los nuevos, 0 FAIL, 0 SKIP; UNA suite a la vez, tras libre.sh
+go test -count=1 ./...                                 # → 848 + los nuevos, 0 FAIL, 0 SKIP; UNA suite a la vez, tras ~/bin/libre.sh
 git diff 15c4c47 -- internal/event/ internal/ingest/eventid.go internal/ingest/eventid_test.go internal/ingest/codex_eventid.go \
   internal/ingest/codex_eventid_test.go internal/ingest/gemini_eventid.go internal/ingest/gemini_eventid_test.go \
   internal/ingest/opencode_eventid.go internal/ingest/opencode_eventid_test.go internal/ingest/boundary_test.go \
@@ -79,12 +79,18 @@ git diff 15c4c47 --name-only --diff-filter=M -- '*_test.go'                     
 grep -c require go.mod ; ls go.sum                                                         # → 0 ; no existe
 ```
 
-**Vigilancia de privacidad** *(cada corte con testdata, PARA 8)*: el grep de privacidad de los encargos sobre `git diff 15c4c47`, y `grep -raE
-'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}'` sobre `internal/ingest/testdata/copilot/` y `cmd/permea/testdata/copilot/` → **0**.
+**Vigilancia de privacidad** *(cada corte con testdata, PARA 8)*. El patrón se escribe con clases *(`AI[z]a`…)* para no detectarse a sí mismo, y **el usuario de la
+máquina y el nombre del dueño salen del entorno**: nunca se escriben en el repo.
+```sh
+PRIV='@[a-z0-9.-]+\.[a-z]{2,}|dev_[A-Za-z0-9]{8,}|ses_[A-Za-z0-9]{6,}|msg_[A-Za-z0-9]{6,}|/hom[e]/|C:\\User[s]|AI[z]a|sk-[a]nt|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}'
+PRIV="$PRIV|${USER%?}|$(git config user.name)"
+git diff 15c4c47 | grep -cE "$PRIV"                                                        # → 0
+grep -raEc "$PRIV" internal/ingest/testdata/copilot/ cmd/permea/testdata/copilot/          # → 0 en cada fichero, generar.sh incluido
+```
 
 **Protocolo de mutación** *(006, con E-5 de 007)*:
 1. El censo se declara **en la tarea, ANTES de mutar**, por **hoja**, con las co-caídas.
-2. Se muta y se ejecuta la suite entera, tras `libre.sh`.
+2. Se muta y se ejecuta la suite entera, tras `~/bin/libre.sh`.
 3. Si los `FAIL` coinciden con lo declarado, se revierte **por edición inversa**, se comprueba el **md5** y se transcribe.
 4. Si no coinciden, PARA 2.
 
@@ -120,14 +126,18 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
     sin modelo)*;
   - las partidas de SC-005;
   - una con centinelas en todos los campos de texto *(SC-011)*;
-  - `user.message` y `system.message` con el **falso marcador escapado**, y tres `model.*`.
+  - `user.message` y `system.message` con el **falso marcador escapado**, y tres `model.*`;
+  - una compactación con escritura ≠ 0 *(7/partidas)*, una con `reasoningTokens` 999 *(10/razonamiento)* y una `timestamp` con desfase `+02:00` *(11/desfase)*.
 
   md5 al registro.
-- [ ] **T012** [P] **Rojos (4) a (14)**: cada uno afirma **sólo su campo**. (14) cae porque el stub no emite *(rojo antes del verde)*.
+- [ ] **T012** [P] **Rojos (4) a (14)**: cada uno afirma **sólo su campo**; las 5 hojas de (4), el valor exacto. (14) cae porque el stub no emite *(rojo
+  antes del verde)*. **Nacen verdes** con el stub, y se declaran así: **(5)** *(lo valida m9)*, **(13)** *(m19)* y la hoja **(7/fallida)** *(m14)*.
 - [ ] **T013** **Verde**: plan §1. Reutiliza `dominioEventID`, `bytesEventID` y `tipoRespuesta` *(`eventid.go:31,43`, `codex_eventid.go:29`)*; la
   codificación, **replicada**, como 009 y 010. **No** llama a `internal/pricing`.
 - [ ] **T014** **(14)**, rojo en T012, pasa a verde con T013: el evento no contiene ningún centinela. Lo valida m20.
-- [ ] **T015** Censo y mutaciones **m7–m20**, con md5.
+- [ ] **T015** Censo y mutaciones **m7–m20**, con md5, con las co-caídas de plan §Bloques: m9 → (5), (9) ×3, (7/sin_requestid); m11 → (6), (10/razonamiento);
+  m12 y m13 → (6), (7/partidas); m17 → (11/desfase).
+- [ ] **T050** **SC-007, informativo tras B2**: las 5 plataformas, D-011-P7 *(R-1)*. Si pasa de 102 400 B, se adelgaza antes de B3 *(PARA 7)*.
 - [ ] **T016** **Vigilancia de privacidad** sobre `lineas/` *(§Puertas)* → 0, transcrito.
 - [ ] **T017** ✋ Puertas y commit: `011 B2: un registro de Copilot CLI es un evento sin coste`.
 
@@ -136,18 +146,21 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 - [ ] **T018** Fase 0: `PasadaCopilot` *(`Resumen`, `HayNovedades`)* y `LeerFicheroCopilot`, que no emite, en `internal/ingest/copilot_contexto.go`.
 - [ ] **T019** Testdata: `generar.sh` gana `ficheros/`:
   - `dos_llamadas.jsonl`;
-  - `tramos.jsonl` *(`start` con `/sintetico/x`, registro, `resume` con `/sintetico/y`, registro)*;
-  - `cortado/{paso1,paso2}.jsonl`;
+  - `tramos.jsonl` *(`start` con `/sintetico/x`, registro, `resume` con `/sintetico/y`, registro; `sourceSessionId` = `sessionId`)*;
+  - `cortado/{paso1,paso2}.jsonl` *(paso 1: `start` X, registro y un `system.message` de 64 KB; paso 2: además, `resume` Y y registro)*;
+  - `linea_larga.jsonl` *(un `system.message` de ≥ 64 KB antes de los registros; FR-009)*;
   - `sin_lf.jsonl` y `sin_lf_completo.jsonl`;
   - `truncado/{largo,corto}.jsonl` *(el corto, más pequeño que el offset del largo)*;
   - `repetida.jsonl`, `clases.jsonl` *(SC-010)*, `subagente.jsonl` *(m3)*, `matada.jsonl` *(m2 M1)*, `corrupta.jsonl` y `sin_start.jsonl`;
   - `esperado.json`.
 
   md5 al registro.
-- [ ] **T020** [P] **Rojos (15) a (26)**, cada pasada con su **línea de resumen literal**.
+- [ ] **T020** [P] **Rojos (15) a (26)**, cada pasada con su **línea de resumen literal**; (16/valores) afirma `event.Ref` y `Derivar` *(SC-021)*; (18), una
+  sola hoja con las dos pasadas. **Nace verde**, y se declara así, **(26)** *(el stub no escribe; lo valida m29)*.
 - [ ] **T021** **Verde**: plan §2, D-011-P2 y P-4, y `Resumen()` con el texto de spec §Textos.
 - [ ] **T022** **SC-007, informativo**: las 5 plataformas, D-011-P7. Si pasa de 102 400 B, se adelgaza antes de B4 *(PARA 7)*.
-- [ ] **T023** Censo y mutaciones **m21–m29**, con md5. Vigilancia de privacidad sobre `ficheros/` → 0.
+- [ ] **T023** Censo y mutaciones **m21–m29** y **M-B3a**, con md5, con las co-caídas de plan §Bloques: m21 → (16), (17); m23 → (24/sesion), (21/sin_start);
+  m27 → (20), (23); M-B3a → (16/valores), (16/una_sesion). Vigilancia de privacidad sobre `ficheros/` → 0.
 - [ ] **T024** ✋ Puertas y commit: `011 B3: fichero de Copilot CLI por offset, con contexto por tramo`.
 
 ## B4 · Integración *(FR-002, FR-021, FR-023 a FR-026; SC-003, SC-006, SC-011, SC-015, SC-018, SC-019)* — nace `cmd/permea/copilot_test.go`
@@ -169,7 +182,8 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B5 · `--scan` *(FR-022, FR-023; SC-001, SC-002 y SC-023 en forma)*
 
-- [ ] **T033** [P] **Rojos (37), (39) y (40)**, y **(38)**, nacido verde, en `cmd/permea/copilot_test.go`, con los textos de spec §Textos **leídos por programa**.
+- [ ] **T033** [P] **Rojos (37) y (39)**, y **(38)** y **(40)**, nacidos verdes *(los validan m38 y m42)*, en `cmd/permea/copilot_test.go`, con los textos de
+  spec §Textos **leídos por programa**. (39/no_multiplo) lleva un `nanoAIU` que no es múltiplo de 100, y (39/exacto) los 11 decimales.
 - [ ] **T034** **Verde**: `esSesionCopilot`, **tras** Gemini, y `dryRunCopilot`, con la línea de control *(plan §5, D-011-P6)*.
 - [ ] **T035** Censo y mutaciones **m38–m42**, con md5. **m38** declara, por nombre y hoja, los tests existentes de `--scan` que caen.
 - [ ] **T036** ✋ Puertas y commit: `011 B5: scan de Copilot CLI con la linea de control de creditos`.
@@ -193,7 +207,7 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 - [ ] **T041** **C1** · Puertas, con 0 SKIP en Linux:
   - **SC-007** en las 5 plataformas;
   - **SC-008** y **SC-016**;
-  - **SC-020**: el grep de privacidad sobre `git diff 15c4c47`, y la vigilancia de testdata;
+  - **SC-020**: el patrón `PRIV` de §Puertas sobre `git diff 15c4c47` y, con `grep -raE`, sobre los testdata;
   - compilan Windows y darwin; `PENDIENTE` → 1.
 - [ ] **T042** **C2** · Medidas sobre **las 3 copias congeladas** *(`-14`, `-14b` y `-14c`)*, en su sitio y en sólo lectura, con sus sha256 antes y
   después *(PARA 9)*:
@@ -208,8 +222,8 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 - [ ] **T046** ✋ **C6** · Fusión del PR con merge commit.
 - [ ] **T047** ✋ **C7** · `git tag -a v0.8.0` y push; el workflow `release` en verde.
 - [ ] **T048** **C8** · Los tres canales en `0.8.0`, `sha256sum -c`, y `strings` del binario publicado.
-- [ ] **T049** ✋ **C9 · W2**: `scoop update`, `--run`. En la plataforma, eventos `copilot_cli` = los registros nuevos, y su coste = **Σ créditos × 0,01**,
-  al redondeo por evento *(SC-022)*.
+- [ ] **T049** ✋ **C9 · W2**: `scoop update`, `--run`. En la plataforma, eventos `copilot_cli` = los registros nuevos, y **evento a evento**
+  `ROUND(créditos × 0,01, 6)` = su coste *(la plataforma redondea por evento; SC-022)*.
 
 ## Dependencias
 
@@ -235,20 +249,20 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 | 002 | T033 (39), **T042** | | 010 | T020 (23) | | 018 | T029 (36) |
 | 003 | T020 (15), T026 (32), **T042** | | 011 | T012 (4, 14), T029 (33) | | 019 | T026 (28, 29) |
 | 004 | T020 (18, 25), **T042** | | 012 | T005 (1) | | 020 | T016, T023, **T041** |
-| 005 | T012 (6) | | 013 | T020 (16, 17) | | 021 | T012 (10, 11), T020 (21) |
+| 005 | T012 (6) | | 013 | T020 (16, 17) | | 021 | T012 (10, 11), T020 (16, 21) |
 | 006 | T020 (26), T029 (34), **T044** | | 014 | T020 (19) | | 022 | **T044** *(W1)*, **T049** *(W2)* |
-| 007 | T022, T031 *(informativos)*, **T041** | | 015 | T025 *(referencia)*, T026 (27) | | 023 | T020 (24), T033 *(forma)*, **T042** |
+| 007 | T050, T022, T031 *(informativos)*, **T041** | | 015 | T025 *(referencia)*, T026 (27) | | 023 | T020 (24), T033 *(forma)*, **T042** |
 | 008 | **T041** | | 016 | puertas de cada corte, **T041** | | | |
 
 **28 / 28 FR** *(plan §Trazabilidad)* **y 23 / 23 SC con tarea.**
 
-## Mutaciones — **43** *(plan §Bloques; lo que debe caer, allí)*
+## Mutaciones — **44** *(plan §Bloques; lo que debe caer, allí)*
 
 | Bloque | Tarea | Mutaciones | Tipo |
 |---|---|---|---|
 | B1 | T008 | m1–m6 *(raíz, sandbox, listado)* | conducta → suite |
 | B2 | T015 | m7–m20 *(identidad, partidas, clases, prefiltro, refs)* | conducta → suite |
-| B3 | T023 | m21–m29 *(tramos, prefijo, subagente, repetidas, aperturas, sólo lectura)* | conducta → suite |
+| B3 | T023 | m21–m29 · M-B3a *(tramos, prefijo, subagente, repetidas, aperturas, sólo lectura, refs)* | conducta → suite |
 | B4 | T030 | m30–m37 · M-B4a | conducta → suite |
 | B5 | T035 | m38–m42 | conducta → suite |
 

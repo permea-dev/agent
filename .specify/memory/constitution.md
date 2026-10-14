@@ -1,3 +1,17 @@
+<!--
+Sync Impact Report
+- Version change: 1.0.0 → 1.1.0 (MINOR: se amplía la regla de coste del Principio II; nada se retira)
+- Modified principles: II. Privacidad auditable, no prometida (local-first): título sin cambios. La viñeta
+  «El cálculo de coste NUNCA depende del backend: la tabla de precios viaja empaquetada en el binario»
+  pasa a la regla de dos casos (coste fiable de la herramienta → tabla empaquetada; si no → evento sin coste,
+  cost_usd = 0 y cost_available = false, y lo calcula la plataforma con su catálogo). La viñeta del parseo
+  precisa «cuando lo hace el agente». Motivo: es el patrón de 008, 009 y 010 (lectores de Codex, Gemini CLI y
+  OpenCode) y de 011 (Copilot CLI, D-4); decisión del dueño, 2026-10-14 (encargo 011 · 7/n, hallazgo K1 del analyze).
+- Added sections: ninguna. Removed sections: ninguna.
+- Templates: ✅ .specify/templates/plan-template.md, spec-template.md, tasks-template.md (no citan la regla de
+  coste; sin cambios) · ✅ README.md (describe el coste de Claude Code con la tabla empaquetada: sigue siendo cierto).
+- Follow-up TODOs: ninguno.
+-->
 # Constitución de Permea
 
 Documento rector del repositorio del **agente de Permea**: un binario local, multiplataforma y de código abierto que mide el coste de uso de herramientas de IA y transmite al backend de equipo **únicamente metadato derivado, nunca contenido**. Esta constitución es la fuente de verdad transversal del proyecto: gobierna toda especificación, plan y tarea. Ninguna decisión de implementación puede contradecirla.
@@ -20,8 +34,8 @@ Este principio es la fuente de verdad del contrato de frontera. Toda especificac
 La confianza del producto no se sostiene en una política, sino en código que cualquiera puede leer.
 
 - El agente es de **código abierto**. La promesa de privacidad se verifica leyendo el código de la frontera, no confiando en el proveedor.
-- El parseo, el cálculo de coste y la agregación ocurren **en local**. El agente funciona sin conexión; la ausencia de red no detiene el procesamiento local.
-- El cálculo de coste NUNCA depende del backend: la tabla de precios viaja empaquetada en el binario.
+- El parseo, la agregación y, cuando lo hace el agente, el cálculo de coste ocurren **en local**. El agente funciona sin conexión; la ausencia de red no detiene el procesamiento local.
+- **Coste**: si la herramienta da un coste fiable, el agente lo calcula con la **tabla de precios empaquetada en el binario**, sin depender del backend. Si no lo da, el evento va **sin coste** (`cost_usd = 0`, `cost_available = false`) y lo calcula la plataforma con su catálogo. El agente NUNCA consulta el backend para calcular un coste.
 - Un revisor externo DEBE poder confirmar el cumplimiento de la frontera leyendo únicamente el código de serialización del evento.
 
 ### III. Binario único y auditable
@@ -84,4 +98,4 @@ Esta constitución prevalece sobre cualquier otra práctica del repositorio. En 
 - Las enmiendas a esta constitución requieren: justificación escrita, incremento de versión y, si alteran la frontera de forma no ampliable, revisión especial documentada.
 - La complejidad añadida DEBE justificarse; ante la duda, se elige la opción más simple y auditable.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
+**Version**: 1.1.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-10-14
