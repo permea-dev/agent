@@ -190,10 +190,13 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B5 · `--scan` *(FR-022, FR-023; SC-001, SC-002 y SC-023 en forma)*
 
-- [ ] **T033** [P] **Rojos (37) y (39)**, y **(38)** y **(40)**, nacidos verdes *(los validan m38 y m42)*, en `cmd/permea/copilot_test.go`, con los textos de
+- [x] **T033** [P] **Rojos (37) y (39)**, y **(38)** y **(40)**, nacidos verdes *(los validan m38 y m42)*, en `cmd/permea/copilot_test.go`, con los textos de
   spec §Textos **leídos por programa**. (39/no_multiplo) lleva un `nanoAIU` que no es múltiplo de 100, y (39/exacto) los 11 decimales.
-- [ ] **T034** **Verde**: `esSesionCopilot`, **tras** Gemini, y `dryRunCopilot`, con la línea de control *(plan §5, D-011-P6)*.
-- [ ] **T035** Censo y mutaciones **m38–m42**, con md5. **m38** declara, por nombre y hoja, los tests existentes de `--scan` que caen.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 *(947 / 6; nacen verdes (38) ×4, (40) y la hoja (37/disco))*.
+- [x] **T034** **Verde**: `esSesionCopilot`, **tras** Gemini, y `dryRunCopilot`, con la línea de control *(plan §5, D-011-P6)*.
+  > Transcripción: §B5 *(953 / 0)*.
+- [x] **T035** Censo y mutaciones **m38–m42**, con md5. **m38** declara, por nombre y hoja, los tests existentes de `--scan` que caen.
+  > Transcripción: §B5 *(m38–m42 = declarado; ajustes: m38 → también (40), m41 → también (37/salida))*.
 - [ ] **T036** ✋ Puertas y commit: `011 B5: scan de Copilot CLI con la linea de control de creditos`.
 
 ## B6 · README y CHANGELOG *(FR-028; P-8, P-10)*

@@ -181,3 +181,67 @@ Con el `st.Save` antes de Copilot, esa entrada no llega al disco. **(33) no se t
 - frontera de FR-027 vacía; ningún `*_test.go` existente modificado *(los 848 de la 0.7.0, verdes)*; `go.mod` sin `require`; sin `go.sum`; `os.Getenv` → 5;
 - **`PRIV`**: 0 en `git diff 15c4c47`; 0 en los 3 ficheros nuevos; 0 con `grep -raEc` en `cmd/permea/testdata/copilot/` *(1)* y en
   `internal/ingest/testdata/copilot/` *(52)*.
+
+## B5 · `--scan` *(`esSesionCopilot`, `dryRunCopilot`; créditos sólo en `--scan`)*
+
+- **T033 · Testdata**: `generar.sh` gana `ficheros/control.jsonl` *(llamada 123 456 789 nanoAIU, compactación 1 000, incoherente 999 999 y la llamada
+  repetida)*, `control_uno.jsonl` *(1 nanoAIU, no múltiplo de 100)* y `sin_copilotversion.jsonl` *(`session.start` sin `copilotVersion`)*; y sus líneas en
+  `esperado.json`. Los demás ficheros salen idénticos *(md5)*.
+- **Incidencia del generador** *(antes del verde)*: con `n ≥ 60` el `timestamp` salía con segundos 60–65, que no es RFC 3339, y los registros de control
+  eran incoherentes. Se corrige la fórmula *(minutos y segundos de `n`; idéntica para `n < 60`)*: sólo cambian los 3 ficheros nuevos. `generar.sh` `ecc59a45…`.
+- **T033 · Rojos** *(libre 0.60; 19:16:42 → :50, 8,3 s; y repetidos con los fixtures corregidos y el código de HEAD, libre 1.10, 7,0 s)*: **947 / 6 / 0**,
+  las dos veces:
+  - **(37/salida)**: «stdout vacío; stderr: el camino de Claude Code»; **(39/{compactacion,exacto,no_multiplo})**: «control: ""». Con su padre.
+  - **Nacen verdes y están declarados**: **(38)** ×4 y **(40)**, y la hoja **(37/disco)**: el camino de Claude Code tampoco escribe *(947 − 940)*.
+- **T034 · Verde**: `esSesionCopilot` *(1.ª línea, tope de 1 MiB; `type == "session.start"` y `data.copilotVersion` textual)* tras Gemini, y `dryRunCopilot`
+  sobre `state.New()`: `imprimirEventos`, el resumen y la línea de control con `%d.%011d` de `nanoAIU / 10¹¹` y `nanoAIU % 10¹¹`. Los créditos sólo con
+  `ContextoCopilot.ConCreditos`, que sólo pone `--scan`; la Σ, en `PasadaCopilot.NanoAIU`, de los eventos emitidos. **953 / 0 / 0** *(libre 1.13; 7,2 s)*.
+  md5: `copilot.go` `ecfcca5d`, `main.go` `8712d9ba`, `ingest/copilot.go` `eff50438`, `copilot_contexto.go` `67815cf2`, `copilot_test.go` `a490cbdb`.
+
+**T035 · Censo** *(ANTES de mutar)*: (37)–(40) = `TestCopilotScan_{EventosResumenYControl, LosDemasComoLa070, LineaDeControl, SinCopilotVersionNoEsCopilot}`.
+- **Los tests existentes de `--scan`** *(grep de `"--scan"` en los `_test.go`)*, POR NOMBRE Y HOJA, los que caen si todo se lee como Copilot CLI *(«S»)*:
+  - `TestScan_{UnEventoPorMensaje, LineaConCuatroPartidasYEventID, LineaConDesgloseDeLaEscritura, LaSalidaQueCreceValeSuMaximo}`;
+  - `TestCodexScan_EventosYResumen/{lineas_evento,resumen}`, `TestCodexScan_ClaudeCodeComoLa040`, `TestCodexScan_FormatoAnterior`;
+  - `TestGeminiScan_EventosYResumen/{lineas_evento,resumen,proyecto,sin_forma}`, `TestGeminiScan_ClaudeYCodexComoLa050/{claude,codex}`;
+  - `TestOpenCodeScan_EventosResumenYContraste/{lineas_evento,resumen,contraste}`, `TestOpenCodeScan_LosDemasComoLa060/{claude,codex,gemini}`,
+    `TestOpenCodeScan_ContrasteFueraDeLosMensajes`, `TestOpenCodeScan_FicherosCortosComoLa060/{vacio,diez_bytes}`.
+  - **No caen**: las hojas `nada_en_disco` y `disco` *(Copilot tampoco escribe)* y `--scan con "plain"` de `main_test.go` *(sólo mira el código)*.
+- **Ajustes a plan §Bloques, declarados aquí**:
+  - **m38** → además **(40)**: sin detección, `sin_copilotversion.jsonl` también va a Copilot;
+  - **m41** → además **(37/salida)**: compara la línea de control entera, y con `%.9f` el 0 sale con 9 decimales.
+
+| Mut. | Edición | Declarado |
+|---|---|---|
+| m38 | `dryRun` empieza por `return dryRunCopilot(path)` | (38) ×4, (40) y «S» *(35 FAIL con los padres)* |
+| m39 | `dryRunCopilot` guarda su estado en `<fichero>.state.json` | (37/disco) |
+| m40 | la Σ de créditos, sin las compactaciones | (39/compactacion), (39/exacto) |
+| m41 | el equivalente, `%.9f` sobre `float64` | (37/salida), (39/exacto), (39/no_multiplo) |
+| m42 | `esSesionCopilot` sin mirar `copilotVersion` | (40) |
+
+**T035 · Observado** *(cada una: md5 del verde, `bash ~/bin/libre.sh` sola, suite y `comprobar.py`; antes, prueba en seco: las 5 compilan y revierten)*:
+
+| Mut. | md5 mutado | Suite *(libre «inicio»)* | = declarado |
+|---|---|---|:-:|
+| m38 | `main.go` `26de5012` | 916 / 35 *(1.50)* | ✅ (38) ×4, (40) y «S» *(las 2 hojas de `LineaConCuatroPartidasYEventID` no corren: su padre se para)* |
+| m39 | `copilot.go` `5361772c` | 951 / 2 *(0.59)* | ✅ (37/disco) |
+| m40 | `copilot_contexto.go` `e10012f5` | 950 / 3 *(1.39)* | ✅ (39/compactacion), (39/exacto) |
+| m41 | `copilot.go` `5eb03e52` | 948 / 5 *(1.25)* | ✅ (37/salida), (39/exacto), (39/no_multiplo) |
+| m42 | `copilot.go` `7045ce0b` | 952 / 1 *(1.18)* | ✅ (40) |
+
+**B5: 5 de 5 = declarado.** Al final, los md5 del verde *(T034)*. Cada suite, 7–11 s.
+
+**SC-007, informativo en el corte** *(como T031: `git archive 15c4c47` con `0.7.0` frente al árbol con `0.8.0`)*:
+
+| Plataforma | 0.7.0 | Tras B5 | Δ fichero | Nota |
+|---|---:|---:|---:|---|
+| linux/amd64 | 5 648 536 | 5 681 304 | **+32 768** | |
+| linux/arm64 | 5 439 640 | 5 439 640 | 0 | Σ `FileSiz` de los `LOAD`: 5 337 116 → 5 363 132, **+26 016** *(normativo, E-3)* |
+| darwin/amd64 | 5 810 800 | 5 840 208 | **+29 408** | holgura de `__TEXT` 846 → 876 B |
+| darwin/arm64 | 5 571 330 | 5 605 090 | **+33 760** | holgura de `__TEXT` 14 144 → 15 974 B |
+| windows/amd64 | 5 846 528 | 5 875 200 | **+28 672** | |
+
+**Todas ≤ 102 400 B.** La mayor, darwin/arm64, gasta el **33,0 %** del tope.
+
+**Puertas del corte** *(libre 1.39; 19:36:58 → :37:05)*: **953 / 0 / 0**; vet limpio y lint 0; gofmt vacío; frontera de FR-027 vacía; ningún `*_test.go`
+existente modificado; `go.mod` sin `require`; sin `go.sum`; `os.Getenv` → 5. **`PRIV`**: 0 en `git diff 15c4c47`; 0 en los 3 ficheros nuevos; 0 con
+`grep -raEc` en los dos testdata *(56 ficheros, `generar.sh` incluido)*.

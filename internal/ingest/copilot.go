@@ -44,6 +44,8 @@ type ContextoCopilot struct {
 	Cwd string
 	// Decodificadas, si no es nil, cuenta las líneas que pasan el prefiltro y se decodifican (P-11; test (13)).
 	Decodificadas *int
+	// ConCreditos lee `copilotUsage.totalNanoAiu` en las marcas. Sólo lo pide `--scan`, para su línea de control (P-9, D-4).
+	ConCreditos bool
 }
 
 // ClaseCopilot clasifica una línea de una sesión de Copilot CLI (P-011 FR-020).
@@ -66,6 +68,8 @@ type MarcasCopilot struct {
 	Compactacion bool
 	// SinModelo: el registro no trae un `model` textual no vacío (P-5).
 	SinModelo bool
+	// NanoAIU son los créditos del registro según Copilot, con `ConCreditos`; 0 si no los trae enteros. Nunca van al evento.
+	NanoAIU int64
 }
 
 // Los tipos de las dos clases de registro, y sus marcadores para el prefiltro de bytes (P-11).
@@ -143,6 +147,9 @@ func RegistroCopilot(linea []byte, ctx ContextoCopilot) (*event.Event, ClaseCopi
 
 	modelo := textoDe(partidas["model"])
 	marcas.SinModelo = modelo == ""
+	if ctx.ConCreditos {
+		marcas.NanoAIU = creditosDe(partidas["copilotUsage"])
+	}
 	proyecto := ""
 	if ctx.Cwd != "" {
 		proyecto = ctx.Resolutor.Derivar(ctx.Cwd, ctx.Salt)
@@ -167,6 +174,17 @@ func RegistroCopilot(linea []byte, ctx ContextoCopilot) (*event.Event, ClaseCopi
 		OrgID:               ctx.OrgID,
 	}
 	return &ev, EventoCopilot, marcas, nil
+}
+
+// creditosDe es el `totalNanoAiu` de un `copilotUsage`, o 0 si no es un entero no negativo.
+func creditosDe(crudo json.RawMessage) int64 {
+	var u struct {
+		TotalNanoAiu int64 `json:"totalNanoAiu"`
+	}
+	if json.Unmarshal(crudo, &u) != nil || u.TotalNanoAiu < 0 {
+		return 0
+	}
+	return u.TotalNanoAiu
 }
 
 // objetoDe decodifica `crudo` en `m` si es un objeto JSON, y dice si lo era.

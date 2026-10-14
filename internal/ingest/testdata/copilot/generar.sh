@@ -14,6 +14,8 @@
 # B3 (T019): `ficheros/`, sesiones enteras para `LeerFicheroCopilot`: tramos, el corte en dos pasadas, la línea larga (≥ 64 KB),
 # la línea final sin LF, el truncado, la repetida, las clases de SC-010, un subagente, una sesión matada, la corrupta, sin `start`,
 # sin `cwd` y una carpeta para la sólo lectura. `esperado.json` guarda la línea de resumen de una pasada de cada fichero.
+# B5 (T033): `ficheros/control*.jsonl`, con créditos (`totalNanoAiu`) fijados a mano para la línea de control de `--scan`, y
+# `sin_copilotversion.jsonl`, un `session.start` sin `copilotVersion` (no es Copilot CLI para `--scan`).
 set -euo pipefail
 AQUI=$(cd "$(dirname "$0")" && pwd)
 command -v python3 >/dev/null || { echo "falta python3" >&2; exit 1; }
@@ -28,7 +30,7 @@ AQUI = sys.argv[1]
 def linea(tipo, datos, n):
     """Una línea de events.jsonl con la envoltura del descubrimiento (desc. Q2): type, data, id, timestamp, parentId."""
     return json.dumps({"type": tipo, "data": datos, "id": f"l-{n:024d}",
-                       "timestamp": f"2026-01-01T00:00:{n:02d}.000Z", "parentId": None},
+                       "timestamp": f"2026-01-01T00:{n // 60:02d}:{n % 60:02d}.000Z", "parentId": None},
                       ensure_ascii=False, separators=(",", ":")) + "\n"
 
 
@@ -248,6 +250,20 @@ escribir(os.path.join(F, "solo_lectura", s1, ".workspace-fork.lock"))
 escribir(os.path.join(F, "solo_lectura", s1, "checkpoints", "index.md"), "# texto-15\n")
 escribir(os.path.join(F, "solo_lectura", s1, "events.jsonl"), ini + u(58) + u(59))
 resumen("solo_lectura/" + s1 + "/events.jsonl", 2, 2)
+# --- B5 · la línea de control de `--scan` ---------------------------------------------------------------------------
+def con_credito(datos, nano, clave="usage"):
+    datos[clave]["copilotUsage"]["totalNanoAiu"] = nano
+    return datos
+
+
+# Σ de los que dan evento = 123 456 789 (llamada) + 1 000 (compactación) = 123 457 789: ni la incoherente ni la repetida suman.
+llamada = con_credito(usage(60), 123456789)
+fichero("control.jsonl", ini, l(U, llamada, 60), l(C, con_credito(compactacion(9), 1000, "compactionTokensUsed"), 61),
+        l(U, con_credito(usage(62, inp=100, cr=90, cw=20), 999999), 62), l(U, llamada, 63))
+resumen("control.jsonl", 4, 2, comp=1, rep=1, inc=1)
+fichero("control_uno.jsonl", ini, l(U, con_credito(usage(64), 1), 64)); resumen("control_uno.jsonl", 1, 1)
+sin_version = json.loads(inicio(s1, 1, X)); sin_version["data"].pop("copilotVersion")
+fichero("sin_copilotversion.jsonl", json.dumps(sin_version, separators=(",", ":")) + "\n", u(65))
 escribir(os.path.join(F, "esperado.json"), json.dumps(ESPERADO, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
 PY
 python3 -I "$T/generar.py" "$AQUI"

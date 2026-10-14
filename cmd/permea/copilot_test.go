@@ -362,3 +362,135 @@ func TestCopilotGenerate_FicheroIlegibleNoRompe(t *testing.T) {
 		}
 	})
 }
+
+// ═══ P-011 B5 · `--scan` DE UNA SESIÓN DE COPILOT CLI ═══════════════════════════════════════════════════════════════════
+//
+// La línea `evento:` es la compartida *(`imprimirEventos`)*; el resumen y la línea de control, los de spec §Textos de 011, leídos
+// por programa.
+
+// formatoCopilot es la línea de spec §Textos de 011 que empieza por `prefijo`, sin rellenar.
+func formatoCopilot(t *testing.T, prefijo string) string {
+	t.Helper()
+	f, err := os.Open(filepath.Join("..", "..", "specs", "011-lector-copilot", "spec.md"))
+	if err != nil {
+		t.Fatalf("precondición: spec: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 0, 1<<16), 1<<20)
+	for sc.Scan() {
+		if strings.HasPrefix(sc.Text(), prefijo) {
+			return sc.Text()
+		}
+	}
+	t.Fatalf("precondición: la spec no tiene la línea %q", prefijo)
+	return ""
+}
+
+// scanCopilot copia un fichero de `ficheros/` a un temporal y le pasa `--scan`.
+func scanCopilot(t *testing.T, fixture string) (codigo int, stdout, stderr, fichero string) {
+	t.Helper()
+	fichero = filepath.Join(t.TempDir(), "events.jsonl")
+	escribir(t, fichero, fixtureCopilot(t, fixture))
+	codigo, stdout, stderr, _ = ejecutar(t, 30*time.Second, "--scan", fichero)
+	return codigo, stdout, stderr, fichero
+}
+
+// (37) · FR-022, P-9: `--scan` de una sesión de Copilot CLI escribe las líneas `evento:`, el resumen y la línea de control, y
+// no escribe nada en disco: ni estado ni cola en el directorio de datos, ni nada junto al fichero.
+func TestCopilotScan_EventosResumenYControl(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	codigo, stdout, stderr, fichero := scanCopilot(t, "dos_llamadas.jsonl")
+	t.Run("salida", func(t *testing.T) {
+		lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+		control := fmt.Sprintf(formatoCopilot(t, "copilot_cli (control"), 0, 0, 0)
+		if codigo != 0 || len(lineas) != 3 || !strings.HasPrefix(lineas[0], "evento: tool=copilot_cli ") ||
+			!strings.HasPrefix(lineas[1], "evento: tool=copilot_cli ") || lineas[2] != control ||
+			!strings.Contains(stderr, "2 eventos generados (dry-run, nada transmitido)\n"+lineaCopilot(t, 2, 2, 0, 0, 0, 0, 0)+"\n") {
+			t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaban 2 `evento:`, la línea de control y el resumen", codigo, stdout, stderr)
+		}
+	})
+	t.Run("disco", func(t *testing.T) {
+		junto, err := os.ReadDir(filepath.Dir(fichero))
+		_, sinEstado := os.Stat(filepath.Join(dataDir, "state.json"))
+		_, sinCola := os.Stat(transport.QueuePath(dataDir))
+		if err != nil || len(junto) != 1 || sinEstado == nil || sinCola == nil {
+			t.Errorf("junto al fichero: %d entradas (%v); state.json: %v; cola: %v; se esperaba nada en disco", len(junto), err, sinEstado, sinCola)
+		}
+	})
+}
+
+// (38) · FR-023: `--scan` de un fichero de Claude Code, Codex, Gemini u OpenCode da la salida de antes, byte a byte (las
+// referencias de 008, 009 y 010; la de OpenCode, por su contraste). NACE VERDE; lo valida m38, que lo lee todo como Copilot CLI.
+func TestCopilotScan_LosDemasComoLa070(t *testing.T) {
+	for _, c := range []struct{ hoja, fichero, referencia string }{
+		{"claude", filepath.Join("testdata", "codex", "claude.jsonl"), filepath.Join("codex", "referencia-scan-claude")},
+		{"codex", filepath.Join("testdata", "codex", "sesion.jsonl"), filepath.Join("gemini", "referencia-scan-codex")},
+		{"gemini", filepath.Join("testdata", "gemini", "sesion.jsonl"), filepath.Join("opencode", "referencia-scan-gemini")},
+	} {
+		t.Run(c.hoja, func(t *testing.T) {
+			_ = testutil.Sandbox(t)
+			wantOut, errOut := os.ReadFile(filepath.Join("testdata", c.referencia+".stdout"))
+			wantErr, errErr := os.ReadFile(filepath.Join("testdata", c.referencia+".stderr"))
+			if errOut != nil || errErr != nil || len(wantOut) == 0 {
+				t.Fatalf("precondición: la referencia %s: %v, %v", c.referencia, errOut, errErr)
+			}
+			codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", c.fichero)
+			if codigo != 0 || stdout != string(wantOut) || stderr != string(wantErr) {
+				t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nno es la salida de la 0.7.0", codigo, stdout, stderr)
+			}
+		})
+	}
+	t.Run("opencode", func(t *testing.T) {
+		_ = testutil.Sandbox(t)
+		base := filepath.Join(t.TempDir(), "opencode.db")
+		escribir(t, base, fixtureOpenCode(t, "sana.db"))
+		codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", base)
+		if codigo != 0 || !strings.Contains(stdout, "opencode (contraste, no se envía)") || strings.Contains(stdout+stderr, "copilot_cli") {
+			t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaba la salida de OpenCode y nada de Copilot CLI", codigo, stdout, stderr)
+		}
+	})
+}
+
+// (39) · D-4, D-011-P6: la línea de control. Σ de los créditos de los registros que dieron evento, CON la compactación y SIN la
+// incoherente ni la repetida; y su equivalente EXACTO en USD, con 11 decimales, en enteros.
+func TestCopilotScan_LineaDeControl(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	ultima := func(t *testing.T, fixture string) string {
+		t.Helper()
+		codigo, stdout, stderr, _ := scanCopilot(t, fixture)
+		lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+		if codigo != 0 {
+			t.Fatalf("código %d; stderr:\n%s", codigo, stderr)
+		}
+		return lineas[len(lineas)-1]
+	}
+	formato := formatoCopilot(t, "copilot_cli (control")
+	t.Run("compactacion", func(t *testing.T) {
+		// 123 456 789 (la llamada) + 1 000 (la compactación); ni 999 999 (incoherente) ni la repetida.
+		if got := ultima(t, "control.jsonl"); !strings.Contains(got, " 123457789 nanoAIU ") {
+			t.Errorf("control: %q; se esperaba la Σ 123457789", got)
+		}
+	})
+	t.Run("exacto", func(t *testing.T) {
+		if got, want := ultima(t, "control.jsonl"), fmt.Sprintf(formato, 123457789, 0, 123457789); got != want {
+			t.Errorf("control:\n  %s\nse esperaba\n  %s", got, want)
+		}
+	})
+	t.Run("no_multiplo", func(t *testing.T) {
+		// 1 nanoAIU no es múltiplo de 100: con 9 decimales, o en coma flotante, se perdería.
+		if got := ultima(t, "control_uno.jsonl"); !strings.HasSuffix(got, "equivalente $0.00000000001 a 0,01 por crédito") {
+			t.Errorf("control: %q; se esperaba $0.00000000001", got)
+		}
+	})
+}
+
+// (40) · P-9: un fichero cuya 1.ª línea es `session.start` SIN `copilotVersion` no es de Copilot CLI: sigue el camino de Claude
+// Code, como en la 0.7.0. NACE VERDE (sin `esSesionCopilot`, ya no lo es); lo valida m42.
+func TestCopilotScan_SinCopilotVersionNoEsCopilot(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	codigo, stdout, stderr, _ := scanCopilot(t, "sin_copilotversion.jsonl")
+	if codigo != 0 || strings.Contains(stdout+stderr, "copilot_cli") {
+		t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaba el camino de Claude Code, sin nada de Copilot CLI", codigo, stdout, stderr)
+	}
+}

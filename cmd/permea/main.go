@@ -615,6 +615,14 @@ func dryRun(path string) error {
 	if gemini {
 		return dryRunGemini(path)
 	}
+	// P-011 FR-022, P-9: una sesión de Copilot CLI se reconoce por su `session.start` con `copilotVersion`, TRAS Gemini.
+	copilot, err := esSesionCopilot(path)
+	if err != nil {
+		return err
+	}
+	if copilot {
+		return dryRunCopilot(path)
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return err

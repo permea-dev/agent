@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -61,4 +63,53 @@ func sinRuta(err error) error {
 		return fmt.Errorf("%s: %w", pe.Op, pe.Err)
 	}
 	return err
+}
+
+// ═══ P-011 B5 · `--scan` DE UNA SESIÓN DE COPILOT CLI ═══════════════════════════════════════════════════════════════════
+
+// nanoAIUPorDolar: un crédito son 10⁹ nanoAIU y vale 0,01 USD (D-4), así que 1 USD son 10¹¹ nanoAIU.
+const nanoAIUPorDolar = 100_000_000_000
+
+// esSesionCopilot dice si la primera línea del fichero es el `session.start` de una sesión de Copilot CLI (P-9): con
+// `data.copilotVersion` textual. Se lee con el mismo tope de 1 MiB que `esSesionCodex`, y se mira TRAS Gemini.
+func esSesionCopilot(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = f.Close() }() // sólo lectura
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 0, 1<<20), 1<<20)
+	if !sc.Scan() {
+		return false, sc.Err()
+	}
+	var primera struct {
+		Type string `json:"type"`
+		Data struct {
+			CopilotVersion *string `json:"copilotVersion"`
+		} `json:"data"`
+	}
+	if json.Unmarshal(sc.Bytes(), &primera) != nil {
+		return false, nil // no es JSON, o no tiene esta forma: lo trata el camino de Claude Code, como hoy
+	}
+	return primera.Type == "session.start" && primera.Data.CopilotVersion != nil, nil
+}
+
+// dryRunCopilot imprime los eventos de una sesión de Copilot CLI sin tocar estado ni cola (P-011 FR-022). Aplica las MISMAS
+// reglas que la emisión (`LeerFicheroCopilot`), sobre un estado sólo en memoria que nunca se guarda. La línea `evento:` es la
+// compartida, y el resumen, el de Copilot CLI. Tras él, la línea de control (D-4, D-011-P6): la Σ de los créditos de los
+// registros que dieron evento y su equivalente en USD, EXACTO con 11 decimales, en enteros. Nunca se envía.
+func dryRunCopilot(path string) error {
+	pc := ingest.NuevaPasadaCopilot()
+	ctx := ingest.ContextoCopilot{Context: ingest.Context{Salt: "dry-run-salt", MachineID: "local", DevID: "dev-local",
+		OrgID: "org-local", AgentVersion: version}, ConCreditos: true}
+	evs, err := ingest.LeerFicheroCopilot(state.New(), path, ctx, pc, os.Stderr)
+	if err != nil {
+		return err
+	}
+	imprimirEventos(evs)
+	fmt.Fprintln(os.Stderr, pc.Resumen())
+	fmt.Printf("copilot_cli (control, no se envía): créditos según Copilot %d nanoAIU · equivalente $%d.%011d a 0,01 por crédito\n",
+		pc.NanoAIU, pc.NanoAIU/nanoAIUPorDolar, pc.NanoAIU%nanoAIUPorDolar)
+	return nil
 }

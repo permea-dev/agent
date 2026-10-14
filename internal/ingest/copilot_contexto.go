@@ -51,7 +51,9 @@ type PasadaCopilot struct {
 	Registros, Eventos, Compactaciones, Repetidas, SinIdentificador, Incoherentes, SinModelo int
 	// Aperturas cuenta los ficheros abiertos en la pasada (plan §2; test (15)).
 	Aperturas int
-	emitidos  map[string]struct{}
+	// NanoAIU es la Σ de los créditos de los eventos emitidos, con `ConCreditos` (la línea de control de `--scan`).
+	NanoAIU  int64
+	emitidos map[string]struct{}
 }
 
 // NuevaPasadaCopilot crea los recuentos de una pasada.
@@ -172,6 +174,7 @@ func LeerFicheroCopilot(st *state.Store, ruta string, base ContextoCopilot, p *P
 			}
 			p.emitidos[ev.EventID] = struct{}{}
 			p.Eventos++
+			p.NanoAIU += marcas.NanoAIU
 			if marcas.Compactacion {
 				p.Compactaciones++
 			}
