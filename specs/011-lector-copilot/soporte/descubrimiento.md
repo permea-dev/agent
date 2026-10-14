@@ -179,22 +179,22 @@ tomada el 2026-10-14, y la documentación pública de GitHub.
 
 ## Propuestas de decisión *(sin decidir)*
 
-- **P-1 · Fuente**: `session.usage_record`, **una línea = un evento**. Se ignoran los `model.*`, los `shutdown` y los checkpoints.
+- **P-1 · Fuente** *(D-2 de la spec)*: `session.usage_record` **y** `session.compaction_complete` con `success: true`, que lleva un consumo que no está en
+  ningún `usage_record` *([muestra 2](descubrimiento-muestra-2.md), M2)*. Una línea = un evento. Se ignoran los `model.*`, los `shutdown` y los checkpoints.
 - **P-2 · Partidas**: las de Q4. La salida = `outputTokens` *(el razonamiento va dentro)*.
 - **P-3 · `event_id`**: de `accounting.usageId`, o de `(sourceSessionId, sequence)` si falta, con espacio de nombres `copilot`. **Nunca** de `providerCallId`.
 - **P-4 · Modelo**: `usage.model` tal cual *(`gpt-6-luna`)*. `modelDisplayName` no viaja.
 - **P-5 · Sesión y proyecto**: `session_ref` desde `accounting.sourceSessionId` *(= carpeta = `session.start.sessionId`)*; `project_ref` desde el `context.cwd` del
   último `start` o `resume` anterior. No se lee `workspace.yaml`.
 - **P-6 · Coste**: sin coste *(Q8)*.
-- **P-7 · Llamadas auxiliares** *(0 AIU)*: **(a)** no se cuentan, como la factura de Copilot; **(b)** se cuentan desde `model.model_call_success.responseUsage`, en
-  una línea ⛔ con `requestMessages`.
+- **P-7 · Llamadas auxiliares** *(0 AIU)*: **no se cuentan**; es un límite declarado *(decidido por el dueño: D-2 de la spec)*.
 - **P-8 · Raíz**: `$COPILOT_HOME/session-state`, o `~/.copilot/session-state`.
 
 ## Preguntas abiertas
 
-1. ¿`session-state/` sigue a `COPILOT_HOME`, y existe alguna otra variable *(`XDG_*`)*? *(Q1, Q11)*
+1. ✅ `session-state/` sigue a `COPILOT_HOME` *(muestra 2, M3)*. Sin medir si existe alguna otra variable *(`XDG_*`)*.
 2. ¿Qué es el cuarto `.lock` de operación, sin carpeta, creado 4,2 s antes del `resume`? ¿Un id provisional de `--continue`? *(Q1)*
-3. ¿Una sesión matada conserva todos sus `usage_record`? *(Q6)*
-4. ¿La compactación deja `usage_record` propio, y `events.jsonl` sigue siendo sólo-añadir? *(Q11)*
+3. ✅ Una sesión matada conserva sus `usage_record`; pierde como mucho la llamada en curso *(muestra 2, M1)*.
+4. ✅ La compactación no deja `usage_record`: su consumo va en `compaction_complete`, y el fichero sigue siendo de sólo añadir *(muestra 2, M2)*.
 5. ¿A cuántos dólares equivale una AIU, y lo necesita Permea? *(Q8)*
-6. ¿Se cuentan las llamadas auxiliares a 0 AIU? *(P-7)*
+6. ✅ Las llamadas auxiliares no se cuentan *(D-2 de la spec)*.
