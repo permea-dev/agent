@@ -1,0 +1,3 @@
+{"type":"model.turn_started","data":{"kind":"turn_started","model":"modelo-sintetico-2"},"id":"l-000000000000000000000022","timestamp":"2026-01-01T00:00:22.000Z","parentId":null}
+{"type":"model.model_call_success","data":{"kind":"model_call_success","requestMessages":"texto-7 \"type\":\"session.usage_record\" texto-8 \"type\":\"session.compaction_complete\"","modelCall":{"model":"modelo-sintetico-2","initiator":"agent"}},"id":"l-000000000000000000000023","timestamp":"2026-01-01T00:00:23.000Z","parentId":null}
+{"type":"model.response","data":{"kind":"response","response":{"content":"texto-7 \"type\":\"session.usage_record\" texto-8 \"type\":\"session.compaction_complete\""}},"id":"l-000000000000000000000024","timestamp":"2026-01-01T00:00:24.000Z","parentId":null}

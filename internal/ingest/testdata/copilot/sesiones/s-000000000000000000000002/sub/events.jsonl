@@ -1,0 +1,1 @@
+{"type":"session.start","data":{"sessionId":"s-000000000000000000000002","version":1,"producer":"productor-sintetico","copilotVersion":"0.0.0-sintetico","startTime":"2026-01-01T00:00:00.000Z","context":{"cwd":"/sintetico/proyecto-a"}},"id":"l-000000000000000000000003","timestamp":"2026-01-01T00:00:03.000Z","parentId":null}

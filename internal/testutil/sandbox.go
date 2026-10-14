@@ -66,6 +66,8 @@ func Sandbox(t *testing.T) string {
 	// P-010 M-3: lo mismo con OpenCode. Vacías, las bases caen en `<hogar temporal>/.local/share/opencode`, que no existe.
 	t.Setenv("XDG_DATA_HOME", "")
 	t.Setenv("OPENCODE_DB", "")
+	// P-011 M-3: y con Copilot CLI. Vacía, la raíz cae en `<hogar temporal>/.copilot/session-state`, que no existe.
+	t.Setenv("COPILOT_HOME", "")
 
 	base, err := os.UserConfigDir()
 	if err != nil {

@@ -15,8 +15,8 @@ import (
 // Devuelve la ruta AUNQUE NO EXISTA: si existe se comprueba en cada pasada (P-10, FR-002), porque el demonio vive días y
 // OpenCode puede instalarse después.
 //
-// ⚠️ Son la tercera y la cuarta lecturas de entorno de producción, con `CODEX_HOME` y `GEMINI_CLI_HOME` (M-5). Los tests
-// las neutralizan en `internal/testutil.Sandbox` (M-3).
+// ⚠️ Son dos de las CINCO lecturas de entorno de producción, con `CODEX_HOME`, `GEMINI_CLI_HOME` y `COPILOT_HOME` (M-5;
+// P-011 M-5). Los tests las neutralizan en `internal/testutil.Sandbox` (M-3).
 func OpenCodeDatos() (dir, unica string, err error) {
 	db := os.Getenv("OPENCODE_DB")
 	if filepath.IsAbs(db) {

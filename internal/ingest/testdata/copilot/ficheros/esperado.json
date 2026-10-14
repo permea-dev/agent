@@ -1,0 +1,21 @@
+{
+ "clases.jsonl": "copilot_cli: registros 6 · eventos 2 · compactaciones 1 · repetidas 1 · sin identificador 1 · incoherentes 2 · sin modelo 1",
+ "control.jsonl": "copilot_cli: registros 4 · eventos 2 · compactaciones 1 · repetidas 1 · sin identificador 0 · incoherentes 1 · sin modelo 0",
+ "control_uno.jsonl": "copilot_cli: registros 1 · eventos 1 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "corrupta.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "cortado/paso1.jsonl": "copilot_cli: registros 1 · eventos 1 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "cortado/paso2.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "dos_llamadas.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "linea_larga.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "matada.jsonl": "copilot_cli: registros 1 · eventos 1 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "repetida.jsonl": "copilot_cli: registros 2 · eventos 1 · compactaciones 0 · repetidas 1 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "sin_cwd.jsonl": "copilot_cli: registros 1 · eventos 1 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "sin_lf.jsonl": "copilot_cli: registros 0 · eventos 0 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "sin_lf_completo.jsonl": "copilot_cli: registros 1 · eventos 1 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "sin_start.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "solo_lectura/s-000000000000000000000001/events.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "subagente.jsonl": "copilot_cli: registros 4 · eventos 4 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "tramos.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "truncado/corto.jsonl": "copilot_cli: registros 1 · eventos 1 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0",
+ "truncado/largo.jsonl": "copilot_cli: registros 2 · eventos 2 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0"
+}

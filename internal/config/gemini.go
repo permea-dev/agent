@@ -14,8 +14,8 @@ import (
 // Devuelve la ruta AUNQUE NO EXISTA: si `<raíz>/tmp` existe se comprueba en cada pasada (FR-002), porque el demonio
 // vive días y Gemini CLI puede instalarse después.
 //
-// ⚠️ Es una de las CUATRO lecturas de entorno de producción, con `CODEX_HOME`, `XDG_DATA_HOME` y `OPENCODE_DB`
-// (plan D-008-P7, D-009-P9; P-010 M-5). Los tests la neutralizan en `internal/testutil.Sandbox` (M-9).
+// ⚠️ Es una de las CINCO lecturas de entorno de producción, con `CODEX_HOME`, `XDG_DATA_HOME`, `OPENCODE_DB` y
+// `COPILOT_HOME` (plan D-008-P7, D-009-P9; P-010 M-5; P-011 M-5). Los tests la neutralizan en `internal/testutil.Sandbox` (M-9).
 func GeminiRoot() (string, error) {
 	if propia := os.Getenv("GEMINI_CLI_HOME"); propia != "" {
 		return filepath.Join(propia, ".gemini"), nil

@@ -1,9 +1,9 @@
 # Permea — medidor de coste de IA (local-first, multi-herramienta)
 
 Agente local que lee los logs de uso de herramientas de IA (Claude Code, Codex CLI, Gemini
-CLI y OpenCode), calcula **en local** el coste de Claude Code y transmite al backend de
-equipo **únicamente metadato derivado** — nunca contenido. Funciona sin conexión: los
-eventos pendientes se persisten y se transmiten **exactamente una vez** al recuperarse la
+CLI, OpenCode y Copilot CLI), calcula **en local** el coste de Claude Code y transmite al
+backend de equipo **únicamente metadato derivado** — nunca contenido. Funciona sin conexión:
+los eventos pendientes se persisten y se transmiten **exactamente una vez** al recuperarse la
 red.
 
 ## Garantía de frontera
@@ -69,8 +69,8 @@ Los mismos tres pasos que muestra `permea help`:
 
 **3. Medir y enviar.**
 
-> ⚠️ **La primera pasada envía todo el historial que conserven Claude Code, Codex CLI, Gemini CLI y
-> OpenCode**, no sólo lo que uses a partir de ahora. Las siguientes envían sólo lo nuevo.
+> ⚠️ **La primera pasada envía todo el historial que conserven Claude Code, Codex CLI, Gemini CLI,
+> OpenCode y Copilot CLI**, no sólo lo que uses a partir de ahora. Las siguientes envían sólo lo nuevo.
 
     permea --run       # mide y envía una vez
     permea --daemon    # o lo deja en marcha: mide y envía cada cierto tiempo
@@ -140,7 +140,7 @@ servidor**, sobre lo que ya llegó.
 
 ## Modos de ejecución
 
-    permea --scan <fichero>         # prueba en seco: un evento por mensaje (por respuesta en Codex y Gemini; por llamada en una base de OpenCode), sin tocar estado ni cola
+    permea --scan <fichero>         # prueba en seco: un evento por mensaje (por respuesta en Codex y Gemini; por llamada en una base de OpenCode o en una sesión de Copilot CLI), sin tocar estado ni cola
     permea --run                    # una pasada: escanea, encola y drena al backend
     permea --daemon                 # bucle continuo: cada sync_interval genera y transmite
 
@@ -157,17 +157,19 @@ servidor**, sobre lo que ya llegó.
   mensajes que crecieron entre líneas, los que esperan a cerrarse, las líneas releídas, las tardías y
   las que no traen el desglose de la caché. Con Codex activo, una tercera línea, `codex: …`, con sus
   recuentos, y con Gemini activo, otra, `gemini: …`. Con OpenCode activo, una línea más,
-  `opencode: …`.
+  `opencode: …`, y con Copilot CLI activo, otra, `copilot_cli: …`.
 - **`--scan`** imprime por evento las cuatro partidas de tokens (`in=`, `out=`, `cw=`, `cr=`), el
   desglose de la escritura de caché por duración (`cw5m=`, `cw1h=`), el coste y el `event_id`. Como
-  lee un fichero completo, cierra todos sus mensajes al final. En una sesión de Codex, de Gemini o
-  de OpenCode la línea no lleva `cw5m=` ni `cw1h=`, y el coste es 0. `--scan` admite también una
-  base de OpenCode, y añade una línea de contraste con el coste según OpenCode, que no se envía.
-- **`--run`** hace una pasada: descubre los logs de Claude Code, las sesiones de Codex y de Gemini y
-  las bases de OpenCode, lee lo nuevo por offset, encola de forma durable en `queue.jsonl` lo que
-  está cerrado y, si hay `endpoint` configurado, drena la cola por HTTPS autenticado. Lo que sigue
-  abierto se queda para la pasada siguiente, y lo avisa: «N mensajes siguen abiertos: se enviarán en
-  la próxima pasada».
+  lee un fichero completo, cierra todos sus mensajes al final. En una sesión de Codex, de Gemini, de
+  OpenCode o de Copilot CLI la línea no lleva `cw5m=` ni `cw1h=`, y el coste es 0. `--scan` admite
+  también una base de OpenCode, y añade una línea de contraste con el coste según OpenCode, que no
+  se envía. Con una sesión de Copilot CLI añade una línea de control con sus créditos y su
+  equivalente en USD, que tampoco se envía.
+- **`--run`** hace una pasada: descubre los logs de Claude Code, las sesiones de Codex, de Gemini y
+  de Copilot CLI y las bases de OpenCode, lee lo nuevo por offset, encola de forma durable en
+  `queue.jsonl` lo que está cerrado y, si hay `endpoint` configurado, drena la cola por HTTPS
+  autenticado. Lo que sigue abierto se queda para la pasada siguiente, y lo avisa: «N mensajes
+  siguen abiertos: se enviarán en la próxima pasada».
 - **`--daemon`** repite lo anterior cada `sync_interval`; un mensaje en espera se cierra a su hora
   aunque su fichero no crezca, y el resumen sólo se escribe en los ciclos con novedades. Errores de
   red/5xx se reintentan con backoff acotado (máx. 5 reintentos, tope 5 min) y el lote permanece en
@@ -211,6 +213,24 @@ entre sus mensajes y el agente no la ve: en la medición fue un 0,37 % del coste
 curso se espera hasta 24 horas; pasado ese tiempo se cuenta como «abandonada» y no se envía. Si la
 carpeta no existe, no cambia nada.
 
+### Copilot CLI
+
+Si existe `~/.copilot/session-state` (o `$COPILOT_HOME/session-state`), el agente lee también el
+consumo de Copilot CLI: el `events.jsonl` de cada sesión. La carpeta sólo se lee: el agente no crea,
+cambia ni borra nada en ella, tampoco sus `.lock`. Cada llamada al modelo principal es un evento con
+`tool = copilot_cli`, sus tokens y su modelo, y cada compactación con éxito (`/compact`), otro. El
+modelo es el de cada llamada, el que se cobra, también en un subagente. El razonamiento ya va dentro
+de la salida y no se suma otra vez. El coste no lo calcula el agente: los eventos salen con
+`cost_available = false`, y los créditos de Copilot no se envían. Las llamadas auxiliares de la CLI
+(modelos pequeños, a 0 créditos en el plan Free) no se cuentan. Si se mata una sesión, lo ya escrito
+se envía, pero la llamada en curso no está en disco y no se cuenta. `permea --scan` sobre el
+`events.jsonl` de una sesión imprime sus eventos, el resumen y una línea de control con los créditos
+según Copilot y su equivalente en USD, a 0,01 por crédito, que no se envía. Medido sólo con Copilot
+CLI 1.0.97, en Windows y en el plan Free; los subagentes en segundo plano, los *workflows*, la
+compactación automática y los planes de pago, sin muestra. Con un plan de pago, un modelo con punto
+en el nombre (como `claude-haiku-4.5`) no casa con el catálogo de la plataforma y llega sin coste.
+Copilot dentro de VS Code o JetBrains no se lee. Si la carpeta no existe, no cambia nada.
+
 ## Coste y tarifas
 
 El coste de Claude Code se calcula **en local**, en **USD**, con una tabla empaquetada en el binario
@@ -228,7 +248,8 @@ Anthropic del catálogo de tarifas de la plataforma (`permea-dev/permea-platform
   tarifa entera a **1 hora**. Es la misma hipótesis que declara el catálogo de la plataforma.
 - **Limitación 2**: el **«modo rápido»** no se distingue; un evento en modo rápido quedaría
   infravalorado.
-- **Codex, Gemini y OpenCode**: el agente no calcula su coste; lo pone la plataforma (ver «Codex CLI», «Gemini CLI» y «OpenCode»).
+- **Codex, Gemini, OpenCode y Copilot CLI**: el agente no calcula su coste; lo pone la plataforma (ver «Codex CLI», «Gemini CLI»,
+  «OpenCode» y «Copilot CLI»).
 
 ## Configuración y rutas por SO
 
@@ -270,7 +291,7 @@ La versión del binario (`agent_version` en el evento) se inyecta con
 ### Estructura
     cmd/permea        punto de entrada (subcomandos enroll/status/project join + modos scan/run/daemon)
     internal/event    LA FRONTERA (struct cerrado del evento)
-    internal/ingest   lectores por herramienta (claude_code, codex, gemini, opencode) + tests de frontera
+    internal/ingest   lectores por herramienta (claude_code, codex, gemini, opencode, copilot) + tests de frontera
     internal/sqlitero lector propio de SQLite, de sólo lectura (bases de OpenCode)
     internal/pricing  cálculo de coste local (tabla empaquetada)
     internal/state    escaneo incremental idempotente

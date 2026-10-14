@@ -189,6 +189,11 @@ type agent struct {
 	opencodeDatos, opencodeUnica string
 	// opencode son los recuentos de OpenCode de la última pasada; nil si el lector no estuvo activo.
 	opencode *ingest.PasadaOpenCode
+	// copilotRaiz es la carpeta de las sesiones de Copilot CLI (P-011 D-5), resuelta una vez en `setup()`. Si existe se mira
+	// en cada pasada (P-6). Vacía —un `agent` construido a mano en un test— significa que no se lee Copilot CLI.
+	copilotRaiz string
+	// copilot son los recuentos de Copilot CLI de la última pasada; nil si el lector no estuvo activo.
+	copilot *ingest.PasadaCopilot
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -242,6 +247,11 @@ func setup() (*agent, error) {
 	if err != nil {
 		opencodeDatos, opencodeUnica = "", ""
 	}
+	// P-011 FR-001, FR-002: y con Copilot CLI.
+	copilotRaiz, err := config.CopilotSessionsRoot()
+	if err != nil {
+		copilotRaiz = ""
+	}
 	return &agent{
 		dir:           dir,
 		cfg:           cfg,
@@ -250,6 +260,7 @@ func setup() (*agent, error) {
 		geminiRaiz:    geminiRaiz,
 		opencodeDatos: opencodeDatos,
 		opencodeUnica: opencodeUnica,
+		copilotRaiz:   copilotRaiz,
 	}, nil
 }
 
@@ -389,6 +400,17 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
+	// P-011: Copilot CLI, tras OpenCode y ANTES del único `st.Save` (FR-024). Activo sólo si EN ESTA PASADA existe la carpeta
+	// de sus sesiones (P-6, FR-002): el demonio vive días y Copilot CLI puede instalarse después.
+	a.copilot = nil
+	if a.copilotActivo() {
+		n, err := a.generarCopilot(st, ictx)
+		total += n
+		if err != nil {
+			return total, pasada, err
+		}
+	}
+
 	if err := st.Save(statePath); err != nil {
 		return total, pasada, err
 	}
@@ -466,6 +488,9 @@ func runOnce() error {
 	if a.opencode != nil {
 		fmt.Fprintln(os.Stderr, a.opencode.Resumen()) // P-010 FR-024: tras la de Gemini, con el lector activo en esta pasada
 	}
+	if a.copilot != nil {
+		fmt.Fprintln(os.Stderr, a.copilot.Resumen()) // P-011 FR-021: tras la de OpenCode, con el lector activo en esta pasada
+	}
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -535,6 +560,9 @@ func (a *agent) tick() error {
 		if a.opencode != nil && a.opencode.HayNovedades() {
 			fmt.Fprintln(os.Stderr, a.opencode.Resumen()) // P-010 FR-024: sólo con novedades
 		}
+		if a.copilot != nil && a.copilot.HayNovedades() {
+			fmt.Fprintln(os.Stderr, a.copilot.Resumen()) // P-011 FR-021: sólo con novedades
+		}
 	}
 
 	if a.cfg.Endpoint == "" {
@@ -586,6 +614,14 @@ func dryRun(path string) error {
 	}
 	if gemini {
 		return dryRunGemini(path)
+	}
+	// P-011 FR-022, P-9: una sesión de Copilot CLI se reconoce por su `session.start` con `copilotVersion`, TRAS Gemini.
+	copilot, err := esSesionCopilot(path)
+	if err != nil {
+		return err
+	}
+	if copilot {
+		return dryRunCopilot(path)
 	}
 	f, err := os.Open(path)
 	if err != nil {
