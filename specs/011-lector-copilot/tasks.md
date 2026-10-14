@@ -238,11 +238,15 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(W1: TODO IGUAL; 16 = 16 y 19 = 19, créditos iguales; **SC-022 cumple en Windows**)*.
 - [x] **T045** **C5** · El cuerpo del PR, fuera del repo; la fecha de la 0.8.0 entra en la rama *(`PENDIENTE` → 0)*.
   > Transcripción: §Cierre *(`## 0.8.0 — 2026-10-14`; el cuerpo, en `tmp/pr-body.md`, ignorado por git)*.
-- [ ] **T046** ✋ **C6** · Fusión del PR con merge commit.
-- [ ] **T047** ✋ **C7** · `git tag -a v0.8.0` y push; el workflow `release` en verde.
-- [ ] **T048** **C8** · Los tres canales en `0.8.0`, `sha256sum -c`, y `strings` del binario publicado.
-- [ ] **T049** ✋ **C9 · W2**: `scoop update`, `--run`. En la plataforma, eventos `copilot_cli` = los registros nuevos, y **evento a evento**
+- [x] **T046** ✋ **C6** · Fusión del PR con merge commit.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(PR #8, merge `127fdea`; rama borrada en local y en remoto)*.
+- [x] **T047** ✋ **C7** · `git tag -a v0.8.0` y push; el workflow `release` en verde.
+  > Transcripción: §Cierre *(`v0.8.0` sobre `127fdea`; `release` en verde; publicada 2026-10-14T19:47:21Z, 6 assets)*.
+- [x] **T048** **C8** · Los tres canales en `0.8.0`, `sha256sum -c`, y `strings` del binario publicado.
+  > Transcripción: §Cierre *(`sha256sum -c` ×5; Scoop y cask en 0.8.0; los tres textos en Linux y `permea.exe`)*.
+- [x] **T049** ✋ **C9 · W2**: `scoop update`, `--run`. En la plataforma, eventos `copilot_cli` = los registros nuevos, y **evento a evento**
   `ROUND(créditos × 0,01, 6)` = su coste *(la plataforma redondea por evento; SC-022)*.
+  > Transcripción: §Cierre *(19 = 19, al token; los 19 costes = `ROUND(créditos × 0,01, 6)`; TOTAL 0.014040; **SC-022 cumple en la instalación real**)*.
 
 ## Dependencias
 

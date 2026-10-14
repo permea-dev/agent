@@ -71,3 +71,29 @@ la enmienda de m31)*: archivados íntegros el 2026-10-14, al empezar el cierre, 
   - 0 eventos con coste, 0 de otras herramientas, 0 avisos, 0 líneas ilegibles. **SC-022 cumple en Windows.**
 - **T045 · C5**: `## 0.8.0 — PENDIENTE` → **`## 0.8.0 — 2026-10-14`** *(dueño, 14-10, como en la 0.7.0)*. `PENDIENTE` → 0; ningún `.go` lee el CHANGELOG.
   La fecha ya estaba en C5 en tasks: no hace falta enmendar C7. El cuerpo del PR, en `tmp/pr-body.md`, fuera del repo *(ignorado por `.gitignore:24`)*.
+- **T046 · C6** *(✋ dueño, 2026-10-14)*: PR #8 fusionada con merge commit **`127fdea`**. La rama `011-lector-copilot`, borrada en local y en remoto
+  *(`ls-remote`: sólo `main`)*. El árbol de `main` = el de la rama `cc78b31`: desde C1 *(`4f5376d`)* sólo cambian `CHANGELOG.md` y dos ficheros de
+  `specs/011`, ningún `.go`. Así que el **953 / 0 / 0** de C1 vale para `main`.
+- **T047 · C7** *(✋ dueño)*: etiqueta anotada **`v0.8.0`** sobre `127fdea`. Workflow `release` en verde *(ejecución 38626487968)*. Publicada a las
+  **2026-10-14T19:47:21Z**, sin borrador ni prerelease, con 6 assets.
+- **T048 · C8**, descarga anónima:
+  - `sha256sum -c` OK ×5;
+  - Scoop en 0.8.0, con el hash del zip de Windows `ac55b817…076b`;
+  - el cask en 0.8.0, con sus 4 hashes iguales a los publicados;
+  - el binario de Linux responde `0.8.0`;
+  - **SC-017**: los tres textos de spec §Textos, una vez cada uno, en el binario de Linux y en `permea.exe`;
+  - el README empaquetado trae «### Copilot CLI».
+- **T049 · C9 · W2** *(✋ dueño, en la instalación real de Windows)*:
+  - Scoop 0.7.0 → 0.8.0, hash OK.
+  - `--run`: **783 eventos** transmitidos y confirmados = 764 de Claude Code + **19 de Copilot CLI** *(«copilot_cli: registros 19 · eventos 19 ·
+    compactaciones 3», el resto a 0)*.
+  - **Contador independiente de W2** *(`contador-w2`, derivado del de W1, fuera del repo)*: una línea por registro, con las cuatro partidas como las envía
+    el agente, los créditos y `ROUND(créditos × 0,01, 6)`. Da **19 registros** *(16 respuestas + 3 compactaciones)*, todos `gpt-6-luna`,
+    **1 403 961 000 nanoAIU**, suma por evento **$0.014040**. Su huella es igual antes y después del `--run`: el `session-state` no cambió.
+  - **En la plataforma**, eventos `copilot_cli`: 0 antes *(19:53:26Z)* y **19 después** *(19:55:58Z)*, de la 0.8.0. Tienen 19 `event_id` distintos, 0
+    con coste propio, y **273 · 1 410 · 198 581 · 90 572** *(entrada · salida · lectura · escritura)* = el contador.
+  - **Evento a evento**, el coste que calcula la plataforma *(`MetricsQuery::total()` por evento)* = `ROUND(créditos × 0,01, 6)` **en los 19**. TOTAL de
+    la plataforma **0.014040** = la suma del contador, con `parcial=false` y `reparado=true`. Sin redondear, créditos × 0,01 = tokens × la tarifa de
+    `gpt-6-luna` en cada registro.
+  - Simulacro de avisos: 0 antes y 0 después.
+  - **SC-022 cumple en la instalación real.**
