@@ -9,6 +9,8 @@
 #
 # B1 (T004): `sesiones/`, el árbol de `ListarCopilot`. El `session.db` de 0 B NO se genera aquí: `.gitignore` ignora `*.db`, y
 # el test lo crea en su copia de `t.TempDir()`.
+# B2 (T011): `lineas/`, una línea (o tres) por fichero: los registros de `RegistroCopilot`, cada clase, y las líneas que NO son
+# registro (el falso marcador escapado dentro de un texto, y tres `model.*`). Ids `u-…` (usageId), `r-…` (requestId), `c-…`, `q-…`.
 set -euo pipefail
 AQUI=$(cd "$(dirname "$0")" && pwd)
 command -v python3 >/dev/null || { echo "falta python3" >&2; exit 1; }
@@ -49,6 +51,106 @@ escribir(os.path.join(S, s1, "checkpoints", "index.md"), "# texto-1\n")
 escribir(os.path.join(S, s2, "events.jsonl"), inicio(s2, 2))
 escribir(os.path.join(S, s2, "sub", "events.jsonl"), inicio(s2, 3))          # a dos niveles: no se lista
 escribir(os.path.join(S, s3, "checkpoints", "index.md"), "# texto-2\n")      # una carpeta sin events.jsonl
+
+# --- B2 · lineas/ ---------------------------------------------------------------------------------------------------
+L = os.path.join(AQUI, "lineas")
+shutil.rmtree(L, ignore_errors=True)
+TS = "2026-01-01T00:00:10.000Z"
+
+
+def detalle(m, inp, cr, cw, out):
+    """copilotUsage con la forma del descubrimiento (desc. Q3), precios por lote inventados."""
+    filas = [("input", inp - cr - cw, 1000), ("cache_read", cr, 100), ("cache_write", cw, 1250), ("output", out, 5000)]
+    return {"tokenDetails": [{"batchSize": 1000000, "costPerBatch": p, "tokenCount": n, "tokenType": t, "model": m}
+                             for t, n, p in filas],
+            "totalNanoAiu": sum(n * p for _, n, p in filas) // 1000000}
+
+
+def usage(n, inp=100, out=7, cr=40, cw=2, reas=0, modelo="modelo-sintetico-1", usage_id=None, quitar=(), cambiar=None):
+    uid = f"u-{n:024d}" if usage_id is None or usage_id is ... else usage_id
+    u = {"model": modelo, "provider": {"id": f"p-{n:024d}", "kind": "copilot", "label": "texto-1"},
+         "modelDisplayName": "texto-2", "inputTokens": inp, "outputTokens": out, "cacheReadTokens": cr,
+         "cacheWriteTokens": cw, "reasoningTokens": reas, "cost": 1.0, "duration": 100, "initiator": "user",
+         "interactionType": "conversation-agent", "isAuto": True, "apiCallId": uid, "providerCallId": f"c-{n:024d}",
+         "serviceRequestId": f"q-{n:024d}", "accounting": {"sourceSessionId": f"s-{1:024d}", "sequence": n, "usageId": uid},
+         "copilotUsage": detalle(modelo, inp, cr, cw, out), "toolCounts": {}, "finishReason": "stop"}
+    for k in quitar:
+        u.pop(k, None)
+    if usage_id is ...:
+        u["accounting"].pop("usageId")
+    for k, v in (cambiar or {}).items():
+        u[k] = v
+    return {"usage": u}
+
+
+def compactacion(n, ctu=True, request_id=None, success=True, inp=1000, out=50, cr=600, cw=100):
+    d = {"success": success, "preCompactionTokens": 300, "postCompactionTokens": 290, "messagesRemoved": 4,
+         "tokensRemoved": 10, "summaryContent": "texto-3", "behaviorModelId": "modelo-sintetico-1",
+         "checkpointNumber": 1, "checkpointPath": "/sintetico/checkpoints/001-texto.md", "trigger": "manual",
+         "requestId": f"r-{n:024d}" if request_id is None or request_id is ... else request_id, "serviceRequestId": f"q-{n:024d}"}
+    if request_id is ...:
+        d.pop("requestId")
+    if not success:
+        d = {"success": False, "error": "texto-4", "trigger": "manual"}
+    if ctu is True:
+        d["compactionTokensUsed"] = {"requestCount": 1, "model": "modelo-sintetico-1", "modelDisplayName": "texto-2",
+                                     "inputTokens": inp, "outputTokens": out, "cacheReadTokens": cr, "cacheWriteTokens": cw,
+                                     "copilotUsage": detalle("modelo-sintetico-1", inp, cr, cw, out),
+                                     "aiCreditsStatus": "complete", "duration": 100}
+    elif ctu is not False:
+        d["compactionTokensUsed"] = ctu
+    return d
+
+
+def reg(nombre, tipo, datos, n=10, ts=TS):
+    linea_ = json.loads(linea(tipo, datos, n))
+    linea_["timestamp"] = ts
+    escribir(os.path.join(L, nombre + ".jsonl"), json.dumps(linea_, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
+U, C = "session.usage_record", "session.compaction_complete"
+reg("evento", U, usage(1))
+reg("sc005", U, usage(2, inp=100, out=7, cr=40, cw=2, reas=3))                    # SC-005: 58/7/40/2
+reg("razonamiento", U, usage(3, reas=999))                                         # (10/razonamiento)
+reg("desfase", U, usage(4), ts="2026-01-01T02:00:10.000+02:00")                    # (11/desfase): 00:00:10Z
+reg("sin_modelo", U, usage(5, quitar=("model",)))                                  # (12)
+reg("sin_usageid_ausente", U, usage(6, usage_id=...))                              # (9)
+reg("sin_usageid_vacio", U, usage(7, usage_id=""))
+reg("sin_usageid_no_textual", U, usage(8, usage_id=7))
+reg("incoherente_cuatro_ausentes", U, usage(9, quitar=("inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens")))
+reg("incoherente_no_numerica", U, usage(10, cambiar={"outputTokens": "texto-5"}))
+reg("incoherente_no_entera", U, usage(11, cambiar={"outputTokens": 7.5}))
+reg("incoherente_negativa", U, usage(12, cambiar={"cacheReadTokens": -1}))
+reg("incoherente_no_cabe", U, usage(13, inp=100, cr=90, cw=20))                   # cr + cw > input
+reg("incoherente_timestamp_malo", U, usage(14), ts="texto-6")
+reg("compactacion", C, compactacion(1))                                            # (7/partidas): 300/50/600/100
+reg("compactacion_fallida", C, compactacion(2, success=False))
+reg("compactacion_sin_ctu", C, compactacion(3, ctu=False))
+reg("compactacion_sin_requestid", C, compactacion(4, request_id=...))
+reg("incoherente_ctu_no_objeto", C, compactacion(5, ctu=5))                         # (8/usage_no_objeto)
+# (14) centinelas en todos los campos de texto que no deben viajar
+cent = usage(15, usage_id="CENTINELA-usageId")
+cent["usage"]["accounting"]["sourceSessionId"] = "CENTINELA-sourceSessionId"
+cent["usage"]["providerCallId"] = "CENTINELA-providerCallId"
+cent["usage"]["serviceRequestId"] = "CENTINELA-serviceRequestId"
+cent["usage"]["provider"]["label"] = "CENTINELA-label"
+cent["usage"]["modelDisplayName"] = "CENTINELA-modelDisplayName"
+cent["usage"]["toolCounts"] = {"CENTINELA-herramienta": 1}
+reg("centinelas", U, cent)
+centc = compactacion(6, request_id="CENTINELA-requestId")
+centc["summaryContent"] = "CENTINELA-summaryContent"
+centc["checkpointPath"] = "/sintetico/CENTINELA-checkpointPath.md"
+reg("centinelas_compactacion", C, centc)
+# (13) líneas que NO son registro: el marcador dentro de un texto va escapado, y no casa con el prefiltro
+falso = 'texto-7 "type":"session.usage_record" texto-8 "type":"session.compaction_complete"'
+escribir(os.path.join(L, "falso_user.jsonl"),
+         linea("user.message", {"content": falso, "transformedContent": falso, "messageId": "m-1"}, 20))
+escribir(os.path.join(L, "falso_system.jsonl"), linea("system.message", {"role": "system", "content": falso}, 21))
+escribir(os.path.join(L, "model_aux.jsonl"),
+         linea("model.turn_started", {"kind": "turn_started", "model": "modelo-sintetico-2"}, 22)
+         + linea("model.model_call_success", {"kind": "model_call_success", "requestMessages": falso,
+                                              "modelCall": {"model": "modelo-sintetico-2", "initiator": "agent"}}, 23)
+         + linea("model.response", {"kind": "response", "response": {"content": falso}}, 24))
 PY
 python3 -I "$T/generar.py" "$AQUI"
-( cd "$AQUI" && find sesiones -type f | LC_ALL=C sort | xargs md5sum )
+( cd "$AQUI" && find sesiones lineas -type f | LC_ALL=C sort | xargs md5sum )

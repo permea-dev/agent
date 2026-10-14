@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 400 | 338 |
 | `plan.md` | **250** | 236 |
-| `tasks.md` *(este)* | **350** | 279 |
+| `tasks.md` *(este)* | **350** | 281 |
 | `contracts/event-id-copilot.md` | **80** | 78 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 106 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 201 |
 | `soporte/descubrimiento.md` · `-muestra-2.md` · `-muestra-3.md` | 200 · 80 · 60 *(cerrados)* | 200 · 80 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -120,10 +120,10 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B2 · Una línea e identidad *(FR-010 a FR-017, FR-020; SC-005, SC-009, SC-011, SC-021)* — nacen `copilot_eventid_test.go` y `copilot_registro_test.go`
 
-- [ ] **T010** Fase 0:
+- [x] **T010** Fase 0:
   - `derivarEventIDCopilot(tipo, id string) (string, bool)`, que devuelve `"", false`;
   - `ContextoCopilot`, `ClaseCopilot` y `RegistroCopilot`, que aún no clasifica, en `internal/ingest/copilot.go`.
-- [ ] **T011** Testdata: `generar.sh` gana `lineas/`:
+- [x] **T011** Testdata: `generar.sh` gana `lineas/`:
   - una línea por clase *(evento, compactación, compactación fallida, sin `compactionTokensUsed`, sin `requestId`, sin `usageId` ×3, las siete incoherentes,
     sin modelo)*;
   - las partidas de SC-005;
@@ -132,15 +132,17 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   - una compactación con escritura ≠ 0 *(7/partidas)*, una con `reasoningTokens` 999 *(10/razonamiento)* y una `timestamp` con desfase `+02:00` *(11/desfase)*.
 
   md5 al registro.
-- [ ] **T012** [P] **Rojos (4) a (14)**: cada uno afirma **sólo su campo**; las 5 hojas de (4), el valor exacto. (14) cae porque el stub no emite *(rojo
+- [x] **T012** [P] **Rojos (4) a (14)**: cada uno afirma **sólo su campo**; las 5 hojas de (4), el valor exacto. (14) cae porque el stub no emite *(rojo
   antes del verde)*. **Nacen verdes** con el stub, y se declaran así: **(5)** *(lo valida m9)*, **(13)** *(m19)* y la hoja **(7/fallida)** *(m14)*.
-- [ ] **T013** **Verde**: plan §1. Reutiliza `dominioEventID`, `bytesEventID` y `tipoRespuesta` *(`eventid.go:31,43`, `codex_eventid.go:29`)*; la
+- [x] **T013** **Verde**: plan §1. Reutiliza `dominioEventID`, `bytesEventID` y `tipoRespuesta` *(`eventid.go:31,43`, `codex_eventid.go:29`)*; la
   codificación, **replicada**, como 009 y 010. **No** llama a `internal/pricing`.
-- [ ] **T014** **(14)**, rojo en T012, pasa a verde con T013: el evento no contiene ningún centinela. Lo valida m20.
-- [ ] **T015** Censo y mutaciones **m7–m20**, con md5, con las co-caídas de plan §Bloques: m9 → (5), (9) ×3, (7/sin_requestid); m11 → (6), (10/razonamiento);
+- [x] **T014** **(14)**, rojo en T012, pasa a verde con T013: el evento no contiene ningún centinela. Lo valida m20.
+- [x] **T015** Censo y mutaciones **m7–m20**, con md5, con las co-caídas de plan §Bloques: m9 → (5), (9) ×3, (7/sin_requestid); m11 → (6), (10/razonamiento);
   m12 y m13 → (6), (7/partidas); m17 → (11/desfase).
-- [ ] **T050** **SC-007, informativo tras B2**: las 5 plataformas, D-011-P7 *(R-1)*. Si pasa de 102 400 B, se adelgaza antes de B3 *(PARA 7)*.
-- [ ] **T016** **Vigilancia de privacidad** sobre `lineas/` *(§Puertas)* → 0, transcrito.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 *(902 pass; m7–m20 = declarado, con m7 → (10/tool) y m16 → sólo (10/coste) declaradas en el censo)*.
+- [x] **T050** **SC-007, informativo tras B2**: las 5 plataformas, D-011-P7 *(R-1)*. Si pasa de 102 400 B, se adelgaza antes de B3 *(PARA 7)*.
+  > Transcripción: §B2 *(Δ fichero 0 en las 5; arm64 `LOAD` +256; `__TEXT` darwin/amd64 846 → 718 B: el lector aún no está enlazado)*.
+- [x] **T016** **Vigilancia de privacidad** sobre `lineas/` *(§Puertas)* → 0, transcrito.
 - [ ] **T017** ✋ Puertas y commit: `011 B2: un registro de Copilot CLI es un evento sin coste`.
 
 ## B3 · Fichero, frontera y tramos *(FR-004, FR-005, FR-007 a FR-009, FR-020; SC-003, SC-004, SC-006, SC-010, SC-013, SC-014, SC-023)* — `copilot_fichero_test.go`
