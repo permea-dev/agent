@@ -60,3 +60,14 @@ la enmienda de m31)*: archivados íntegros el 2026-10-14, al empezar el cierre, 
     **W1: TODO IGUAL**. Carpeta de prueba borrada.
   - **Lo que enseñó la prueba**: en el equipo del dueño corre un `copilot-runtime`, y la detección por el nombre `copilot*` daba Copilot CLI por abierto.
     Ahora el script sólo informa de los nombres y pide confirmación.
+- **T044 · C4 · W1** *(✋ dueño, 2026-10-14)*: Windows, Copilot CLI 1.0.97, plan Free *(Auto → `gpt-6-luna`)*, sin enrolar y en sandbox; el contador
+  independiente, `contador-w1.exe`. **W1: TODO IGUAL**, 0 DISTINTO.
+  - **Paso 1** *(Copilot cerrado, sobre una copia de `session-state`)*: **16 eventos = 16 registros** del contador *(14 llamadas + 2 compactaciones)*,
+    16 `event_id` distintos. Partidas **192 · 968 · 157 235 · 83 366**, iguales. Créditos **1 249 630 000 nanoAIU** *($0.01249630000)*: iguales en
+    `--scan`, en el contador y en tokens × la tarifa de `gpt-6-luna`. **SC-006**: la copia, intacta tras `--run` y tras `--scan`. La 2.ª `--run`, **0**.
+  - **Paso 2** *(Copilot abierto, `--daemon`)*: 2 prompts + `/compact` → **3 eventos nuevos = 3 registros nuevos**, con 1 compactación. **19 = 19**,
+    cada uno una vez. Partidas **273 · 1 410 · 198 581 · 90 572**, iguales. Créditos **1 403 961 000 nanoAIU** *($0.01403961000)*, iguales en los tres.
+    **0 ficheros nuevos del agente** en la carpeta real: el único nuevo, de Copilot.
+  - 0 eventos con coste, 0 de otras herramientas, 0 avisos, 0 líneas ilegibles. **SC-022 cumple en Windows.**
+- **T045 · C5**: `## 0.8.0 — PENDIENTE` → **`## 0.8.0 — 2026-10-14`** *(dueño, 14-10, como en la 0.7.0)*. `PENDIENTE` → 0; ningún `.go` lee el CHANGELOG.
+  La fecha ya estaba en C5 en tasks: no hace falta enmendar C7. El cuerpo del PR, en `tmp/pr-body.md`, fuera del repo *(ignorado por `.gitignore:24`)*.

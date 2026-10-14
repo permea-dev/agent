@@ -234,8 +234,10 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   > Transcripción: §Cierre *(TODO IGUAL; sha256 de las 3 copias iguales)*.
 - [x] **T043** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows, y `strings` con los textos *(SC-017)*. `dist/` borrado.
   > Transcripción: §Cierre *(zip `8be731d5…`; los 3 textos en `permea.exe`)*.
-- [ ] **T044** ✋ **C4 · W1** *(plan D-011-W)*: Copilot cerrado, y luego abierto con un `/compact`; el contador `python3 -I`. **SC-006** y **SC-022** *(W1, con el control de créditos)*.
-- [ ] **T045** **C5** · El cuerpo del PR, fuera del repo; la fecha de la 0.8.0 entra en la rama *(`PENDIENTE` → 0)*.
+- [x] **T044** ✋ **C4 · W1** *(plan D-011-W)*: Copilot cerrado, y luego abierto con un `/compact`; el contador `python3 -I`. **SC-006** y **SC-022** *(W1, con el control de créditos)*.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(W1: TODO IGUAL; 16 = 16 y 19 = 19, créditos iguales; **SC-022 cumple en Windows**)*.
+- [x] **T045** **C5** · El cuerpo del PR, fuera del repo; la fecha de la 0.8.0 entra en la rama *(`PENDIENTE` → 0)*.
+  > Transcripción: §Cierre *(`## 0.8.0 — 2026-10-14`; el cuerpo, en `tmp/pr-body.md`, ignorado por git)*.
 - [ ] **T046** ✋ **C6** · Fusión del PR con merge commit.
 - [ ] **T047** ✋ **C7** · `git tag -a v0.8.0` y push; el workflow `release` en verde.
 - [ ] **T048** **C8** · Los tres canales en `0.8.0`, `sha256sum -c`, y `strings` del binario publicado.

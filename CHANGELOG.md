@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.8.0 — PENDIENTE
+## 0.8.0 — 2026-10-14
 
 ### Nuevo
 - Lee también el consumo de Copilot CLI, de `~/.copilot/session-state` (o de `$COPILOT_HOME/session-state`), si existe. Cada llamada
