@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 400 | 338 |
 | `plan.md` | **250** | 236 |
-| `tasks.md` *(este)* | **350** | 277 |
+| `tasks.md` *(este)* | **350** | 278 |
 | `contracts/event-id-copilot.md` | **80** | 78 |
-| `soporte/registro.md` *(nace en T001)* | **300** | — |
+| `soporte/registro.md` *(nace en T001)* | **300** | 49 |
 | `soporte/descubrimiento.md` · `-muestra-2.md` · `-muestra-3.md` | 200 · 80 · 60 *(cerrados)* | 200 · 80 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -100,8 +100,9 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B0 · FASE 0 y registro
 
-- [ ] **T001** Fase 0: transcribir la línea base sobre `15c4c47` *(la del encargo 5/n: 848, vet, lint 0, y los tamaños de la 0.7.0 en las 5 plataformas)* y
+- [x] **T001** Fase 0: transcribir la línea base sobre `15c4c47` *(la del encargo 5/n: 848, vet, lint 0, y los tamaños de la 0.7.0 en las 5 plataformas)* y
   la frontera sin diff sobre `d81c39d`. Nace `soporte/registro.md`, con su techo. Si algo difiere, **PARA**.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B0 · T001 *(sobre `e9ad364`, sólo documentos desde `15c4c47`; 848 / 0 / 0 en 10 paquetes; vet y lint 0; frontera 0; `PRIV` 0)*.
 - [ ] **T002** ✋ **Línea base y registro**. Commit: `011 B0: linea base y registro`.
 
 ## B1 · Raíz y ficheros *(FR-001 a FR-003; SC-012; M-3, M-5)* — nacen `internal/config/copilot_test.go`, `sandbox_copilot_test.go` y el listado en `copilot_fichero_test.go`
