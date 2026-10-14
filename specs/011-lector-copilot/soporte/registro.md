@@ -245,3 +245,17 @@ Con el `st.Save` antes de Copilot, esa entrada no llega al disco. **(33) no se t
 **Puertas del corte** *(libre 1.39; 19:36:58 → :37:05)*: **953 / 0 / 0**; vet limpio y lint 0; gofmt vacío; frontera de FR-027 vacía; ningún `*_test.go`
 existente modificado; `go.mod` sin `require`; sin `go.sum`; `os.Getenv` → 5. **`PRIV`**: 0 en `git diff 15c4c47`; 0 en los 3 ficheros nuevos; 0 con
 `grep -raEc` en los dos testdata *(56 ficheros, `generar.sh` incluido)*.
+
+## B6 · README y CHANGELOG *(FR-028; P-8, P-10)*
+
+- **T037 ✋**: el dueño aprueba T1, T2 y R1–R8 de `textos-011/propuesta-v1.md` *(md5 `161d5b36…`)* tal cual; **R9 no entra** *(14-10, encargo 16/n)*. Copia
+  sin R9, por programa: **`textos-011/aprobado-v1.md` `2a330ed5…`**, 237 líneas, la fuente desde aquí.
+- **T038 · Rojo** *(sobre `README.md` `1dc56f4e`, `CHANGELOG.md` `0e322dec`)*: `grep -c '^## 0.8.0' CHANGELOG.md` → **0**; `grep -c '^### Copilot CLI'
+  README.md` → **0**.
+- **T039 · Verde**: un programa saca los bloques del aprobado. Sustituye cada «antes» de R1–R8, que era literal y único en HEAD. Inserta T1 antes de «## Coste
+  y tarifas» y T2 antes de «## 0.7.0». Otro programa vuelve a sacarlos de los ficheros aplicados, y **`cmp` sin diferencias en los 10**:
+  - T1 *(17 líneas)*, T2 *(27)*;
+  - R1 README:3-7, R2 :72-73, R3 :143, R4 :158-160, R5 :161-167, R6 :168-172, R7 :251-252, R8 :294.
+  - Después: 1 y 1; `PENDIENTE` = 1. `README.md` `edd89c99` *(299 líneas)*, `CHANGELOG.md` `21e22593` *(200)*. **`PRIV`** → 0 en los dos y en el diff.
+- **T040 · Puertas** *(libre 0.60; 20:02:27 → :36, 8,6 s)*: **953 / 0 / 0**; vet limpio y lint 0; gofmt vacío; frontera de FR-027 vacía; ningún `*_test.go`
+  existente modificado; `go.mod` sin `require`; sin `go.sum`; `os.Getenv` → 5. Sin `strings`: es del cierre *(T043, SC-017)*.

@@ -3,6 +3,34 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
+## 0.8.0 — PENDIENTE
+
+### Nuevo
+- Lee también el consumo de Copilot CLI, de `~/.copilot/session-state` (o de `$COPILOT_HOME/session-state`), si existe. Cada llamada
+  al modelo principal y cada compactación con éxito es un evento con `tool = copilot_cli`. La carpeta sólo se lee.
+  (`specs/011-lector-copilot/spec.md`, D-5, FR-001, FR-002, FR-006, FR-010)
+- Los eventos de Copilot CLI llevan sus tokens y el modelo de cada llamada, sin coste: el coste lo calcula la plataforma. El
+  razonamiento ya va dentro de la salida. Los créditos de Copilot no se envían. (`specs/011-lector-copilot/spec.md`, D-3, D-4,
+  FR-015, FR-017)
+- `--scan` acepta también una sesión de Copilot CLI y añade una línea de control con sus créditos y su equivalente en USD, que no
+  se envía. (`specs/011-lector-copilot/spec.md`, P-9, FR-022)
+
+### Sin cambios
+- Claude Code, Codex, Gemini y OpenCode se leen exactamente como en la 0.7.0. Sin carpeta de Copilot CLI, la salida no cambia.
+  (`specs/011-lector-copilot/spec.md`, FR-023, FR-028, SC-015)
+
+### Limitaciones conocidas
+- Las llamadas auxiliares de Copilot CLI (a 0 créditos en el plan Free) no se cuentan: en tokens, el consumo enviado queda por
+  debajo del real. (`specs/011-lector-copilot/spec.md`, D-2)
+- Si se mata una sesión, la llamada que estaba en curso no está en disco y no se cuenta. (`specs/011-lector-copilot/spec.md`,
+  §Límites declarados, SC-004)
+- Los subagentes en segundo plano, los *workflows* y la compactación automática no tienen muestra, y `session.db` no se lee. Un
+  subagente síncrono sí se cuenta. (`specs/011-lector-copilot/spec.md`, P-10, SC-023)
+- Medido sólo con Copilot CLI 1.0.97, en Windows y en el plan Free. Con un plan de pago, un modelo con punto en el nombre (como
+  `claude-haiku-4.5`) no casa con el catálogo de la plataforma, y el evento llega sin coste. (`specs/011-lector-copilot/spec.md`,
+  §Límites declarados, §Dependencias, P-5)
+- Copilot dentro de VS Code y JetBrains no se lee. (`specs/011-lector-copilot/spec.md`, D-1, N-5)
+
 ## 0.7.0 — 2026-10-13
 
 ### Nuevo

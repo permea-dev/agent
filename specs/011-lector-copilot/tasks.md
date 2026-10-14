@@ -201,7 +201,7 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B6 · README y CHANGELOG *(FR-028; P-8, P-10)*
 
-- [ ] **T037** ✋ **El dueño aprueba los textos**: «### Copilot CLI» en el README y la entrada `0.8.0` del CHANGELOG. Claude los propone en un encargo
+- [x] **T037** ✋ **El dueño aprueba los textos**: «### Copilot CLI» en el README y la entrada `0.8.0` del CHANGELOG. Claude los propone en un encargo
   aparte, con estos límites:
   - las llamadas auxiliares;
   - la llamada en curso de una sesión matada;
@@ -209,8 +209,11 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   - la compactación automática;
   - los planes de pago y los nombres de modelo con punto;
   - medido en Windows con 1.0.97.
-- [ ] **T038** **Rojo**, transcrito: `grep -c '^## 0.8.0' CHANGELOG.md` → 0; `grep -c '^### Copilot CLI' README.md` → 0.
-- [ ] **T039** README y CHANGELOG *(`## 0.8.0 — PENDIENTE`)*, con los textos **sacados por programa** de lo aprobado. `cmp` sin diferencias.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B6 *(T1, T2 y R1–R8 aprobados; R9 no entra; `aprobado-v1.md` `2a330ed5`)*.
+- [x] **T038** **Rojo**, transcrito: `grep -c '^## 0.8.0' CHANGELOG.md` → 0; `grep -c '^### Copilot CLI' README.md` → 0.
+  > Transcripción: §B6 *(0 y 0)*.
+- [x] **T039** README y CHANGELOG *(`## 0.8.0 — PENDIENTE`)*, con los textos **sacados por programa** de lo aprobado. `cmp` sin diferencias.
+  > Transcripción: §B6 *(10 `cmp` sin diferencias; `PRIV` 0)*.
 - [ ] **T040** ✋ Puertas y commit: `011 B6: README y CHANGELOG de la 0.8.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
