@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 400 | 338 |
 | `plan.md` | **250** | 236 |
-| `tasks.md` *(este)* | **350** | 278 |
+| `tasks.md` *(este)* | **350** | 279 |
 | `contracts/event-id-copilot.md` | **80** | 78 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 49 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 106 |
 | `soporte/descubrimiento.md` · `-muestra-2.md` · `-muestra-3.md` | 200 · 80 · 60 *(cerrados)* | 200 · 80 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -107,14 +107,15 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B1 · Raíz y ficheros *(FR-001 a FR-003; SC-012; M-3, M-5)* — nacen `internal/config/copilot_test.go`, `sandbox_copilot_test.go` y el listado en `copilot_fichero_test.go`
 
-- [ ] **T003** Fase 0: `config.CopilotSessionsRoot()`, que devuelve `"", nil`, e `ingest.ListarCopilot`, que devuelve `nil, nil`.
-- [ ] **T004** Testdata: **nace** `internal/ingest/testdata/copilot/generar.sh` *(plan §6)* con `sesiones/`: dos carpetas con `events.jsonl` mínimo,
+- [x] **T003** Fase 0: `config.CopilotSessionsRoot()`, que devuelve `"", nil`, e `ingest.ListarCopilot`, que devuelve `nil, nil`.
+- [x] **T004** Testdata: **nace** `internal/ingest/testdata/copilot/generar.sh` *(plan §6)* con `sesiones/`: dos carpetas con `events.jsonl` mínimo,
   una sin él, `.session-operation-locks/` con un `.lock` de 0 B, `checkpoints/index.md`, `session.db` de 0 B y un `events.jsonl` a dos niveles. md5 al registro.
-- [ ] **T005** [P] **Rojos (1) a (3)**, con `t.Setenv`.
-- [ ] **T006** **Verde**: D-5 en `internal/config/copilot.go`; `ListarCopilot` de plan §2; tras `sandbox.go:68`, `t.Setenv("COPILOT_HOME", "")`; los
+- [x] **T005** [P] **Rojos (1) a (3)**, con `t.Setenv`.
+- [x] **T006** **Verde**: D-5 en `internal/config/copilot.go`; `ListarCopilot` de plan §2; tras `sandbox.go:68`, `t.Setenv("COPILOT_HOME", "")`; los
   comentarios de `codex.go:16`, `gemini.go:17` y `opencode.go:18`, «una de las CINCO».
-- [ ] **T007** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde, y que `os.Getenv` de producción → **5**.
-- [ ] **T008** Censo y mutaciones **m1–m6**, con md5.
+- [x] **T007** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde, y que `os.Getenv` de producción → **5**.
+- [x] **T008** Censo y mutaciones **m1–m6**, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 *(861 pass; `os.Getenv` → 5; m1–m6 = declarado, con m2 → (1/vacia) y m5 → (3/solo_events) declaradas en el censo)*.
 - [ ] **T009** ✋ Puertas y commit: `011 B1: raiz de Copilot CLI con COPILOT_HOME`.
 
 ## B2 · Una línea e identidad *(FR-010 a FR-017, FR-020; SC-005, SC-009, SC-011, SC-021)* — nacen `copilot_eventid_test.go` y `copilot_registro_test.go`

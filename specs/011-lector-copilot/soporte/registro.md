@@ -47,3 +47,60 @@ llevaba `go vet` y `golangci-lint` en su línea de órdenes, y `libre.sh` la ve�
 las dos, se relanzó `libre.sh` solo, y la espera siguiente miró sólo su fichero de salida. **Regla**, al principio de este registro.
 
 **Sin mutaciones en B0.**
+
+## B1 · Raíz y ficheros *(`internal/config/copilot.go`, `ListarCopilot`, `internal/testutil/sandbox.go`)*
+
+- **T003** *(2026-10-14, sobre `7eadff6`)*: stubs `CopilotSessionsRoot` → `("", nil)` e `ingest.ListarCopilot` → `(nil, nil)`; vet limpio.
+- **T004**: `internal/ingest/testdata/copilot/generar.sh` `bb9b7c30…` *(`python3 -I`)* → `sesiones/`: `s-…01/events.jsonl` `448bd776…`,
+  `s-…01/checkpoints/index.md` `87612f2c…`, `s-…02/events.jsonl` `b989848d…`, `s-…02/sub/events.jsonl` `fcf7d524…` *(a dos niveles)*,
+  `s-…03/checkpoints/index.md` `e9733dcb…` *(sin `events.jsonl`)* y `.session-operation-locks/s-…01.lock` *(0 B)*. **El `session.db` de 0 B no se
+  versiona** *(`.gitignore`: `*.db`; tocar `.gitignore` sería PARA 1)*: lo crea el test en su copia de `t.TempDir()`. Ningún test abre `testdata/` en su sitio.
+- **T005 · Rojos** *(libre 0.58; 14:24:13 → :24, 10,8 s)*: **848 / 13 / 0**. Caen, por el stub:
+  - (1) `TestCopilotSessionsRoot_Ubicacion/{definida,vacia,ausente,inexistente}`: `= ("", <nil>); se esperaba (<ruta>, nil)`;
+  - (2) `TestSandbox_VaciaCopilotHome`: `COPILOT_HOME = <tmp> (definida: true)`, porque la variable se puso antes de `Sandbox`;
+  - (3) `TestListarCopilot/{solo_events,sin_locks,sin_checkpoints_db,hondo,vacia,orden}`: «ListarCopilot no devolvió nada»;
+  - y los 2 padres.
+- **T006 · Verde**:
+  - `copilot.go` `7e1b20a9…`, `copilot_contexto.go` `19d09e34…`;
+  - `sandbox.go` `2c6b3301…`: una línea tras `OPENCODE_DB`, con su comentario;
+  - los comentarios de `codex.go`, `gemini.go` y `opencode.go`, «una de las CINCO» / «dos de las CINCO».
+
+  Resultados *(libre 0.72; 14:25:28 → :35, 7,3 s)*: **861 / 0 / 0**. Vet y lint 0 *(3,3 s)*; gofmt vacío.
+  Tests: `copilot_test.go` `b7479e18…`, `copilot_fichero_test.go` `48190957…`, `sandbox_copilot_test.go` `59cd7ac4…`.
+- **T007**: `sandbox_test.go`, verde y sin tocar *(`TestSandbox_AislaLasTresVariables`, `…DistingueSegmentos` ×6, `…ConSemillas…`)*; `os.Getenv` de
+  producción → **5** *(`copilot.go:19`, `codex.go:19`, `gemini.go:20`, `opencode.go:21`, `:25`)*.
+
+**T008 · Censo** *(ANTES de mutar)*: (1) = `TestCopilotSessionsRoot_Ubicacion/`, (2) = `TestSandbox_VaciaCopilotHome`, (3) = `TestListarCopilot/`.
+- **Quién más las lee**: nadie *(grep)*. Ni el binario ni otros tests llaman aún a `CopilotSessionsRoot` o `ListarCopilot` *(B4)*, ni leen `COPILOT_HOME`.
+- **Co-caídas declaradas aquí que plan §Bloques no listaba**: **m2 → (1/vacia)**, porque la rama del hogar pierde también `session-state`. Y **m5 →
+  (3/solo_events)**, porque la lista exacta gana `s-…02/sub/events.jsonl`. Con cada caída de hoja cae también su padre.
+
+| Mut. | Edición | Declarado |
+|---|---|---|
+| m1 | `propia := os.Getenv(…); propia != ""` → `propia, definida := os.LookupEnv(…); definida` *(vacía como definida)* | (1/vacia) |
+| m2 | sin `"session-state"` en los dos `Join` | (1/definida), (1/vacia), (1/ausente), (1/inexistente) |
+| m3 | `propia != ""` → `false && propia != ""` | (1/definida) |
+| m4 | sin la línea `t.Setenv("COPILOT_HOME", "")` del sandbox *(y su comentario)* | (2) |
+| m5 | `os.ReadDir` de un nivel → `filepath.WalkDir` recursivo: todo `events.jsonl` a cualquier profundidad, saltando las carpetas que empiezan por `.` | (3/solo_events), (3/hondo) |
+| m6 | carpeta sin `events.jsonl` → `return nil, error` | (3) ×6 |
+
+**T008 · Observado** *(cada mutación: md5 de partida comprobado, `bash ~/bin/libre.sh` aparte, suite, reversión por edición inversa y md5 restaurado)*:
+
+| Mut. | Fichero · md5 mutado | Suite *(libre «inicio»)* | Cayó | = declarado |
+|---|---|---|---|:-:|
+| m1 | `copilot.go` `bb243797` | 859 / 2 *(1.13)* | (1/vacia) + padre | ✅ |
+| m2 | `copilot.go` `638f5868` | 856 / 5 *(0.77)* | (1/definida, vacia, ausente, inexistente) + padre | ✅ |
+| m3 | `copilot.go` `16bd7b2c` | 859 / 2 *(0.64)* | (1/definida) + padre | ✅ |
+| m4 | `sandbox.go` `98c03742` *(= el de 010 B5: sólo falta la línea nueva)* | 860 / 1 *(1.77)* | (2) | ✅ |
+| m5 | `copilot_contexto.go` `d6f4b25f` | 858 / 3 *(1.36)* | (3/solo_events, hondo) + padre | ✅ |
+| m6 | `copilot_contexto.go` `2a04c9b3` | 854 / 7 *(1.56)* | (3) ×6 + padre | ✅ |
+
+**6 de 6 = declarado.** Tras m6, los tres md5 son los del verde *(`7e1b20a9`, `19d09e34`, `2c6b3301`)*. Cada suite tardó 7–8 s.
+- **Incidencia, sin efecto**: la primera reversión de m4 no se aplicó. La edición inversa partía de una cadena vacía y no tenía ancla única. El guion se paró
+  en su aserción, **sin escribir nada**. Se ancló a la línea de `OPENCODE_DB`, se revirtió y el md5 dio el del verde, antes de tocar m5.
+
+**Puertas del corte** *(libre 1.69; 14:35:05 → :12)*:
+- **861 / 0 / 0**; vet y lint 0 *(libre 1.45)*; gofmt vacío;
+- frontera de FR-027 vacía; ningún `*_test.go` modificado; `go.mod` sin `require`; sin `go.sum`; `os.Getenv` → **5**;
+- **`PRIV`** *(tasks §Puertas)*: 0 en `git diff 15c4c47`, 0 en cada fichero nuevo sin seguir, y 0 con `grep -raEc` en los 7 ficheros de
+  `internal/ingest/testdata/copilot/` *(`generar.sh` incluido)*.
