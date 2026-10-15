@@ -1,0 +1,9 @@
+Permea 0.0.1-dev
+11 eventos encolados en <DATOS>/queue.jsonl
+pasada: 2 líneas facturables · 2 eventos · 0 repetidas del mismo mensaje · 0 sintéticas · 0 sin identificador (no contables) · 0 con consumo distinto de la primera
+pasada: 0 mensajes que crecieron entre líneas · 0 en espera de cerrarse · 0 líneas releídas de un mensaje en espera · 0 líneas tardías · 0 líneas sin desglose de caché (a 1 hora)
+codex: respuestas 2 · eventos 2 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · ficheros en formato anterior 0 · ficheros comprimidos 0
+gemini: respuestas 3 · eventos 2 · repetidas 1 · sin identificador 0 · incoherentes 0 · sin modelo 0 · total descuadrado 0 · ficheros en formato anterior 0
+opencode: llamadas 2 · eventos 2 · en curso 0 · abandonadas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0 · fronteras reiniciadas 0 · bases en formato anterior 0 · bases con esquema desconocido 0
+copilot_cli: registros 3 · eventos 3 · compactaciones 0 · repetidas 0 · sin identificador 0 · incoherentes 0 · sin modelo 0
+sync omitido: sin endpoint configurado

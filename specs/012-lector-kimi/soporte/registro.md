@@ -238,7 +238,51 @@ las banderas de `.goreleaser.yaml`; go1.22.2)*:
 
 ## B4 · Integración
 
-*(T026–T032)*
+- **T026 · Fase 0** *(sobre `ffc18c1`)*, en este orden:
+  1. `git diff e9e5449 -- cmd/permea/` **vacío**. La referencia de SC-015, con **el binario de `e9e5449`**: `git archive` en un `mktemp -d`, un test temporal que sólo
+     vivió allí *(libre 1.63)*, y el escenario de (30) *(Claude Code, Codex, Gemini, OpenCode y Copilot CLI en `testutil.Sandbox`, sin Kimi)*: rc 0, stdout vacío; con
+     `<DATOS>`, **`cmd/permea/testdata/kimi/referencia-run.stderr` `44a96b93…`**, 9 líneas, sin rutas.
+  2. Forzado A, en el mismo temporal *(libre 1.13)*: `Load` → `<nil>`; `Append` → `<nil>` *(316 B)*; `Save` → *permission denied*; uid 1000. **Incidencia menor**: el `sed`
+     que tapaba la ruta falló, y la prueba *(un test de 0,4 s, no una suite)* se repitió sin otro `libre.sh`. Temporal borrado.
+  3. Esqueleto: `cmd/permea/kimi.go` *(`kimiActivo`, `generarKimi` sin emitir)*; en `main.go`, los campos `kimiRaiz` y `kimi`, `setup()` y el bloque de `generate()` tras Copilot.
+- **T027 · Rojos, la razón escrita ANTES de correrlos**: se espera **1045 / 7 / 0**. Caen por el esqueleto *(«0 eventos kimi_code», sin línea `kimi_code:`, «11 eventos
+  encolados», «el primer kimi_code en -1»)*: (31), (32), (33/linea), (33/total), (33/orden_cola) y su padre, y (34). **(30) ×2 nace verde** *(m41)*: 1042 + 3 = 1045.
+- **T027 · Rojos, corridos** *(libre 0.47; 18:11:36 → :44)*: **1045 / 7 / 0**, rc 1: los 7 declarados, con la razón del esqueleto.
+- **T028 · Verde**: `kimi.go` `5509f984…` *(el índice primero, P-13; errores por fichero con `sinRuta`)* y `main.go` `43e0db25…` *(la línea en `runOnce` tras Copilot, y en
+  `tick` con `HayNovedades`)*. **1052 / 0 / 0** *(libre 0.46; 18:12:33 → :41)*. **T029**: `git diff e9e5449 --name-only --diff-filter=M -- '*_test.go'` → vacío.
+- **T030 · Nacen verdes** (35)–(39), escritos tras el verde: **1061 / 0 / 0** *(libre 0.34; 18:14:47 → :54)*; `kimi_test.go` `a682d7e9…`. (36) pone registros en
+  TODOS los `wire.jsonl*` de `raiz/`, señuelos incluidos: si se leyera uno que no toca, el resumen pasaría de 7.
+- **T031 · Censo, ANTES de mutar** *(md5 de partida `main.go` `43e0db25`, `kimi.go` `5509f984`; **las 10 compilan**, comprobado aplicando, `vet` y revirtiendo)*.
+  **«E»** *(grep de `len(lineas)` y `got != referencia` en `cmd/permea`; los demás `--run` buscan una subcadena, y `tick` sólo escribe con novedades)*:
+  `TestCodexRun_SinRaizEsLaSalidaDeLa040/{codex_home_vacia,raiz_inexistente}`, `TestCodexRun_LineaDeResumen`, `TestGeminiRun_SinRaizEsLaSalidaDeLa050/{gemini_cli_home_vacia,
+  sin_tmp}`, `TestGeminiRun_LineaDeResumen`, `TestOpenCodeRun_SinOpenCodeEsLaSalidaDeLa060/{opencode_db_vacia,xdg_vacia}`, `TestOpenCodeRun_LineaDeResumen`,
+  `TestCopilotRun_SinCopilotEsLaSalidaDeLa070/{copilot_home_vacia,sin_raiz}` y `TestCopilotRun_LineaDeResumen/linea` *(no `orden_cola`)*: 17 líneas FAIL con sus padres.
+  **Ajustes al plan**: **m42** → además (34), (35) y (38/se_relee) *(con el `Save` antes, el offset de Kimi no se guarda: la lección de 011 m31)*; **m46** → además
+  (38/se_relee) *(la pasada abortada no guarda nada, y la siguiente relee el sano)*; **m45**, formulada para compilar: `setup()` deja la carpeta vacía si no hay `sessions/`, y
+  `kimiActivo` conserva el `os.Stat` sin usarlo *(`_, _ = info, err; return true`)*: sin él, `filepath` quedaría sin uso en `kimi.go`.
+
+  | Mut. | Edición | Debe caer *(hojas; + padres)* | FAIL |
+  |---|---|---|---:|
+  | m41 | `a.kimi = nil` → `= ingest.NuevaPasadaKimi()` | (30) ×2, (37) y «E» | 21 |
+  | m42 | el bloque de Kimi, después del `st.Save` | (32), (34), (35), (38/se_relee) | 5 |
+  | m43 | `tick`: sin `&& a.kimi.HayNovedades()` | (34) | 1 |
+  | m44 | el bloque de Kimi, antes que el de Copilot | (33/orden_cola) | 2 |
+  | m45 | la existencia, sólo en `setup()` | (37) | 1 |
+  | m46 | un fichero que no se puede leer → `return total, err` | (38/pasada), (38/se_relee) | 3 |
+  | m47 | un fichero que no se puede leer avanza su offset *(`Offset = Size`, con su `mtime`)* | (38/se_relee) | 2 |
+  | m48 | índice ilegible → mapa vacío, y se sigue | (39/pasada) | 2 |
+  | m49 | `ev.ProjectRef = ruta` antes de encolar | (35) | 1 |
+  | M-B4a | `generarKimi` crea `<carpeta>/.lector` | (36) | 1 |
+- **T031 · Mutaciones, corridas** *(cada suite tras `libre.sh` solo, carga de inicio 0.16–0.85; 7–9 s; edición inversa y md5 comprobados)*: **10 de 10 = declarado**, sin
+  incidencias *(md5 puesta → PASS/FAIL)*: m41 `57419b15` 1040/21 · m42 `19150158` 1056/5 · m43 `1a9e9180` 1060/1 · m44 `9afdf65a` 1059/2 · m45 `e358d952` + `66de8b04` 1060/1 ·
+  m46 `572c9de6` 1058/3 · m47 `6b49daee` 1059/2 · m48 `1b5782cf` 1059/2 · m49 `4814ee0d` 1060/1 · M-B4a `d36ffc6a` 1060/1; tras cada una, `main.go` `43e0db25` y `kimi.go` `5509f984`.
+- **T032 · SC-022, con el lector ya enlazado** *(`git archive e9e5449` con 0.8.0 frente a la copia del árbol sin `.git` con 0.9.0; el instrumento reproduce las cifras de B0)*:
+  linux/amd64 **+28 672**; linux/arm64, fichero 0 y Σ `LOAD` **+26 048**; darwin/amd64 **+29 040** *(`__TEXT` 3 268 608 → 3 289 088, cinco páginas: el salto esperado;
+  holgura 1 004 → 2 138 B)*; darwin/arm64 **+16 896** *(una página de 16 KB; holgura 16 102 → 15 934)*; windows/amd64 **+30 208**. **Todas ≤ 102 400**; la mayor, Windows,
+  gasta el **29,5 %** del tope. Quedan B5 *(`--scan`)* y B6 *(textos)*.
+- **T033 · Corte** *(antes del commit del dueño)*: **suite** *(libre 0.60; 18:27:41 → :48)* **1061 / 0 / 0**, rc 0; vet limpio; **lint 0** *(libre 1.43; 5 s)*; gofmt vacío; frontera
+  de FR-027 0 B; ningún `_test.go` de `e9e5449` modificado; sin `require` ni `go.sum`; `os.Getenv` → 6; ninguna testdata ignorada; `PRIV` → 0 en el diff, en los 3 ficheros
+  nuevos y en los 58 de los dos `testdata/kimi/`.
 
 ## B5 · `--scan`
 

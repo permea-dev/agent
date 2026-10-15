@@ -194,6 +194,11 @@ type agent struct {
 	copilotRaiz string
 	// copilot son los recuentos de Copilot CLI de la última pasada; nil si el lector no estuvo activo.
 	copilot *ingest.PasadaCopilot
+	// kimiRaiz es la carpeta de datos de Kimi Code (P-012 P-1), resuelta una vez en `setup()`. Si existe `<carpeta>/sessions` se
+	// mira en cada pasada (P-2). Vacía —un `agent` construido a mano en un test— significa que no se lee Kimi Code.
+	kimiRaiz string
+	// kimi son los recuentos de Kimi Code de la última pasada; nil si el lector no estuvo activo.
+	kimi *ingest.PasadaKimi
 }
 
 // setup resuelve el directorio de datos por SO, carga la config y las identidades locales
@@ -252,6 +257,11 @@ func setup() (*agent, error) {
 	if err != nil {
 		copilotRaiz = ""
 	}
+	// P-012 FR-001, FR-002: y con Kimi Code.
+	kimiRaiz, err := config.KimiHome()
+	if err != nil {
+		kimiRaiz = ""
+	}
 	return &agent{
 		dir:           dir,
 		cfg:           cfg,
@@ -261,6 +271,7 @@ func setup() (*agent, error) {
 		opencodeDatos: opencodeDatos,
 		opencodeUnica: opencodeUnica,
 		copilotRaiz:   copilotRaiz,
+		kimiRaiz:      kimiRaiz,
 	}, nil
 }
 
@@ -411,6 +422,17 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
+	// P-012: Kimi Code, tras Copilot CLI y ANTES del único `st.Save` (FR-024). Activo sólo si EN ESTA PASADA existe
+	// `<carpeta>/sessions` (P-2, FR-002).
+	a.kimi = nil
+	if a.kimiActivo() {
+		n, err := a.generarKimi(st, ictx)
+		total += n
+		if err != nil {
+			return total, pasada, err
+		}
+	}
+
 	if err := st.Save(statePath); err != nil {
 		return total, pasada, err
 	}
@@ -491,6 +513,9 @@ func runOnce() error {
 	if a.copilot != nil {
 		fmt.Fprintln(os.Stderr, a.copilot.Resumen()) // P-011 FR-021: tras la de OpenCode, con el lector activo en esta pasada
 	}
+	if a.kimi != nil {
+		fmt.Fprintln(os.Stderr, a.kimi.Resumen()) // P-012 FR-021: tras la de Copilot CLI, con el lector activo en esta pasada
+	}
 
 	if a.cfg.Endpoint == "" {
 		fmt.Fprintln(os.Stderr, "sync omitido: sin endpoint configurado")
@@ -562,6 +587,9 @@ func (a *agent) tick() error {
 		}
 		if a.copilot != nil && a.copilot.HayNovedades() {
 			fmt.Fprintln(os.Stderr, a.copilot.Resumen()) // P-011 FR-021: sólo con novedades
+		}
+		if a.kimi != nil && a.kimi.HayNovedades() {
+			fmt.Fprintln(os.Stderr, a.kimi.Resumen()) // P-012 FR-021: sólo con novedades
 		}
 	}
 

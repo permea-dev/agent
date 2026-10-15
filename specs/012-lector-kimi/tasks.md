@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 248 |
-| `tasks.md` *(este)* | **350** | 282 |
+| `tasks.md` *(este)* | **350** | 283 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 253 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 297 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -172,19 +172,20 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B4 · Integración *(FR-002, FR-021, FR-023 a FR-026; SC-011, SC-013, SC-015, SC-018, SC-019)* — nace `cmd/permea/kimi_test.go`
 
-- [ ] **T026** Fase 0, **en este orden**:
+- [x] **T026** Fase 0, **en este orden**:
   1. **Antes de tocar `main.go`** *(D-012-P9)*: la referencia de SC-015 con el binario de `e9e5449`, y su md5. **Si `main.go` ya cambió, PARA.**
   2. El forzado A, comprobado *(`Load` pasa, `Append` pasa, `Save` falla)*.
   3. `cmd/permea/kimi.go` *(`generarKimi`, sin emitir)*, y en `main.go` los campos, `setup()` y `generate()`.
-- [ ] **T027** [P] **Rojos (31) a (34)**, y **(30)**, nacido verde *(lo valida m41)*, con `cola` y `capturarStderr` de los tests de `cmd/permea`, sin tocarlos.
-- [ ] **T028** **Verde**: Kimi Code tras Copilot CLI y antes del único `st.Save`; la activación en cada pasada; el índice primero *(P-13)*; los errores por fichero
+- [x] **T027** [P] **Rojos (31) a (34)**, y **(30)**, nacido verde *(lo valida m41)*, con `cola` y `capturarStderr` de los tests de `cmd/permea`, sin tocarlos.
+- [x] **T028** **Verde**: Kimi Code tras Copilot CLI y antes del único `st.Save`; la activación en cada pasada; el índice primero *(P-13)*; los errores por fichero
   *(D-012-P5)*; la línea en `runOnce` y, con `HayNovedades`, en `tick`.
-- [ ] **T029** Comprobar y transcribir, sin tocarlos, que los `_test.go` de `cmd/permea` siguen verdes.
-- [ ] **T030** **Nacen verdes (35) a (39)**, escritos tras el verde de T028: centinelas en la cola y en `state.json`; md5 y listado de la raíz; `sessions/` creada
+- [x] **T029** Comprobar y transcribir, sin tocarlos, que los `_test.go` de `cmd/permea` siguen verdes.
+- [x] **T030** **Nacen verdes (35) a (39)**, escritos tras el verde de T028: centinelas en la cola y en `state.json`; md5 y listado de la raíz; `sessions/` creada
   después; el `wire.jsonl` ilegible; y el índice ilegible. Los validan m49, **M-B4a**, m45, m46–m47 y m48.
-- [ ] **T031** `[MUTACIÓN]` Censo y mutaciones **m41–m49** y **M-B4a**, con md5. **m41** declara, **por nombre y hoja**, los tests existentes que caen *(los
+- [x] **T031** `[MUTACIÓN]` Censo y mutaciones **m41–m49** y **M-B4a**, con md5. **m41** declara, **por nombre y hoja**, los tests existentes que caen *(los
   `*_SinRaiz*` y `*_LineaDeResumen` de Codex, Gemini, OpenCode y Copilot)*, y se comprueba antes de mutar que no hay más.
-- [ ] **T032** **SC-022, informativo**, como T023.
+- [x] **T032** **SC-022, informativo**, como T023.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B4 *(referencia de SC-015 con el binario de `e9e5449`, `44a96b93…`, 9 líneas; forzado A comprobado; rojos 1045 / 7 / 0 con su razón escrita antes, (30) ×2 nacido verde; verde 1052 / 0 / 0; nacidos verdes (35)–(39), 1061 / 0 / 0; m41–m49 y M-B4a = declarado, con «E» por nombre y los ajustes del censo: m42 → también (34), (35), (38/se_relee); m46 → también (38/se_relee); m45 formulada para compilar; SC-022 tras B4: +30 208 B como mucho, Windows; `__TEXT` de darwin/amd64 saltó, holgura 2 138 B)*.
 - [ ] **T033** ✋ Puertas y commit: `012 B4: Kimi Code en run y daemon, antes de guardar el estado`.
 
 ## B5 · `--scan` *(FR-022, FR-023; SC-024 en forma)*
