@@ -153,7 +153,16 @@ línea de órdenes el nombre de una suite** *(011 registro §B0, incidencia)*.
 
 ## B6 · README y CHANGELOG
 
-*(T038–T040)*
+- **T038 ✋**: el dueño aprueba `textos-012/propuesta-v1.md` *(md5 `5a435d3f…`, 253 líneas)* **tal cual** *(15-10)*: «### Kimi Code CLI», «### Requiere», R1–R8. Copia por
+  programa, `cmp` idénticos: **`textos-012/aprobado-v1.md` `5a435d3f…`**, la fuente desde aquí. El aviso y el resumen que cita, sacados del código de `7127831`.
+- **T039 · Rojo** *(sobre `README.md` `edd89c99`, `CHANGELOG.md` `5ba909c0`)*: `grep -c '^## 0.9.0' CHANGELOG.md` → **0**; `grep -c '^### Kimi Code' README.md` → **0**.
+- **T040 · Verde**: un programa saca los bloques del aprobado; cada «antes» de R1–R8 era literal y único en HEAD. T1 entra antes de «## Coste y tarifas» y T2
+  antes de «## 0.8.0». Otro programa los vuelve a sacar por posición de los ficheros aplicados, y comprueba que fuera de ellos nada cambió. **`cmp` sin diferencias en los 10**:
+  - T1 README:237-257 *(21)*, T2 CHANGELOG:6-35 *(30)*;
+  - R1 README:3-7, R2 :72-74, R3 :144, R4 :159-162, R5 :163-170, R6 :171-175, R7 :276-277, R8 :319.
+  - Después: 1 y 1; `PENDIENTE` = 1. `README.md` `b10019a9` *(324)*, `CHANGELOG.md` `60413269` *(231)*. **`PRIV`** → 0 en los dos y en el diff.
+- **Puertas para T041** *(libre 0.51; 20:34:47 → :56)*: **1074 / 0 / 0**; vet limpio; lint 0 *(libre 1.51)*; gofmt vacío; frontera 0 B; ningún `_test.go` de `e9e5449`
+  modificado; sin `require` ni `go.sum`; `os.Getenv` → 6; `PRIV` → 0 en `git diff e9e5449`.
 
 ## Cierre
 

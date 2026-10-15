@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 249 |
-| `tasks.md` *(este)* | **350** | 284 |
+| `tasks.md` *(este)* | **350** | 287 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 160 |
+| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 169 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -199,11 +199,14 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B6 · README y CHANGELOG *(FR-028; P-11)*
 
-- [ ] **T038** ✋ **El dueño aprueba los textos**: «### Kimi Code» en el README y la entrada `0.9.0` del CHANGELOG. Claude los propone en un encargo aparte, con
+- [x] **T038** ✋ **El dueño aprueba los textos**: «### Kimi Code» en el README y la entrada `0.9.0` del CHANGELOG. Claude los propone en un encargo aparte, con
   los límites de spec §Límites: la petición matada *(que sí se cobra)*, los intentos fallidos, la ventana del fork, las mayúsculas en Windows, y «medido en Windows con
   la 2.2.0 y clave de API»; y la dependencia de la tarifa de `kimi-k2.7-code`.
-- [ ] **T039** **Rojo**, transcrito: `grep -c '^## 0.9.0' CHANGELOG.md` → 0; `grep -c '^### Kimi Code' README.md` → 0.
-- [ ] **T040** README y CHANGELOG *(`## 0.9.0 — PENDIENTE`)*, con los textos **sacados por programa** de lo aprobado. `cmp` sin diferencias.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B6 *(la propuesta v1, tal cual: «### Kimi Code CLI», «### Requiere», R1–R8; `aprobado-v1.md` `5a435d3f`)*.
+- [x] **T039** **Rojo**, transcrito: `grep -c '^## 0.9.0' CHANGELOG.md` → 0; `grep -c '^### Kimi Code' README.md` → 0.
+  > Transcripción: §B6 *(0 y 0)*.
+- [x] **T040** README y CHANGELOG *(`## 0.9.0 — PENDIENTE`)*, con los textos **sacados por programa** de lo aprobado. `cmp` sin diferencias.
+  > Transcripción: §B6 *(10 `cmp` sin diferencias; fuera de los bloques, nada cambió; `PRIV` 0)*.
 - [ ] **T041** ✋ Puertas y commit: `012 B6: README y CHANGELOG de la 0.9.0`.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
