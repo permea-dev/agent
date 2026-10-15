@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 248 |
-| `tasks.md` *(este)* | **350** | 278 |
+| `tasks.md` *(este)* | **350** | 279 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001)* | **300** | — |
+| `soporte/registro.md` *(nace en T001)* | **300** | 81 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -102,8 +102,9 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B0 · FASE 0 y registro
 
-- [ ] **T001** Fase 0, sobre `e9e5449` por `git archive` en un temporal: la línea base *(953, vet, lint 0)*, los **tamaños de la 0.8.0** en las 5 plataformas
+- [x] **T001** Fase 0, sobre `e9e5449` por `git archive` en un temporal: la línea base *(953, vet, lint 0)*, los **tamaños de la 0.8.0** en las 5 plataformas
   *(D-012-P7)* y la frontera de FR-027 sin diff. **Nace `soporte/registro.md`**, con su techo *(300)* y las secciones §B0…§B6 y §Cierre. Si algo difiere, **PARA**.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B0 · T001 *(sobre `3779671`, sólo documentos desde `e9e5449`; 953 / 0 / 0 en 10 paquetes; vet y lint 0; frontera 0; `PRIV` 0; tamaños de la 0.8.0 por `git archive`, sin sellado VCS)*.
 - [ ] **T002** ✋ **Línea base y registro**. Commit: `012 B0: linea base y registro`.
 
 ## B1 · Raíz y ficheros *(FR-001 a FR-003; SC-012; M-3, M-5)* — nacen `internal/config/kimi_test.go`, `sandbox_kimi_test.go` y el listado en `kimi_fichero_test.go`
