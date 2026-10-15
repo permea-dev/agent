@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 248 |
-| `tasks.md` *(este)* | **350** | 281 |
+| `tasks.md` *(este)* | **350** | 282 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 206 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 253 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -146,11 +146,11 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B3 · Fichero, cabeza e índice *(FR-004, FR-005, FR-007 a FR-009, FR-014, FR-018, FR-020; SC-004, SC-006, SC-007, SC-009, SC-010, SC-014, SC-026)* — `kimi_fichero_test.go`
 
-- [ ] **T019** Fase 0:
+- [x] **T019** Fase 0:
   - en `internal/state/state.go`, `Cabeza string \`json:"cabeza,omitempty"\`` tras `Frontera` *(D-012-P3)*, **sin tocar** `Recorrer`, `Load` ni `Save`;
   - `PasadaKimi` *(`Resumen`, `HayNovedades`)*, `LeerFicheroKimi`, que no emite, `LeerIndiceKimi`, que devuelve un mapa vacío, y `huellaCabezaKimi`,
     que devuelve `""`, en `internal/ingest/kimi_contexto.go`.
-- [ ] **T020** Testdata: `generar.sh` gana `ficheros/` y un índice:
+- [x] **T020** Testdata: `generar.sh` gana `ficheros/` y un índice:
   - `dos_registros.jsonl`; `fork/{un_forked,dos_forked,sin_forked}.jsonl`; `fork_cortado/{paso1,paso2}.jsonl` *(corte tras la `forked`)*;
   - `corrupta_cuenta.jsonl` *(una corrupta con prefijo entre dos registros)*;
   - `cabeza/{antes,cambiada,encogido}.jsonl` *(SC-026: `cambiada`, más larga y con otra 1.ª línea; `encogido`, el prefijo de `antes`)*;
@@ -160,13 +160,14 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   - `esperado.json`.
 
   md5 al registro.
-- [ ] **T021** [P] **Rojos (14) a (29)**, cada pasada con su **línea de resumen literal**; (18) con un `state.json` sintético sin `cabeza` para `sin_cabeza`;
+- [x] **T021** [P] **Rojos (14) a (29)**, cada pasada con su **línea de resumen literal**; (18) con un `state.json` sintético sin `cabeza` para `sin_cabeza`;
   (19) con `os.Chtimes`. **Nace verde**, y se declara así, **(27)** *(el stub no escribe; lo valida m39)*.
-- [ ] **T022** **Verde**: plan §2 *(atajo, cabeza, prepaso, `Recorrer`, la cabeza tras `Recorrer`)*, el índice con la normalización de barras *(D-012-P6)*, y
+- [x] **T022** **Verde**: plan §2 *(atajo, cabeza, prepaso, `Recorrer`, la cabeza tras `Recorrer`)*, el índice con la normalización de barras *(D-012-P6)*, y
   `Resumen()` con el texto de spec §Textos.
-- [ ] **T023** **SC-022, informativo**: las 5 plataformas. Si pasa de 102 400 B, se adelgaza antes de B4 *(PARA 7)*.
-- [ ] **T024** `[MUTACIÓN]` Censo y mutaciones **m25–m40**, con md5, con las co-caídas de plan §Bloques: m25 → (15) ×3, (24), (25); m27 → (15/un_forked),
+- [x] **T023** **SC-022, informativo**: las 5 plataformas. Si pasa de 102 400 B, se adelgaza antes de B4 *(PARA 7)*.
+- [x] **T024** `[MUTACIÓN]` Censo y mutaciones **m25–m40**, con md5, con las co-caídas de plan §Bloques: m25 → (15) ×3, (24), (25); m27 → (15/un_forked),
   (16); m28 → (17), (18/cabeza_cambiada); m29 → (16), (17/dos_pasadas); m37 → (23), (24). Vigilancia de privacidad sobre `ficheros/` → 0.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 *(rojos 1010 / 32 / 0 con su razón escrita antes, nacidos verdes (27), (29) ×3 y (19/igual); verde 1042 / 0 / 0; SC-022 tras B3: el campo `Cabeza` cuesta +512 B en Windows y 321 B de holgura de `__TEXT` en darwin/amd64, medido; R-2: 10 MB en 126 ms; m25–m40 = declarado, con los ajustes del censo: m28 y m29 → (16), (17/dos_pasadas); m38 → (17) ×2; m40 → también `TestRetencion_…/state_json_cuatro_campos`)*.
 - [ ] **T025** ✋ Puertas y commit: `012 B3: fichero de Kimi Code por offset y cabeza, con frontera forked e indice`.
 
 ## B4 · Integración *(FR-002, FR-021, FR-023 a FR-026; SC-011, SC-013, SC-015, SC-018, SC-019)* — nace `cmd/permea/kimi_test.go`

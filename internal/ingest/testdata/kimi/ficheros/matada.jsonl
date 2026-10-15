@@ -1,0 +1,3 @@
+{"type":"metadata","protocol_version":"1.5","created_at":1}
+{"type":"context.append_message","agentId":"main","message":{"role":"user","content":[{"type":"text","text":"texto-3"}]},"time":2}
+{"type":"llm.request","agentId":"main","kind":"loop","provider":"proveedor-sintetico","model":"modelo-sintetico-1","messageCount":1,"time":3}

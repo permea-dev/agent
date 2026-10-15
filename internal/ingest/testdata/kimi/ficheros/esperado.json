@@ -1,0 +1,21 @@
+{
+ "cabeza/antes.jsonl": "kimi_code: registros 2 · eventos 2 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "cabeza/cambiada.jsonl": "kimi_code: registros 2 · eventos 2 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "cabeza/cambiada_mas.jsonl": "kimi_code: registros 3 · eventos 3 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "cabeza/encogido.jsonl": "kimi_code: registros 1 · eventos 1 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "cabeza/largo.jsonl": "kimi_code: registros 3 · eventos 3 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "clases.jsonl": "kimi_code: registros 7 · eventos 3 · heredados 1 · repetidas 0 · a cero 1 · incoherentes 2 · compactaciones 1 · sin modelo 1",
+ "corrupta_cuenta.jsonl": "kimi_code: registros 2 · eventos 2 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "corrupta_cuenta_paso1.jsonl": "kimi_code: registros 1 · eventos 1 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "dos_registros.jsonl": "kimi_code: registros 2 · eventos 2 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "fork/dos_forked.jsonl": "kimi_code: registros 3 · eventos 1 · heredados 2 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "fork/sin_forked.jsonl": "kimi_code: registros 3 · eventos 3 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "fork/un_forked.jsonl": "kimi_code: registros 3 · eventos 1 · heredados 2 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "fork_cortado/paso1.jsonl": "kimi_code: registros 2 · eventos 0 · heredados 2 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "fork_cortado/paso2.jsonl": "kimi_code: registros 3 · eventos 1 · heredados 2 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "matada.jsonl": "kimi_code: registros 0 · eventos 0 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "sin_lf.jsonl": "kimi_code: registros 1 · eventos 1 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "sin_lf_completo.jsonl": "kimi_code: registros 2 · eventos 2 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "subagente/agent-0.jsonl": "kimi_code: registros 3 · eventos 3 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0",
+ "subagente/main.jsonl": "kimi_code: registros 2 · eventos 2 · heredados 0 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 0 · sin modelo 0"
+}

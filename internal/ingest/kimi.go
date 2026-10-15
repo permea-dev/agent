@@ -37,6 +37,8 @@ type ContextoKimi struct {
 	Heredado bool
 	// Cwd es el `workDir` de la sesión en `session_index.jsonl`, ya normalizado. Vacío si no hay.
 	Cwd string
+	// Indice es el de `LeerIndiceKimi`: el `workDir` de cada sesión. `LeerFicheroKimi` pone S, A y Cwd a partir de él y de la ruta.
+	Indice map[string]string
 	// Decodificadas, si no es nil, cuenta las líneas que se decodifican (P-10; test (12)).
 	Decodificadas *int
 }

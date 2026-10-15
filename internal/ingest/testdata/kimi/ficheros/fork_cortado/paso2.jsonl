@@ -1,0 +1,5 @@
+{"type":"metadata","protocol_version":"1.5","created_at":1}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":10,"output":1,"inputCacheRead":100,"inputCacheCreation":0},"usageScope":"turn","time":1000}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":20,"output":2,"inputCacheRead":200,"inputCacheCreation":0},"usageScope":"turn","time":2000}
+{"type":"forked","agentId":"main","time":5}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":30,"output":3,"inputCacheRead":300,"inputCacheCreation":0},"usageScope":"turn","time":3000}

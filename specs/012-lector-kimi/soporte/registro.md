@@ -185,9 +185,56 @@ las banderas de `.goreleaser.yaml`; go1.22.2)*:
   `testdata/kimi/` ignorado por git** *(`git ls-files --others --ignored --exclude-standard` → vacío)*; los `kimi*.go` no importan `internal/pricing`; `PRIV` → 0 en el diff,
   en los 36 ficheros de `testdata/kimi/` y en los nuevos.
 
-## B3 · Fichero, cabeza e índice
+## B3 · Fichero, cabeza e índice *(`kimi_contexto.go`, `state.go`)*
 
-*(T019–T024)*
+- **T019** *(2026-10-15, sobre `b3a2989`)*: `state.FileState` gana `Cabeza string \`json:"cabeza,omitempty"\`` tras `Frontera`, **sin tocar** `Recorrer`, `Load` ni `Save`;
+  `ContextoKimi` gana `Indice`; stubs de `PasadaKimi` *(`Resumen` → `""`)*, `LeerFicheroKimi` *(no emite)*, `LeerIndiceKimi` *(mapa vacío)* y `huellaCabezaKimi` *(`""`)*.
+- **T020**: `generar.sh` gana `ficheros/`: 21 ficheros, con `indice/session_index.jsonl` *(las dos barras de Windows; una sesión con dos líneas)* y `esperado.json`, que
+  calcula **un clasificador propio del guion** *(sin código del lector)*. `raiz/` y `lineas/` no cambian al regenerar.
+- **T021 · Rojos, la razón escrita ANTES de correrlos**: con los stubs, se espera **1010 / 32 / 0**. Caen por el stub *(resumen `""`, sin eventos, huella `""`, sin error)*:
+  (14); (15) ×3 y su padre; (16); (17) ×2 y su padre; (18) ×4 y su padre; (19/mtime) y su padre; (20) ×2 y su padre; (21) ×4 y su padre *(«sin eventos»)*; (22); (23);
+  (24); (25); (26); (28) ×2 y su padre. **Nacen verdes**, y se declaran así: **(27)** *(el stub no escribe; m39)*, **(29)** ×3 *(el campo ya está desde T019; m40)* y la hoja
+  **(19/igual)** *(el stub no abre nada; m33)*: 1004 + 6 = 1010 PASS.
+- **T021 · Rojos, corridos** *(libre 0.27; 14:07:47 → :55, 7,5 s)*: **1010 / 32 / 0**, rc 1: **los 32 declarados, con la razón del stub**, y los 6 nacidos verdes en PASS.
+- **T022 · Verde**: `kimi_contexto.go` `4645bc4d…` *(atajo tamaño + `mtime`; cabeza; prepaso; N = registros antes del offset + vistos; heredado = antes de la última `forked`;
+  `Recorrer`; la cabeza tras `Recorrer`; el índice, gana la última línea; barras de Windows)*; `state.go` `698968ab…`. **Suite** *(libre 0.57; 14:09:09 → :17, 7,3 s)*:
+  **1042 / 0 / 0** *(1010 + 32)*.
+- **T023 · SC-022, informativo tras B3** *(como en B2)*: linux/amd64, linux/arm64 *(fichero)* y darwin/amd64 Δ **0**; darwin/arm64 **+16**; windows/amd64 **+512**; arm64 Σ `LOAD`
+  **+416**; **holgura de `__TEXT` en darwin/amd64: 1 004 → 683 B** *(arm64: 16 102 → 15 781)*. **De dónde sale, medido**: el campo `Cabeza` de `state.FileState`, que sí está
+  enlazado *(metadato de tipo y etiqueta JSON)*. Compilado sin él *(y sin sus dos usos en el lector, aún muerto)*, las cifras vuelven **exactamente** a las de la 0.8.0.
+- **R-2 · El prepaso, informativo** *(copia del módulo fuera del repo, con un test desechable; tras `libre.sh`)*: un `wire.jsonl` sintético de **10 487 160 B** *(5 010 líneas de
+  relleno de ~2 KB y 250 registros)*: **1.ª pasada 126 ms**; **2.ª, tras añadir un registro *(prepaso entero + la cola)*, 7,1 ms**.
+- **T024 · Censo de m25–m40, declarado ANTES de mutar** *(md5 de partida: `kimi_contexto.go` `4645bc4d…`, `state.go` `698968ab…`; **las 16 compilan**, comprobado aplicando,
+  `go vet` y revirtiendo)*. Ajustes al plan, razonados sobre la testdata: **m25** no tira (15/sin_forked) ni (25), que no tienen `forked`; **m28 y m29** sólo se notan con
+  offset > 0 *(N = registros antes del offset + vistos)*: (16) y (17/dos_pasadas); **m38** tira también (17) ×2; **m40** tira también un test existente,
+  `TestRetencion_SC009_NadaDelProveedorEnDisco/state_json_cuatro_campos` *(exige 4 campos)*.
+
+  | Mut. | Cambio | Debe caer *(hojas; + padres)* | FAIL |
+  |---|---|---|---:|
+  | m25 | heredado nunca *(`false &&`)* | (15/un_forked), (15/dos_forked), (16), (24) | 5 |
+  | m26 | la **primera** `forked` | (15/dos_forked) | 2 |
+  | m27 | N sin contar los heredados | (15/un_forked), (16) | 3 |
+  | m28 | el prepaso cuenta **todas** las líneas | (16), (17/dos_pasadas) | 3 |
+  | m29 | `previos := 0 * …` | (16), (17/dos_pasadas) | 3 |
+  | m30 | sin comparar la cabeza | (18/cabeza_cambiada), (18/nuevo_tras_cambio) | 3 |
+  | m31 | cabeza sin sal *(`event.Ref("", …)`)* | (28/v1), (28/v2) | 3 |
+  | m32 | `cabeza` vacía tolerada | (18/sin_cabeza) | 2 |
+  | m33 | sin el atajo | (14), (19/igual) | 3 |
+  | m34 | el atajo sin `mtime` | (19/mtime) | 2 |
+  | m35 | sin normalizar las barras | (21/barras) | 2 |
+  | m36 | la **primera** línea del índice | (21/ultima) | 2 |
+  | m37 | sin dedupe | (23), (24) | 2 |
+  | m38 | la corrupta corta *(`return err`)* | (26), (17/corrupta_cuenta), (17/dos_pasadas) | 4 |
+  | m39 | el lector crea `<ruta>.leido` | (27) | 1 |
+  | m40 | `json:"cabeza"` sin `omitempty` | (29/entrada_0_8_0), (29/ida_y_vuelta), `TestRetencion_SC009_…/state_json_cuatro_campos` | 5 |
+- **T024 · Mutaciones, corridas** *(cada suite tras `libre.sh` solo con `libre=0`, carga de inicio 0.22–1.23; 6,8–7,1 s; edición inversa y md5 comprobados)*: **16 de 16 =
+  declarado**, sin incidencias. *(md5 puesta → PASS/FAIL)*: m25 `46f9ce33` 1037/5 · m26 `b7b4a0ed` 1040/2 · m27 `a1f01de3` 1039/3 · m28 `763686b4` 1039/3 · m29 `e28ede0a` 1039/3 ·
+  m30 `e21bef2b` 1039/3 · m31 `b27e7ed8` 1039/3 · m32 `adb517d2` 1040/2 · m33 `85fae583` 1039/3 · m34 `20db7659` 1040/2 · m35 `17ecf37e` 1040/2 · m36 `82e81649` 1040/2 ·
+  m37 `9a6c25e9` 1040/2 · m38 `ef15d54a` 1038/4 · m39 `aea497b8` 1041/1 · m40 `bd1712e7` 1037/5; cada una cayó exactamente en las hojas de la tabla, y tras cada una
+  `kimi_contexto.go` volvió a `4645bc4d` y `state.go` a `698968ab`.
+- **T025 · Corte** *(antes del commit del dueño)*: **suite** *(libre 0.52; 14:23:14 → :21, 6,6 s)* **1042 / 0 / 0**, rc 0; **vet** limpio y **lint 0 issues** *(14:23:49 → :52, 2,9 s)*;
+  gofmt vacío; frontera de FR-027 0 B; ningún `_test.go` de `e9e5449` modificado *(`TestRetencion_…` sólo cayó con m40, sin tocarlo)*; `state.go`, +3 líneas; sin `require` ni
+  `go.sum`; `os.Getenv` → 6; **ningún fichero de `testdata/kimi/` ignorado por git**; `PRIV` → 0 en el diff, en los 57 ficheros de `testdata/kimi/` y en los nuevos.
 
 ## B4 · Integración
 
