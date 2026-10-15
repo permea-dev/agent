@@ -21,10 +21,10 @@
 | Fichero de `specs/012-lector-kimi/` | Techo | Hoy |
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
-| `plan.md` | **250** | 248 |
-| `tasks.md` *(este)* | **350** | 283 |
+| `plan.md` | **250** | 249 |
+| `tasks.md` *(este)* | **350** | 284 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 297 |
+| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 160 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -190,10 +190,11 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B5 · `--scan` *(FR-022, FR-023; SC-024 en forma)*
 
-- [ ] **T034** [P] **Rojos (40) y (43)**, y **(41)** y **(42)**, nacidos verdes *(los validan m50 y m52)*, en `cmd/permea/kimi_test.go`, con los textos de spec
+- [x] **T034** [P] **Rojos (40) y (43)**, y **(41)** y **(42)**, nacidos verdes *(los validan m50 y m52)*, en `cmd/permea/kimi_test.go`, con los textos de spec
   §Textos **leídos por programa**. (43) afirma el vector 1 del contrato con un fichero en `<tmp>/session_sintetica-0001/agents/main/wire.jsonl`.
-- [ ] **T035** **Verde**: `esSesionKimi`, **tras** Copilot, y `dryRunKimi` *(plan §5)*.
-- [ ] **T036** `[MUTACIÓN]` Censo y mutaciones **m50–m54**, con md5. **m50** declara, por nombre y hoja, los tests existentes de `--scan` que caen.
+- [x] **T035** **Verde**: `esSesionKimi`, **tras** Copilot, y `dryRunKimi` *(plan §5)*.
+- [x] **T036** `[MUTACIÓN]` Censo y mutaciones **m50–m54**, con md5. **m50** declara, por nombre y hoja, los tests existentes de `--scan` que caen.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 *(§B0–§B2 archivados íntegros en `registro-archivo.md`, `cmp` idénticos; rojos 1069 / 4 / 0 con su razón escrita antes, (40/disco), (41) ×5 y (42) nacidos verdes; verde 1073 / 0 / 0; (40/subagente) añadida tras el verde por SC-024, 1074 / 0 / 0; m50–m54 = declarado, con los ajustes del censo: m50 → sólo (41/claude) y los `--scan` de Claude Code por nombre; m53 y m54 en el código compartido, m54 = la edición de m25; SC-022 tras B5: +33 792 B como mucho, Windows)*.
 - [ ] **T037** ✋ Puertas y commit: `012 B5: scan de Kimi Code con la frontera forked`.
 
 ## B6 · README y CHANGELOG *(FR-028; P-11)*

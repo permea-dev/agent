@@ -52,6 +52,7 @@ internal/testutil/sandbox.go · sandbox_kimi_test.go                 # B1: una l
 cmd/permea/kimi.go · kimi_test.go · testdata/kimi/**                # NUEVOS, B4–B5
 cmd/permea/main.go                                                  # B4: agent, setup, generate, runOnce, tick · B5: dryRun
 README.md · CHANGELOG.md                                            # B6
+specs/012-lector-kimi/soporte/registro.md · registro-archivo.md     # el registro (techo 300) y su archivo: §B0–§B2, íntegros, sin techo
 ```
 
 **Existentes que se tocan** *(sobre el commit de la spec ratificada)*:

@@ -651,6 +651,14 @@ func dryRun(path string) error {
 	if copilot {
 		return dryRunCopilot(path)
 	}
+	// P-012 FR-022, P-12: un `wire.jsonl` de Kimi Code se reconoce por su `metadata` con `protocol_version` y `created_at`, TRAS Copilot CLI.
+	kimi, err := esSesionKimi(path)
+	if err != nil {
+		return err
+	}
+	if kimi {
+		return dryRunKimi(path)
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return err

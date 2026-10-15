@@ -376,3 +376,126 @@ func TestKimiGenerate_IndiceIlegible(t *testing.T) {
 		}
 	})
 }
+
+// ═══ P-012 B5 · `--scan` DE UN `wire.jsonl` DE KIMI CODE ═══════════════════════════════════════════════════════════════
+//
+// La línea `evento:` es la compartida *(`imprimirEventos`)*, y el resumen, el de spec §Textos de 012, leído por programa. Sin línea de
+// control: Kimi Code no da créditos (D-5).
+
+// scanKimi copia un fichero de `ficheros/` a `<tmp>/<s>/agents/<a>/wire.jsonl` y le pasa `--scan`.
+func scanKimi(t *testing.T, fixture, s, a string) (codigo int, stdout, stderr, fichero string) {
+	t.Helper()
+	fichero = filepath.Join(t.TempDir(), s, "agents", a, "wire.jsonl")
+	escribir(t, fichero, fixtureKimi(t, fixture))
+	codigo, stdout, stderr, _ = ejecutar(t, 30*time.Second, "--scan", fichero)
+	return codigo, stdout, stderr, fichero
+}
+
+// (40) · FR-022, P-12, SC-024 *(forma)*: `--scan` de un `wire.jsonl` escribe las líneas `evento:` y el resumen, sin línea de control, y
+// no escribe nada en disco; el de un fork aplica la frontera `forked`: 1 evento y «heredados 2».
+func TestKimiScan_EventosYResumen(t *testing.T) {
+	dataDir := testutil.Sandbox(t)
+	codigo, stdout, stderr, fichero := scanKimi(t, "dos_registros.jsonl", "session_sintetica-0001", "main")
+	t.Run("salida", func(t *testing.T) {
+		lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+		if codigo != 0 || len(lineas) != 2 || !strings.HasPrefix(lineas[0], "evento: tool=kimi_code model=kimi-k2.7-code ") ||
+			!strings.HasPrefix(lineas[1], "evento: tool=kimi_code model=kimi-k2.7-code ") ||
+			!strings.Contains(stderr, "2 eventos generados (dry-run, nada transmitido)\n"+lineaKimi(t, 2, 2, 0, 0, 0, 0, 0, 0)+"\n") {
+			t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaban 2 `evento:`, sin línea de control, y el resumen", codigo, stdout, stderr)
+		}
+	})
+	t.Run("disco", func(t *testing.T) {
+		junto, err := os.ReadDir(filepath.Dir(fichero))
+		_, sinEstado := os.Stat(filepath.Join(dataDir, "state.json"))
+		_, sinCola := os.Stat(transport.QueuePath(dataDir))
+		if err != nil || len(junto) != 1 || sinEstado == nil || sinCola == nil {
+			t.Errorf("junto al fichero: %d entradas (%v); state.json: %v; cola: %v; se esperaba nada en disco", len(junto), err, sinEstado, sinCola)
+		}
+	})
+	t.Run("fork", func(t *testing.T) {
+		codigo, stdout, stderr, _ := scanKimi(t, "fork/un_forked.jsonl", "session_sintetica-0002", "main")
+		if codigo != 0 || strings.Count(stdout, "evento: tool=kimi_code ") != 1 ||
+			!strings.Contains(stderr, "1 eventos generados (dry-run, nada transmitido)\n"+lineaKimi(t, 3, 1, 2, 0, 0, 0, 0, 0)+"\n") {
+			t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaba 1 evento y «heredados 2»", codigo, stdout, stderr)
+		}
+	})
+	t.Run("subagente", func(t *testing.T) {
+		// SC-024: el `wire.jsonl` de `agent-0`, 3 eventos; el 1.º, con el vector «subagente» del contrato, tal cual. NACE VERDE (tras el
+		// verde de T035); lo valida m53.
+		const subagente = "70ee1df9071f3a49800d62483b50dcb3"
+		codigo, stdout, stderr, _ := scanKimi(t, "subagente/agent-0.jsonl", "session_sintetica-0001", "agent-0")
+		lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+		if codigo != 0 || len(lineas) != 3 || !strings.HasSuffix(lineas[0], " event_id="+subagente) ||
+			!strings.Contains(stderr, lineaKimi(t, 3, 3, 0, 0, 0, 0, 0, 0)+"\n") {
+			t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaban 3 eventos, el 1.º con event_id=%s", codigo, stdout, stderr, subagente)
+		}
+	})
+}
+
+// (41) · FR-023: `--scan` de un fichero de Claude Code, Codex, Gemini, OpenCode o Copilot CLI da lo de la 0.8.0: las referencias de 008,
+// 009 y 010 para los tres primeros, el contraste de OpenCode y la línea de control de Copilot CLI, y nada de Kimi Code. NACE VERDE; lo
+// valida m50 *(la hoja `claude`: los otros cuatro formatos se reconocen ANTES que Kimi, P-12)*.
+func TestKimiScan_LosDemasComoLa080(t *testing.T) {
+	for _, c := range []struct{ hoja, fichero, referencia string }{
+		{"claude", filepath.Join("testdata", "codex", "claude.jsonl"), filepath.Join("codex", "referencia-scan-claude")},
+		{"codex", filepath.Join("testdata", "codex", "sesion.jsonl"), filepath.Join("gemini", "referencia-scan-codex")},
+		{"gemini", filepath.Join("testdata", "gemini", "sesion.jsonl"), filepath.Join("opencode", "referencia-scan-gemini")},
+	} {
+		t.Run(c.hoja, func(t *testing.T) {
+			_ = testutil.Sandbox(t)
+			wantOut, errOut := os.ReadFile(filepath.Join("testdata", c.referencia+".stdout"))
+			wantErr, errErr := os.ReadFile(filepath.Join("testdata", c.referencia+".stderr"))
+			if errOut != nil || errErr != nil || len(wantOut) == 0 {
+				t.Fatalf("precondición: la referencia %s: %v, %v", c.referencia, errOut, errErr)
+			}
+			codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", c.fichero)
+			if codigo != 0 || stdout != string(wantOut) || stderr != string(wantErr) {
+				t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nno es la salida de la 0.8.0", codigo, stdout, stderr)
+			}
+		})
+	}
+	t.Run("opencode", func(t *testing.T) {
+		_ = testutil.Sandbox(t)
+		base := filepath.Join(t.TempDir(), "opencode.db")
+		escribir(t, base, fixtureOpenCode(t, "sana.db"))
+		codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", base)
+		if codigo != 0 || !strings.Contains(stdout, "opencode (contraste, no se envía)") || strings.Contains(stdout+stderr, "kimi_code") {
+			t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaba la salida de OpenCode y nada de Kimi Code", codigo, stdout, stderr)
+		}
+	})
+	t.Run("copilot", func(t *testing.T) {
+		_ = testutil.Sandbox(t)
+		codigo, stdout, stderr, _ := scanCopilot(t, "dos_llamadas.jsonl")
+		if codigo != 0 || !strings.Contains(stdout, "copilot_cli (control, no se envía)") || strings.Contains(stdout+stderr, "kimi_code") {
+			t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaba la salida de Copilot CLI y nada de Kimi Code", codigo, stdout, stderr)
+		}
+	})
+}
+
+// (42) · P-12: un fichero cuya 1.ª línea es `metadata` SIN `created_at` no es de Kimi Code: sigue el camino de Claude Code, como en la
+// 0.8.0. NACE VERDE; lo valida m52.
+func TestKimiScan_SinCreatedAtNoEsKimi(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	fichero := filepath.Join(t.TempDir(), "session_sintetica-0001", "agents", "main", "wire.jsonl")
+	registro, err := os.ReadFile(filepath.Join("..", "..", "internal", "ingest", "testdata", "kimi", "lineas", "evento.jsonl"))
+	if err != nil {
+		t.Fatalf("precondición: %v", err)
+	}
+	escribir(t, fichero, append([]byte(`{"type":"metadata","protocol_version":"1.5"}`+"\n"), registro...))
+	codigo, stdout, stderr, _ := ejecutar(t, 30*time.Second, "--scan", fichero)
+	if codigo != 0 || strings.Contains(stdout+stderr, "kimi_code") {
+		t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaba el camino de Claude Code, sin nada de Kimi Code", codigo, stdout, stderr)
+	}
+}
+
+// (43) · P-12, D-3: S y A salen de la ruta *(`<S>/agents/<A>/wire.jsonl`)*: el 1.er registro de `session_sintetica-0001`/`main` da el
+// `event_id` del vector 1 del contrato, tal cual.
+func TestKimiScan_SesionYAgenteDeLaRuta(t *testing.T) {
+	_ = testutil.Sandbox(t)
+	const vector1 = "e1ad45be19ab01a906be10cf22f4e75c" // contracts/event-id-kimi.md, 1.er registro
+	codigo, stdout, stderr, _ := scanKimi(t, "dos_registros.jsonl", "session_sintetica-0001", "main")
+	lineas := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+	if codigo != 0 || !strings.HasSuffix(lineas[0], " event_id="+vector1) {
+		t.Errorf("código %d; stdout:\n%s\nstderr:\n%s\nse esperaba el 1.er evento con event_id=%s", codigo, stdout, stderr, vector1)
+	}
+}
