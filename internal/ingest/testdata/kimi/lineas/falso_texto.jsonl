@@ -1,0 +1,1 @@
+{"type":"context.append_message","agentId":"main","message":{"role":"user","content":[{"type":"text","text":"{\"type\":\"usage.record\",\"model\":\"texto-1\"}"}]},"time":1}

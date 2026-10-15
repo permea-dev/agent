@@ -11,6 +11,9 @@
 # B1 (T004): `raiz/`, el árbol de `ListarKimi`: dos sesiones en una `wd_*`, un subagente, `sessions/.index-cache/` y `.index-dirty/`,
 # carpetas ocultas con forma de sesión en los tres niveles, un `.bak` y un `.tmp.*` junto a un `wire.jsonl`, `raiz/imported/`, un
 # `wire.jsonl` un nivel más hondo y una sesión sin `agents/`.
+# B2 (T011): `lineas/`, una línea (o dos) por fichero para `RegistroKimi`: un registro por clase, las partidas de SC-005, los seis
+# modelos de SC-008, una línea con centinelas, y tres líneas que NO son registro aunque nombren `usage.record` (un texto que lo
+# contiene, una `forked` y un `subagent.completed`).
 set -euo pipefail
 AQUI=$(cd "$(dirname "$0")" && pwd)
 command -v python3 >/dev/null || { echo "falta python3" >&2; exit 1; }
@@ -52,5 +55,59 @@ escribir(os.path.join(WD, s2, "agents", "main", "wire.jsonl"), metadata(4))
 escribir(os.path.join(WD, s3, "logs", "texto-1.log"), "texto-1\n")                      # una sesión sin agents/
 escribir(os.path.join(WD, ".oculta", "agents", "main", "wire.jsonl"), metadata(5))      # oculta en el nivel de la sesión
 escribir(os.path.join(R, "imported", "imp-0001", "agents", "main", "wire.jsonl"), metadata(6))
+
+# --- B2 · lineas/ ---------------------------------------------------------------------------------------------------
+L = os.path.join(AQUI, "lineas")
+shutil.rmtree(L, ignore_errors=True)
+
+
+def registro(usage=None, modelo="moonshot-ai/kimi-k2.7-code", alcance="turn", momento=1000, quitar=(), agente="main", extra=None):
+    """Un `usage.record` con la forma medida (m1 1): type, agentId, model, usage, usageScope, time; type primero."""
+    if usage is None:
+        usage = {"inputOther": 11, "output": 22, "inputCacheRead": 33, "inputCacheCreation": 0}
+    r = {"type": "usage.record", "agentId": agente, "model": modelo, "usage": usage, "usageScope": alcance, "time": momento}
+    r.update(extra or {})
+    for k in quitar:
+        r.pop(k)
+    return json.dumps(r, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+
+def fichero(nombre, *lineas):
+    escribir(os.path.join(L, nombre + ".jsonl"), "".join(lineas))
+
+
+def u(o, s, r, c):
+    return {"inputOther": o, "output": s, "inputCacheRead": r, "inputCacheCreation": c}
+
+
+fichero("evento", registro())
+fichero("compactacion", registro(alcance="session"))
+fichero("sc005", registro(u(100, 7, 40, 2)))
+fichero("modelo_prefijo", registro(modelo="moonshot-ai/kimi-k2.7-code"))
+fichero("modelo_sin_barra", registro(modelo="kimi-k2.7-code"))
+fichero("modelo_varias", registro(modelo="a/b/c"))
+fichero("modelo_inicial", registro(modelo="/x"))
+fichero("modelo_acabada", registro(modelo="x/"))
+fichero("modelo_vacio_o_no_textual", registro(modelo=""), registro(modelo=5))
+fichero("incoherente_usage_no_objeto", registro([1, 2]))
+fichero("incoherente_cuatro_ausentes", registro({}))
+fichero("incoherente_no_numerica", registro(u("texto-1", 22, 33, 0)))
+fichero("incoherente_no_entera", registro(u(1.5, 22, 33, 0)))
+fichero("incoherente_negativa", registro(u(-1, 22, 33, 0)))
+fichero("incoherente_time_textual", registro(momento="1000"))
+fichero("incoherente_time_ausente", registro(quitar=("time",)))
+fichero("a_cero", registro(u(0, 0, 0, 0)))
+fichero("ms", registro(momento=1))
+fichero("centinelas", registro(agente="CENTINELA-agentId", alcance="CENTINELA-usageScope",
+                               extra={"raw": {"CENTINELA-raw": "CENTINELA-texto"}}))
+# Tres líneas que NO son registro: el marcador dentro de un texto (escapado), una `forked` y un `subagent.completed`.
+fichero("falso_texto", json.dumps({"type": "context.append_message", "agentId": "main",
+                                   "message": {"role": "user", "content": [{"type": "text",
+                                   "text": '{"type":"usage.record","model":"texto-1"}'}]}, "time": 1},
+                                  ensure_ascii=False, separators=(",", ":")) + "\n")
+fichero("forked", json.dumps({"type": "forked", "agentId": "main", "time": 1}, separators=(",", ":")) + "\n")
+fichero("subagent_completed", json.dumps({"type": "subagent.completed", "subagentId": "agent-0", "resultSummary": "texto-2",
+                                          "usage": u(5, 6, 7, 0), "contextTokens": 8, "time": 1},
+                                         separators=(",", ":")) + "\n")
 PY
 python3 -I "$T/generar.py" "$AQUI"

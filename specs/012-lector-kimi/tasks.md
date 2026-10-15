@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 248 |
-| `tasks.md` *(este)* | **350** | 280 |
+| `tasks.md` *(este)* | **350** | 281 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 138 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 206 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -123,24 +123,25 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B2 · Una línea e identidad *(FR-010 a FR-017, FR-020; SC-005, SC-007, SC-008, SC-011, SC-021)* — nacen `kimi_eventid_test.go` y `kimi_registro_test.go`
 
-- [ ] **T010** Fase 0: `derivarEventIDKimi(S, A string, N int) string`, que devuelve `""`; `ContextoKimi`, `ClaseKimi` y `RegistroKimi`, que aún no
+- [x] **T010** Fase 0: `derivarEventIDKimi(S, A string, N int) string`, que devuelve `""`; `ContextoKimi`, `ClaseKimi` y `RegistroKimi`, que aún no
   clasifica, en `internal/ingest/kimi.go`.
-- [ ] **T011** Testdata: `generar.sh` gana `lineas/`:
+- [x] **T011** Testdata: `generar.sh` gana `lineas/`:
   - una línea por clase *(evento, compactación, sin modelo, a cero, las siete incoherentes)*;
   - las partidas de SC-005; los seis modelos de SC-008;
   - una con centinelas en todos los campos de texto *(SC-011)*;
   - un `context.append_message` con `"type":"usage.record"` **dentro** de un texto, una `forked` y un `subagent.completed` *(12)*.
 
   md5 al registro.
-- [ ] **T012** [P] **Rojos (4) a (13)**: cada uno afirma **sólo su campo**; las 7 hojas de (4), el valor exacto del contrato. (13) cae porque el stub no emite
+- [x] **T012** [P] **Rojos (4) a (13)**: cada uno afirma **sólo su campo**; las 7 hojas de (4), el valor exacto del contrato. (13) cae porque el stub no emite
   *(rojo antes del verde)*. **Nace verde** con el stub, y se declara así, **(12)** *(lo valida m22)*.
-- [ ] **T013** **Verde**: plan §1. Reutiliza `dominioEventID`, `bytesEventID` y `tipoRespuesta` *(`eventid.go:31`, `:43`; `codex_eventid.go:29`)*; la
+- [x] **T013** **Verde**: plan §1. Reutiliza `dominioEventID`, `bytesEventID` y `tipoRespuesta` *(`eventid.go:31`, `:43`; `codex_eventid.go:29`)*; la
   codificación, **replicada** de `copilot_eventid.go:33-52`. **No** llama a `internal/pricing`.
-- [ ] **T014** **(13)**, rojo en T012, pasa a verde con T013: el evento no contiene ningún centinela. Lo valida m23.
-- [ ] **T015** `[MUTACIÓN]` Censo y mutaciones **m9–m24**, con md5, con las co-caídas de plan §Bloques: m9 → (4) ×7; m11 → (4) ×6 *(no la hoja
+- [x] **T014** **(13)**, rojo en T012, pasa a verde con T013: el evento no contiene ningún centinela. Lo valida m23.
+- [x] **T015** `[MUTACIÓN]` Censo y mutaciones **m9–m24**, con md5, con las co-caídas de plan §Bloques: m9 → (4) ×7; m11 → (4) ×6 *(no la hoja
   `ab|c`, que también cambia: se declara al censar)*; m13 y m14 → (5); m24 → (10/compactacion).
-- [ ] **T016** **SC-022, informativo tras B2**: las 5 plataformas, D-012-P7 *(R-1)*. Si pasa de 102 400 B, se adelgaza antes de B3 *(PARA 7)*.
-- [ ] **T017** **Vigilancia de privacidad** sobre `lineas/` *(§Puertas)* → 0, transcrito.
+- [x] **T016** **SC-022, informativo tras B2**: las 5 plataformas, D-012-P7 *(R-1)*. Si pasa de 102 400 B, se adelgaza antes de B3 *(PARA 7)*.
+- [x] **T017** **Vigilancia de privacidad** sobre `lineas/` *(§Puertas)* → 0, transcrito.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 *(rojos 971 / 33 / 0 con su razón escrita antes, (12) nacido verde; verde 1004 / 0 / 0; SC-022 tras B2: Δ 0 en las 5, `__TEXT` darwin/amd64 1 004 B; m9–m24 = declarado, con m10–m12 → (4) ×7 y m9 sólo en el hash, declaradas en el censo)*.
 - [ ] **T018** ✋ Puertas y commit: `012 B2: un registro de Kimi Code es un evento sin coste`.
 
 ## B3 · Fichero, cabeza e índice *(FR-004, FR-005, FR-007 a FR-009, FR-014, FR-018, FR-020; SC-004, SC-006, SC-007, SC-009, SC-010, SC-014, SC-026)* — `kimi_fichero_test.go`

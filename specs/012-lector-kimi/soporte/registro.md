@@ -113,9 +113,77 @@ las banderas de `.goreleaser.yaml`; go1.22.2)*:
   **lint 0 issues** *(libre 1.01; 13:12:13 → :18, 5,2 s)*; gofmt vacío; frontera de FR-027 0 B; ningún `_test.go` de `e9e5449` modificado; `go.mod` sin `require`, sin `go.sum`;
   `os.Getenv` → **6**; `PRIV` → 0 en `git diff e9e5449`, 0 en los 14 ficheros de `testdata/kimi/` *(`generar.sh` incluido)* y 0 en los nuevos.
 
-## B2 · Una línea e identidad
+## B2 · Una línea e identidad *(`kimi_eventid.go`, `kimi.go`)*
 
-*(T010–T017)*
+- **T010** *(2026-10-15, sobre `fb69293`)*: stubs `derivarEventIDKimi(S, A, N)` → `""` y `RegistroKimi` → `(nil, NoEsRegistroKimi, {}, nil)`; los tipos `ContextoKimi`
+  *(S, A, N, `Heredado`, `Cwd`, `Decodificadas`)*, `ClaseKimi` *(no es registro · evento · heredado · a cero · incoherente)* y `MarcasKimi` *(compactación, sin modelo)*. Compila.
+- **T011**: `generar.sh` `812f7762…` gana `lineas/`, 22 ficheros: `evento`, `compactacion`, `sc005`, los seis de SC-008 *(`modelo_prefijo`, `_sin_barra`, `_varias`, `_inicial`,
+  `_acabada`, `_vacio_o_no_textual` con dos líneas)*, las siete `incoherente_*`, `a_cero`, `ms` *(time 1)*, `centinelas` y tres que no son registro *(`falso_texto`, `forked`,
+  `subagent_completed`)*. `raiz/` no cambia al regenerar.
+- **T012 · Rojos, la razón escrita ANTES de correrlos**: con los stubs, se espera **971 / 33 / 0**:
+  - (4) ×7 hojas y el padre: `derivarEventIDKimi(…) = ""; se esperaba <vector del contrato>`;
+  - (5), (8), (11), (13), y (10) ×4 hojas con su padre: el stub no da evento *(«se esperaba un evento» / «se esperaba “a cero”»)*;
+  - (6) ×6 hojas y el padre: el stub no da evento;
+  - (7) ×7 hojas y el padre: clase 0 *(no es registro)*; se esperaba incoherente;
+  - (9): clase 0; se esperaba «heredado»;
+  - **nace verde (12)** ×3 hojas y su padre *(el stub no decodifica nada; lo valida m22)*: 967 + 4 = 971 PASS.
+- **T012 · Rojos, corridos** *(libre 1.37, «inicio» tras esperar desde 13:19:25; 13:20:01 → :09, 7,8 s; 1.34 → 2.09)*: **971 / 33 / 0**, rc 1. **Caen exactamente los 33
+  declarados, con su razón** *(los 7 vectores con `= ""`; los demás con «clase 0» o «se esperaba un evento»)*, y (12) nace verde con sus 4 PASS.
+- **T013 · Verde**: `kimi_eventid.go` `4f48b961…` *(la codificación de `copilot_eventid.go:33-52`, replicada, con `dominioEventID`, `bytesEventID` y `tipoRespuesta`)*
+  y `kimi.go` `7d4a5e65…` *(prefiltro anclado → heredado → incoherente → a cero → evento; partidas tal cual; P-9 con `LastIndexByte`; `time.UnixMilli(·).UTC()`)*. No
+  llama a `internal/pricing`. **Suite** *(libre 1.75; 13:32:51 → :33:04, 12,9 s; 1.69 → 4.99)*: **1004 / 0 / 0**, rc 0 *(971 + 33)*.
+- **T014**: (13), rojo en T012, pasa a verde con T013.
+- **T016 · SC-022, informativo tras B2** *(los ficheros del árbol, versionados y nuevos, copiados sin `.git` a un temporal: el equivalente a un `git archive`, sin sellado VCS;
+  0.9.0; las banderas de `.goreleaser.yaml`)*: **Δ = 0 en las 5 plataformas** *(5 681 304 · 5 439 640 · 5 840 208 · 5 605 090 · 5 874 688)*; arm64, Σ `LOAD` 5 362 876 *(Δ 0)*;
+  **holgura de `__TEXT` en darwin/amd64: 1 004 B, sin cambio** *(arm64: 16 102)*. El lector aún no está enlazado: `main` no lo llama hasta B4.
+- **T017 · Vigilancia de privacidad** sobre `lineas/` *(22 ficheros)* y `generar.sh`: **`PRIV` → 0**.
+- **T015 · Censo de m9–m24, declarado ANTES de mutar** *(md5 de partida: `kimi_eventid.go` `4f48b961…`, `kimi.go` `7d4a5e65…`; **las 16 compilan**, comprobado aplicando,
+  `go vet` y revirtiendo, con el md5 restaurado)*. Ajustes al plan: **m9** cambia sólo el componente del hash *(no la constante: `tool` no cae)*; **m10, m11 y m12** tiran
+  las **7** hojas de (4) *(cualquiera cambia los 7 valores)*; m22 tira las 3 hojas de (12).
+
+  | Mut. | Fichero | Cambio | Debe caer *(hojas; + el padre)* | FAIL |
+  |---|---|---|---|---:|
+  | m9 | `kimi_eventid.go` | `herramientaKimi` → `"codex"` en los componentes | (4) ×7 | 8 |
+  | m10 | `kimi_eventid.go` | sin el prefijo de longitud *(borrada la línea `h.Write(longitud[:])`)* | (4) ×7 | 8 |
+  | m11 | `kimi_eventid.go` | S y A cambiados de orden | (4) ×7 | 8 |
+  | m12 | `kimi_eventid.go` | N con un `0` delante | (4) ×7 | 8 |
+  | m13 | `kimi.go` | `TokensInput` = `otra + lectura` | (5) | 1 |
+  | m14 | `kimi.go` | lectura ↔ escritura | (5) | 1 |
+  | m15 | `kimi.go` | `IndexByte` *(la primera `/`)* | (6/varias) | 2 |
+  | m16 | `kimi.go` | vacío tras la barra → el alias entero | (6/acabada) | 2 |
+  | m17 | `kimi.go` | `< -1`: la negativa −1 aceptada | (7/negativa) | 2 |
+  | m18 | `kimi.go` | `false &&` en «a cero» | (8) | 1 |
+  | m19 | `kimi.go` | `false &&` en «heredado» | (9) | 1 |
+  | m20 | `kimi.go` | `CostAvailable: true` | (10/coste) | 2 |
+  | m21 | `kimi.go` | sin `.UTC()` | (11) | 1 |
+  | m22 | `kimi.go` | `false &&` en el prefiltro | (12) ×3 | 4 |
+  | m23 | `kimi.go` | `SessionRef: ctx.S` | (13) | 1 |
+  | m24 | `kimi.go` | `false &&` en la marca de compactación | (10/compactacion) | 2 |
+- **T015 · Mutaciones, corridas** *(cada suite tras `libre.sh` solo con `libre=0`, carga de inicio 1.08–1.99; 6,9–8,6 s cada una; edición inversa y md5 comprobados)*:
+  **16 de 16 = declarado**, sin incidencias.
+
+  | Mut. | md5 puesta | Hora | Cayó *(PASS / FAIL)* | → restaurado |
+  |---|---|---|---|---|
+  | m9 | `865a000f` | 13:38:20 | 996 / 8: (4) ×7 y el padre | `4f48b961` ✓ |
+  | m10 | `1c899ca7` | 13:42:11 | 996 / 8: (4) ×7 y el padre | `4f48b961` ✓ |
+  | m11 | `1d67d3e2` | 13:42:50 | 996 / 8: (4) ×7 y el padre | `4f48b961` ✓ |
+  | m12 | `2cc24313` | 13:43:31 | 996 / 8: (4) ×7 y el padre | `4f48b961` ✓ |
+  | m13 | `780b5d7f` | 13:44:11 | 1003 / 1: (5) | `7d4a5e65` ✓ |
+  | m14 | `9f4799f8` | 13:44:51 | 1003 / 1: (5) | `7d4a5e65` ✓ |
+  | m15 | `d8f93a20` | 13:45:31 | 1002 / 2: (6/varias) y el padre | `7d4a5e65` ✓ |
+  | m16 | `b6dcc5d9` | 13:46:11 | 1002 / 2: (6/acabada) y el padre | `7d4a5e65` ✓ |
+  | m17 | `426417f7` | 13:46:51 | 1002 / 2: (7/negativa) y el padre | `7d4a5e65` ✓ |
+  | m18 | `165a4993` | 13:47:30 | 1003 / 1: (8) | `7d4a5e65` ✓ |
+  | m19 | `9e1c0537` | 13:48:10 | 1003 / 1: (9) | `7d4a5e65` ✓ |
+  | m20 | `eee0e582` | 13:49:00 | 1002 / 2: (10/coste) y el padre | `7d4a5e65` ✓ |
+  | m21 | `d93d79b4` | 13:49:40 | 1003 / 1: (11) | `7d4a5e65` ✓ |
+  | m22 | `12646cdb` | 13:50:20 | 1000 / 4: (12) ×3 y el padre | `7d4a5e65` ✓ |
+  | m23 | `ab77d034` | 13:51:00 | 1003 / 1: (13) | `7d4a5e65` ✓ |
+  | m24 | `dd5e404c` | 13:51:42 | 1002 / 2: (10/compactacion) y el padre | `7d4a5e65` ✓ |
+- **T018 · Corte** *(antes del commit del dueño)*: **suite** *(libre 1.52; 13:52:35 → :41, 6,8 s)* **1004 / 0 / 0**, rc 0; **vet** limpio y **lint 0 issues** *(libre 1.29;
+  13:53:11 → :16, 4,5 s)*; gofmt vacío; frontera de FR-027 0 B; ningún `_test.go` de `e9e5449` modificado; sin `require` ni `go.sum`; `os.Getenv` → 6; **ningún fichero de
+  `testdata/kimi/` ignorado por git** *(`git ls-files --others --ignored --exclude-standard` → vacío)*; los `kimi*.go` no importan `internal/pricing`; `PRIV` → 0 en el diff,
+  en los 36 ficheros de `testdata/kimi/` y en los nuevos.
 
 ## B3 · Fichero, cabeza e índice
 

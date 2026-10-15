@@ -1,0 +1,1 @@
+{"type":"usage.record","agentId":"CENTINELA-agentId","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":11,"output":22,"inputCacheRead":33,"inputCacheCreation":0},"usageScope":"CENTINELA-usageScope","time":1000,"raw":{"CENTINELA-raw":"CENTINELA-texto"}}
