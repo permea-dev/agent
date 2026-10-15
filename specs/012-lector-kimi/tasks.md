@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 249 |
-| `tasks.md` *(este)* | **350** | 287 |
+| `tasks.md` *(este)* | **350** | 290 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 169 |
+| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 205 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -211,16 +211,19 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre; si uno falla, se para y se rehace desde C1)*
 
-- [ ] **T042** **C1** · Puertas, con 0 SKIP en Linux: **SC-022** en las 5 plataformas; **SC-023** y **SC-016**; **SC-020** *(`PRIV` sobre `git diff e9e5449` y,
+- [x] **T042** **C1** · Puertas, con 0 SKIP en Linux: **SC-022** en las 5 plataformas; **SC-023** y **SC-016**; **SC-020** *(`PRIV` sobre `git diff e9e5449` y,
   con `grep -raE`, sobre los testdata)*; compilan Windows y darwin; `PENDIENTE` → 1. **Los 953 de la 0.8.0, por nombre**, en PASS.
-- [ ] **T043** **C2** · Medidas sobre **las copias A y B**, en sólo lectura y con sus sha256 antes y después *(PARA 9)*. `--run` con `KIMI_CODE_HOME` = **una copia
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(1074 / 0 / 0; 953 de 953 por nombre; lint 0; frontera 0; SC-022 +33 792 como mucho, el 33,0 %; `PRIV` 0)*.
+- [x] **T043** **C2** · Medidas sobre **las copias A y B**, en sólo lectura y con sus sha256 antes y después *(PARA 9)*. `--run` con `KIMI_CODE_HOME` = **una copia
   de la copia** en un `mktemp -d`, en sandbox, sin enrolar ni `endpoint`:
   - **SC-001** sobre B: 12 eventos, 33 831 · 186 112 · 0 · 3 170, el resumen literal, 4 `session_ref` y 1 `project_ref`;
   - **SC-002**: A y luego B sobre el mismo estado: 11 y 1, y 0 aperturas de lo que no cambió;
   - **SC-003**: Σ × la tarifa = 0,08018073 $; **SC-004**: el fichero de S6, 0 eventos; **SC-024**: `--scan` del fork y de `agent-0`.
 
   Contraste independiente: un guion `python3 -I` fuera del repo cuenta registros, heredados y partidas. Una diferencia → **PARA**.
-- [ ] **T044** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows, y `strings` con los textos *(SC-017)*. `dist/` borrado.
+  > Transcripción: §Cierre *(las tres copias, sha256 iguales; SC-001, -002, -003, -004, -024 y -026 = spec; C, 19 eventos de 4 modelos = m3 M5; agente = contador)*.
+- [x] **T044** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows, y `strings` con los textos *(SC-017)*. `dist/` borrado.
+  > Transcripción: §Cierre *(`0.8.0-SNAPSHOT-8809c58`; zip `b3bea208…`; los 2 textos, 1 vez cada uno; material de W1 en `C:\permea-prueba-kimi\w1\`)*.
 - [ ] **T045** ✋ **C4 · W1** *(plan D-012-W)*: en Windows, en sandbox y sin enrolar. Kimi cerrado *(SC-013)*, y luego abierto con `--daemon`: dos prompts, un
   subagente, un `/compact`, un `/fork` con un prompt en el fork y una petición matada. **SC-025**: el cuadre petición a petición contra «Request Details»; cada
   fila sin evento, declarada como matada con su hora. Observar Q-3 *(¿avisa Kimi al reescribir con el agente leyendo?)*.

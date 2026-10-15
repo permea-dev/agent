@@ -166,4 +166,40 @@ línea de órdenes el nombre de una suite** *(011 registro §B0, incidencia)*.
 
 ## Cierre
 
-*(T042–T051)*
+*(sobre `8809c58`, «012 B6»; cada suite tras `libre.sh` solo)*
+- **T042 · C1, puertas**:
+  - **Suite** *(libre 1.03; 20:59:59 → 21:00:07)*: **1074 / 0 / 0**, rc 0, 0 SKIP.
+  - **Los 953 de la 0.8.0, por nombre**: la suite de `git archive e9e5449` *(libre 1.87; 953 / 0 / 0)* frente a la de HEAD → **953 de 953 en PASS**, ninguno
+    falta; 121 nuevos.
+  - gofmt vacío · vet limpio · **lint 0** *(libre 1.25)*.
+  - **SC-016**: frontera 0 B; `_test.go` de `e9e5449`: 0 modificados, 6 añadidos, 0 borrados. **SC-023**: sin `require` ni `go.sum`; `go list -m all` → 1.
+  - `os.Getenv` → 6 · `PENDIENTE` → 1 · compilan windows/amd64, darwin/amd64, darwin/arm64 y linux/arm64.
+  - **SC-020**: `PRIV` → 0 en `git diff e9e5449` y, con `grep -raE`, en los 58 ficheros de `testdata/kimi/`; ninguno ignorado. Fuera de 012, las 8 líneas de 011
+    C1, en 4 ficheros sin cambios desde `e9e5449` *(una ruta de hogar en 3; ids sintéticos `msg_` en 7)*.
+  - **SC-022, normativo** *(`git archive e9e5449` con 0.8.0 frente a `git archive HEAD` con 0.9.0, banderas de `.goreleaser.yaml`)*: linux/amd64 **+28 672**;
+    linux/arm64 fichero 0 y Σ `LOAD` **+29 328**; darwin/amd64 **+33 200** *(holgura de `__TEXT` 4 047)*; darwin/arm64 **+16 960** *(14 040)*; windows/amd64
+    **+33 792**. **Las 5 ≤ 102 400**; la mayor, el **33,0 %**.
+- **T043 · C2, medidas** *(el binario linux/amd64 de HEAD, `unshare -rn`, sin enrolar ni `endpoint`, `HOME` y `XDG_CONFIG_HOME` en un `mktemp -d`, las otras
+  cinco raíces vacías; `KIMI_CODE_HOME` = una copia de trabajo; las tres congeladas, sha256 antes y después **iguales**: 23, 27 y 31 ficheros)*:
+  - **Contraste**: un contador `python3 -I` que decodifica cada línea completa *(sin el prefiltro)*. Agente = contador en recuentos, partidas y la huella de
+    las tuplas *(hora, modelo, partidas)*, en las tres.
+  - **SC-001** *(B)*: **12** eventos, todos `kimi-k2.7-code`; **33 831 · 186 112 · 0 · 3 170**; el resumen **= spec, byte a byte**; 4 `session_ref`, 1 `project_ref`;
+    0 con coste; la copia de trabajo, igual en contenido, tamaños y fechas.
+  - **SC-024** *(`--scan`)*: el fork, 1 evento y «heredados 2»; `agent-0`, 3 eventos *(15 798 · 30 976 · 0 · 268)*. **SC-004**: S6, `registros 0`. `--scan` no crea
+    nada en su sandbox.
+  - **SC-002**: A → **11**; aplicada B encima *(sólo lo cambiado; ningún `wire.jsonl` de A cambia y uno es nuevo)* → **1**, «heredados 2», 1 `event_id` nuevo.
+    **Ningún fichero que no cambió se lee**: por `atime` *(ext4 `relatime`, `atime` puesto a 2000; el control lo valida)*, 0 de 5; el nuevo, 1 de 1.
+  - **SC-003**: Σ evento a evento × la fila `kimi-k2.7-code` de `6e7cedd` *(0,95 · 0,19 · 0,95 · 4,00)* = **0,08018073 $**, con `Decimal`, fuera del agente.
+  - **C, informativa** *(sin SC)*: **19** eventos *(12 + 7)*: `kimi-k2.7-code` 12, `-highspeed` 2, `kimi-k2.6` 3 y `kimi-k3` 2; Σ por modelo **= m3 M5**; 5 `session_ref`.
+  - **SC-026** *(copias de B; el `main` de 4 registros)*: (i) un espacio tras la 1.ª `{` *(+1 B)*, (ii) cortado antes del último registro, (iii) sin `cabeza` en
+    `state.json` *(y `mtime` +1 h, para que se abra)*. En los tres: se relee desde 0 *(4, 3 y 4 líneas a la cola)* con **0 `event_id` nuevos**, y por `atime` sólo
+    se lee ese fichero, 0 de los otros 5.
+  - **Incidencia de método** *(sin efecto)*: un control repetido con `KIMI_CODE_HOME` **relativa** sobre un estado hecho con la absoluta reencoló 12, con los
+    mismos `event_id` *(la ruta es la clave de `state.json`)*. Con la misma grafía, 0.
+- **T044 · C3, snapshot**: `goreleaser release --snapshot --clean` → rc 0, `0.8.0-SNAPSHOT-8809c58`. Zip de Windows sha256 `b3bea208…` *(= `checksums.txt`)*;
+  `permea.exe` 5 908 992 B, sha256 `00f46f47…`, igual dentro y fuera del zip *(512 B más que la medida de SC-022, por la versión más larga)*. **SC-017**: los
+  dos textos de spec §Textos, sacados por programa, **1 vez cada uno** en `permea.exe`, también con `strings -e S`. `dist/` borrado; `go mod tidy`, sin cambios.
+- **Material de W1** *(para T045 ✋)*, en `C:\permea-prueba-kimi\w1\`: `permea-w1.exe` *(el de C3)*, `contador-w1.exe` y `.go` *(Go, biblioteca estándar,
+  módulo propio; validado contra C2: 11, 12 y 19, con su md5 de tuplas = el de un cálculo aparte)*, `w1.ps1`, `cuadre.py`, `LEEME-W1.md` y `SHA256SUMS`.
+  **Probado de punta a punta** en PowerShell 7 y en la 5.1, con una raíz sintética y su actividad simulada: **W1: TODO IGUAL** en los dos *(39 IGUAL; 3 eventos y
+  6 nuevos, con subagente, compactación, fork y heredados; 0 nombres ajenos)*; `cuadre.py`, 6 emparejados y 1 «matada» declarada. Carpeta de prueba borrada.
