@@ -52,9 +52,66 @@ las banderas de `.goreleaser.yaml`; go1.22.2)*:
 
 **Sin mutaciones en B0.**
 
-## B1 · Raíz y ficheros
+**Nota del dueño** *(15-10)*: el asunto de `8604637` salió sin «012 spec ratificada:» por un fallo del bloque de commit del orquestador *(la barra de continuación antes del heredoc)*; el contenido es el correcto, y no se reescribe la historia.
 
-*(T003–T008)*
+## B1 · Raíz y ficheros *(`internal/config/kimi.go`, `ListarKimi`, `internal/testutil/sandbox.go`)*
+
+- **T003** *(2026-10-15, sobre `6eece4c`)*: stubs `config.KimiHome` → `("", nil)` e `ingest.ListarKimi` → `(nil, nil)`, en `kimi.go` y `kimi_contexto.go`; compila, vet limpio.
+- **T004**: `internal/ingest/testdata/kimi/generar.sh` `24c285f4…` *(`python3 -I`)* → `raiz/`, 13 ficheros: `sessions/wd_proyecto-a_000000000001/`
+  con `session_sintetica-0001/agents/{main,agent-0}/wire.jsonl`, `main/wire.jsonl.bak`, `main/wire.jsonl.tmp.1.ab`, `main/sub/wire.jsonl` *(hondo)* y
+  `agents/.oculto/wire.jsonl`; `session_sintetica-0002/agents/main/wire.jsonl`; `session_sintetica-0003/logs/texto-1.log` *(sin `agents/`)*; `.oculta/agents/main/wire.jsonl`;
+  `sessions/.index-cache/scan.json`, `sessions/.index-dirty/session_sintetica-0002.1` *(0 B)*, `sessions/.oculta/session_sintetica-0009/agents/main/wire.jsonl`; y
+  `imported/imp-0001/agents/main/wire.jsonl`. md5 *(en ese orden de `find | sort`)*: `46db5cf4 21063e74 d41d8cd9 3a71dfff 3d0851ec 07e716f4 94e26bd4 0c9130d7 ×4 23d4a375
+  e2ec519e`. **Ningún `state.json`** *(`.gitignore`)*. Ningún test abre `testdata/` en su sitio.
+- **T005 · Rojos, la razón escrita ANTES de correrlos**: con los stubs, se espera **953 / 14 / 0**:
+  - (1) `TestKimiHome_Ubicacion/{definida,vacia,ausente,inexistente}`: `KimiHome() = ("", <nil>); se esperaba (<ruta>, nil)`, porque el stub no resuelve;
+  - (2) `TestSandbox_VaciaKimiCodeHome`: `KIMI_CODE_HOME = <tmp> (definida: true)`, porque `Sandbox` aún no la vacía;
+  - (3) `TestListarKimi/{forma,sin_punto,sin_bak_tmp,sin_imported,hondo,vacia,orden}`: «ListarKimi no devolvió nada», porque el stub no lista;
+  - y los 2 padres.
+- **T005 · Rojos, corridos** *(libre 1.31, «inicio» 12:33:45 tras esperar desde 12:28:26; 12:33:55 → :34:04, 9,0 s; 1.27 → 2.04)*: **953 / 14 / 0**, rc 1.
+  **Caen exactamente los 14 declarados, con su razón**: (1) ×4 `KimiHome() = ("", <nil>)`; (2) `KIMI_CODE_HOME = "<tmp>" (definida: true)`; (3) ×7
+  «ListarKimi no devolvió nada»; y los 2 padres.
+- **T006 · Verde**: `internal/config/kimi.go` `1b57111b…` *(P-1)*; `internal/ingest/kimi_contexto.go` `5803a7cc…` *(`ListarKimi`, `subcarpetasKimi`,
+  `visiblesKimi`)*; `sandbox.go` `4a10ca7c…` *(una línea tras `COPILOT_HOME`, con su comentario)*; y los comentarios de `codex.go:16`, `gemini.go:17`, `opencode.go:18`
+  y `copilot.go:16`, «una de las SEIS» / «dos de las SEIS». gofmt vacío, vet limpio. **Suite** *(libre 1.36, «inicio» 12:42:05; 12:42:15 → :28, 13,3 s; 1.41 → 6.30)*:
+  **967 / 0 / 0**, rc 0, 10 paquetes `ok` *(953 + 14)*.
+- **T007**: `sandbox_test.go` sin tocar y en verde *(`TestSandbox_AislaLasTresVariables`, `…DistingueSegmentos`, `TestSandboxConSemillas_…`, en PASS en esa suite)*.
+  **`os.Getenv` de producción → 6** *(`codex.go:19`, `gemini.go:20`, `opencode.go:21`, `:25`, `copilot.go:19`, `kimi.go:19`)*.
+- **T008 · Censo de m1–m8, declarado ANTES de mutar** *(md5 de partida: `kimi.go` `1b57111b…`, `kimi_contexto.go` `5803a7cc…`, `sandbox.go` `4a10ca7c…`)*.
+  Ajustes al plan, razonados sobre `raiz/`: **m2** cae también en (1/vacia) *(espera `.kimi-code`)*; **m5**, **m6**, **m7** y **m8** tiran también (3/forma), porque
+  cambian la lista; (3/orden) **no** cae en ninguna *(los añadidos quedan en orden léxico; con m7, la lista tiene un solo elemento)*.
+
+  | Mut. | Fichero | Cambio | Debe caer *(hojas; + el padre)* | FAIL |
+  |---|---|---|---|---:|
+  | m1 | `kimi.go` | `os.Getenv` → `os.LookupEnv`, vacía como definida | (1/vacia) | 2 |
+  | m2 | `kimi.go` | sin `.kimi-code`: devuelve el hogar | (1/vacia), (1/ausente), (1/inexistente) | 4 |
+  | m3 | `kimi.go` | la variable se ignora *(`propia := ""`)* | (1/definida) | 2 |
+  | m4 | `sandbox.go` | sin `t.Setenv("KIMI_CODE_HOME", "")` | (2) | 1 |
+  | m5 | `kimi_contexto.go` | `visiblesKimi` sin el filtro de `.` | (3/forma), (3/sin_punto) | 3 |
+  | m6 | `kimi_contexto.go` | `f.Name() == "wire.jsonl"` → `strings.HasPrefix(f.Name(), "wire.jsonl")` | (3/forma), (3/sin_bak_tmp) | 3 |
+  | m7 | `kimi_contexto.go` | `sesiones := raiz` | (3/forma), (3/sin_imported) | 3 |
+  | m8 | `kimi_contexto.go` | recursivo: `filepath.WalkDir` en cada agente | (3/forma), (3/hondo) | 3 |
+- **T008 · Mutaciones, corridas** *(cada suite, tras `libre.sh` solo con `libre=0`; edición inversa y md5 comprobados tras cada una)*: **8 de 8 = declarado.**
+
+  | Mut. | md5 puesta | Suite *(libre · hora · duración)* | Cayó | → restaurado |
+  |---|---|---|---|---|
+  | m1 | `kimi.go` `c013f8fb` | 1.62 · 12:47:28 · 7,6 s | 965 / **2**: (1/vacia) y el padre | `1b57111b` ✓ |
+  | m2 | `kimi.go` `146aa961` | 1.60 · 12:52:47 · 9,4 s | 963 / **4**: (1/vacia), (1/ausente), (1/inexistente) y el padre | `1b57111b` ✓ |
+  | m3 | `kimi.go` `76256114` | 1.29 · 12:57:01 · 7,5 s | 965 / **2**: (1/definida) y el padre | `1b57111b` ✓ |
+  | m4 | `sandbox.go` `e21d96a5` | 0.94 · 12:59:41 · 7,5 s | 966 / **1**: (2) | `4a10ca7c` ✓ *(a mano; incidencia 1)* |
+  | m5 | `kimi_contexto.go` `4fbf782a` | 0.79 · 13:00:37 · 7,1 s | 964 / **3**: (3/forma), (3/sin_punto) y el padre | `5803a7cc` ✓ |
+  | m6 | `kimi_contexto.go` `3456739c` | 1.50 · 13:01:45 · 7,1 s | 964 / **3**: (3/forma), (3/sin_bak_tmp) y el padre | `5803a7cc` ✓ |
+  | m7 | `kimi_contexto.go` `940149cf` | 1.67 · 13:05:34 · 7,7 s | 964 / **3**: (3/forma), (3/sin_imported) y el padre | `5803a7cc` ✓ |
+  | m8 | `kimi_contexto.go` `32d82ae3` | 0.57 · 13:08:14 · 9,1 s | 964 / **3**: (3/forma), (3/hondo) y el padre | `5803a7cc` ✓ |
+
+  **Incidencias** *(ninguna cambia un resultado)*:
+  1. **m4**: el guion de mutaciones no sabía invertir un **borrado** *(buscaba la cadena vacía)* y abortó tras una suite ya correcta. La línea se repuso a mano, tras
+     su comentario, y el md5 volvió a `4a10ca7c`; el guion se corrigió antes de m5.
+  2. **m5**: quitar la llamada a `strings.HasPrefix` dejaba `strings` sin usar y **no compilaba** *(md5 `61eb9c78`, sin suite: no cuenta)*. Se revirtió y se reformuló
+     con el mismo efecto, `!strings.HasPrefix(e.Name(), "\x00")` *(ningún nombre lo cumple)*: es la que se corrió.
+- **T009 · Corte** *(antes del commit del dueño)*: **suite** *(libre 1.53, «inicio» tras 13:11; 13:11:35 → :43, 8,4 s; 1.49 → 1.33)* **967 / 0 / 0**, rc 0; **vet** limpio y
+  **lint 0 issues** *(libre 1.01; 13:12:13 → :18, 5,2 s)*; gofmt vacío; frontera de FR-027 0 B; ningún `_test.go` de `e9e5449` modificado; `go.mod` sin `require`, sin `go.sum`;
+  `os.Getenv` → **6**; `PRIV` → 0 en `git diff e9e5449`, 0 en los 14 ficheros de `testdata/kimi/` *(`generar.sh` incluido)* y 0 en los nuevos.
 
 ## B2 · Una línea e identidad
 

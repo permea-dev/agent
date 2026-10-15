@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 248 |
-| `tasks.md` *(este)* | **350** | 279 |
+| `tasks.md` *(este)* | **350** | 280 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001)* | **300** | 81 |
+| `soporte/registro.md` *(nace en T001)* | **300** | 138 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -109,15 +109,16 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
 
 ## B1 · Raíz y ficheros *(FR-001 a FR-003; SC-012; M-3, M-5)* — nacen `internal/config/kimi_test.go`, `sandbox_kimi_test.go` y el listado en `kimi_fichero_test.go`
 
-- [ ] **T003** Fase 0: `config.KimiHome()`, que devuelve `"", nil`, e `ingest.ListarKimi`, que devuelve `nil, nil`.
-- [ ] **T004** Testdata: **nace** `internal/ingest/testdata/kimi/generar.sh` *(plan §6; `bash` + `python3 -I`)* con `raiz/`: dos sesiones en una `wd_*`, un
+- [x] **T003** Fase 0: `config.KimiHome()`, que devuelve `"", nil`, e `ingest.ListarKimi`, que devuelve `nil, nil`.
+- [x] **T004** Testdata: **nace** `internal/ingest/testdata/kimi/generar.sh` *(plan §6; `bash` + `python3 -I`)* con `raiz/`: dos sesiones en una `wd_*`, un
   `agents/agent-0/`, `sessions/.index-cache/` y `.index-dirty/`, un `wire.jsonl.bak` y un `wire.jsonl.tmp.1.ab`, `raiz/imported/<id>/agents/main/wire.jsonl`, un
   `wire.jsonl` un nivel más hondo y una sesión sin `agents/`. md5 al registro.
-- [ ] **T005** [P] **Rojos (1) a (3)**, con `t.Setenv`.
-- [ ] **T006** **Verde**: P-1 en `internal/config/kimi.go`; `ListarKimi` de plan §2; tras `sandbox.go:70`, `t.Setenv("KIMI_CODE_HOME", "")`; los comentarios de
+- [x] **T005** [P] **Rojos (1) a (3)**, con `t.Setenv`.
+- [x] **T006** **Verde**: P-1 en `internal/config/kimi.go`; `ListarKimi` de plan §2; tras `sandbox.go:70`, `t.Setenv("KIMI_CODE_HOME", "")`; los comentarios de
   `codex.go:16`, `gemini.go:17`, `opencode.go:18` y `copilot.go:16`, «una de las SEIS».
-- [ ] **T007** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde, y que `os.Getenv` de producción → **6**.
-- [ ] **T008** `[MUTACIÓN]` Censo y mutaciones **m1–m8**, con md5.
+- [x] **T007** Comprobar y transcribir, sin tocarlo, que `sandbox_test.go` sigue verde, y que `os.Getenv` de producción → **6**.
+- [x] **T008** `[MUTACIÓN]` Censo y mutaciones **m1–m8**, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 *(rojos 953 / 14 / 0 con su razón escrita antes; verde 967 / 0 / 0; `os.Getenv` → 6; m1–m8 = declarado, con m2 → también (1/vacia) y (3/forma) en m5–m8 declaradas en el censo; m4 restaurada a mano y m5 reformulada para compilar)*.
 - [ ] **T009** ✋ Puertas y commit: `012 B1: raiz de Kimi Code con KIMI_CODE_HOME`.
 
 ## B2 · Una línea e identidad *(FR-010 a FR-017, FR-020; SC-005, SC-007, SC-008, SC-011, SC-021)* — nacen `kimi_eventid_test.go` y `kimi_registro_test.go`
