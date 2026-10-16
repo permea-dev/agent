@@ -226,3 +226,31 @@ línea de órdenes el nombre de una suite** *(011 registro §B0, incidencia)*.
   - **Q-3**: el encargo no trae observación; sigue abierta. **Limpieza**: los `copia-*` y `sandbox-*` de W1, borrados por el dueño.
 - **T046 · C5**: `CHANGELOG.md` `## 0.9.0 — 2026-10-16`; `grep -c PENDIENTE` en `CHANGELOG.md` y `README.md` → **0 y 0**. El cuerpo del PR, en `tmp/pr-body.md`
   *(ignorado por git, `.gitignore:24`)*, con `PRIV` → 0.
+- **T047 · C6** *(✋ dueño, 2026-10-16)*: PR #9 fusionada con merge commit **`2304774`**. La rama `012-lector-kimi`, borrada en local y en remoto *(`ls-remote`:
+  sólo `main`)*. El árbol de `main` = el de la rama `b4e8bd4`: desde C1 *(`8809c58`)* sólo cambian `CHANGELOG.md` y dos ficheros de `specs/012`, ningún `.go`.
+  Así que el **1074 / 0 / 0** de C1 vale para `main`.
+- **T048 · C6b** *(✋ dueño, antes de C7)*: comprobada en producción el **2026-10-15 a las 18:12:06 UTC**. Producción servía `6e7cedd`, y
+  `CatalogoTarifas::cargar()->esUtilizable(…)` → **`true`** para `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`, `kimi-k2.6` y `kimi-k3`. Simulacro 0 / 0; el
+  coste efectivo de las dos orgs, idéntico antes y después del despliegue.
+- **T049 · C7** *(✋ dueño)*: etiqueta anotada **`v0.9.0`** sobre `2304774` *(`git cat-file`: `tag` → `2304774`)*. Workflow `release` en verde *(ejecución
+  38883493536)*; release sin borrador, con 6 assets.
+- **T050 · C8**, descarga anónima:
+  - `sha256sum -c` OK ×5; Scoop en 0.9.0, con el hash del zip de Windows `f35e27a3…eb84`; el cask en 0.9.0, con sus 4 hashes iguales a los publicados;
+  - el binario de Linux responde `0.9.0`; **SC-017**: los dos textos de spec §Textos, una vez cada uno, en él y en `permea.exe`; el README empaquetado trae
+    «### Kimi Code CLI».
+- **T051 · C9 · W2** *(✋ dueño, en la instalación real de Windows)*:
+  - Scoop 0.8.0 → 0.9.0, hash OK. `--run` con `KIMI_CODE_HOME` = la carpeta de prueba, **sólo en esa consola**: la instalación real no tiene sesiones de Kimi,
+    y el dueño decidió subir las de las muestras *(consumo real suyo, pagado con el bono)*.
+  - `kimi_code: registros 36 · eventos 27 · heredados 9 · repetidas 0 · a cero 0 · incoherentes 0 · compactaciones 2 · sin modelo 0` *(= W1, paso 2)*. **667**
+    eventos transmitidos y confirmados = 640 de Claude Code + **27 de Kimi Code**.
+  - **En la plataforma**, eventos `kimi_code`: 0 antes *(09:56:23Z)* y **27 después** *(09:57:58Z)*, de la 0.9.0, con 27 `event_id` distintos y 0 con coste
+    propio. Por modelo *(n · entrada · lectura · escritura · salida)*: `kimi-k2.7-code` 20 · 53 445 · 314 624 · 0 · 4 796; `-highspeed` 2 · 9 524 · 28 160 ·
+    0 · 167; `kimi-k2.6` 3 · 10 981 · 46 336 · 0 · 323; `kimi-k3` 2 · 20 660 · 20 480 · 0 · 257. Σ **94 610 · 409 600 · 0 · 5 543** = W1.
+  - **Evento a evento**, `MetricsQuery::total()` = la tarifa oficial × sus partidas, `ROUND(·, 6)`, **en los 27** *(el orquestador, aparte)*. TOTAL de la
+    plataforma **0.250986**, `parcial=false`, `reparado=true`; por modelo, k2.7-code 0.129737 · highspeed 0.030132 · k2.6 0.019138 · k3 0.071979. **Rehecho
+    aquí** con `Decimal` desde el CSV de W1 y las cuatro filas de `pricing.php` *(iguales en `6e7cedd`; sólo lectura)*: las mismas partidas por modelo, las
+    mismas cuatro cifras y el mismo total.
+  - Simulacro de avisos 0 / 0. **SC-025 cumple en W2**: son las 27 peticiones de W1, cuadradas allí con «Request Details». Las cuatro tarifas quedan probadas
+    con eventos reales.
+- **Q-3**: sin observación en W1; sigue abierta. Si el dueño dice otra cosa antes del commit, se añade.
+- **Pendiente del dueño**: borrar las copias `congelada-2026-10-15{,b,c}` y decidir sobre la clave `permea-medicion-kimi`.

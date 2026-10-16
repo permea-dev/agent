@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 249 |
-| `tasks.md` *(este)* | **350** | 293 |
+| `tasks.md` *(este)* | **350** | 298 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 228 |
+| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 256 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -231,13 +231,18 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   > matadas, cuadradas por el orquestador sobre capturas, sin exportación; Q-3 sin dato)*.
 - [x] **T046** **C5** · El cuerpo del PR, fuera del repo; la fecha de la 0.9.0 entra en la rama *(`PENDIENTE` → 0)*.
   > Transcripción: §Cierre *(`## 0.9.0 — 2026-10-16`; `PENDIENTE` → 0; `tmp/pr-body.md`, ignorado por git, `PRIV` 0)*.
-- [ ] **T047** ✋ **C6** · Fusión del PR con merge commit.
-- [ ] **T048** ✋ **C6b** · **La plataforma**: la fila `kimi-k2.7-code` *(0,95 · 0,19 · 4,00 USD por millón)* desplegada **en producción**, en su parche aparte, y
+- [x] **T047** ✋ **C6** · Fusión del PR con merge commit.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §Cierre *(PR #9, merge `2304774`; rama borrada en local y en remoto; ningún `.go` desde C1)*.
+- [x] **T048** ✋ **C6b** · **La plataforma**: la fila `kimi-k2.7-code` *(0,95 · 0,19 · 4,00 USD por millón)* desplegada **en producción**, en su parche aparte, y
   comprobada allí con `CatalogoTarifas::cargar()->esUtilizable("kimi-k2.7-code")` → **`true`**. Transcrita con la fecha. **Sin ella, PARA 15.**
-- [ ] **T049** ✋ **C7** · `git tag -a v0.9.0` y push; el workflow `release` en verde. **Sólo tras T048.**
-- [ ] **T050** **C8** · Los tres canales en `0.9.0`, `sha256sum -c`, y `strings` del binario publicado.
-- [ ] **T051** ✋ **C9 · W2**: `scoop update`, `--run` en la instalación real. **SC-025** otra vez contra «Request Details», y **evento a evento** el coste que
+  > Transcripción: §Cierre *(2026-10-15 18:12:06 UTC, `6e7cedd`; `true` para las cuatro filas de Kimi; simulacro 0 / 0)*.
+- [x] **T049** ✋ **C7** · `git tag -a v0.9.0` y push; el workflow `release` en verde. **Sólo tras T048.**
+  > Transcripción: §Cierre *(`v0.9.0` sobre `2304774`; `release` en verde, 38883493536; sin borrador, 6 assets)*.
+- [x] **T050** **C8** · Los tres canales en `0.9.0`, `sha256sum -c`, y `strings` del binario publicado.
+  > Transcripción: §Cierre *(`sha256sum -c` ×5; Scoop y cask en 0.9.0; los dos textos en Linux y `permea.exe`)*.
+- [x] **T051** ✋ **C9 · W2**: `scoop update`, `--run` en la instalación real. **SC-025** otra vez contra «Request Details», y **evento a evento** el coste que
   calcula la plataforma = la tarifa oficial × sus partidas.
+  > Transcripción: §Cierre *(27 = W1, al token y por modelo; los 27 costes = tarifa × partidas, `ROUND(·, 6)`; TOTAL 0.250986; **SC-025 cumple en W2**)*.
 
 ## Dependencias
 
