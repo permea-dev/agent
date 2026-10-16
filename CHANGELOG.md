@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.9.0 — PENDIENTE
+## 0.9.0 — 2026-10-16
 
 ### Nuevo
 - Lee también el consumo de Kimi Code CLI, de `~/.kimi-code` (o de `$KIMI_CODE_HOME`), si tiene `sessions/`: el `wire.jsonl` de

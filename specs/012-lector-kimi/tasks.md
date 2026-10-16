@@ -22,9 +22,9 @@
 |---|---:|---:|
 | `spec.md` | 340 | 326 |
 | `plan.md` | **250** | 249 |
-| `tasks.md` *(este)* | **350** | 290 |
+| `tasks.md` *(este)* | **350** | 293 |
 | `contracts/event-id-kimi.md` | **80** | 79 |
-| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 205 |
+| `soporte/registro.md` *(nace en T001; §B0–§B2 en `registro-archivo.md`, sin techo)* | **300** | 228 |
 | `soporte/descubrimiento.md` · `-muestra-1.md` · `-muestra-2.md` | 200 · 100 · 60 *(cerrados)* | 200 · 100 · 60 |
 
 | Bloque | Producción | Test | Fixtures | Registro |
@@ -224,10 +224,13 @@ Una mutación que no compila o que panica **no cuenta**. **Rojo antes de verde**
   > Transcripción: §Cierre *(las tres copias, sha256 iguales; SC-001, -002, -003, -004, -024 y -026 = spec; C, 19 eventos de 4 modelos = m3 M5; agente = contador)*.
 - [x] **T044** **C3** · `goreleaser release --snapshot --clean`, el SHA-256 del zip de Windows, y `strings` con los textos *(SC-017)*. `dist/` borrado.
   > Transcripción: §Cierre *(`0.8.0-SNAPSHOT-8809c58`; zip `b3bea208…`; los 2 textos, 1 vez cada uno; material de W1 en `C:\permea-prueba-kimi\w1\`)*.
-- [ ] **T045** ✋ **C4 · W1** *(plan D-012-W)*: en Windows, en sandbox y sin enrolar. Kimi cerrado *(SC-013)*, y luego abierto con `--daemon`: dos prompts, un
+- [x] **T045** ✋ **C4 · W1** *(plan D-012-W)*: en Windows, en sandbox y sin enrolar. Kimi cerrado *(SC-013)*, y luego abierto con `--daemon`: dos prompts, un
   subagente, un `/compact`, un `/fork` con un prompt en el fork y una petición matada. **SC-025**: el cuadre petición a petición contra «Request Details»; cada
   fila sin evento, declarada como matada con su hora. Observar Q-3 *(¿avisa Kimi al reescribir con el agente leyendo?)*.
-- [ ] **T046** **C5** · El cuerpo del PR, fuera del repo; la fecha de la 0.9.0 entra en la rama *(`PENDIENTE` → 0)*.
+  > Transcripción: §Cierre *(16-10, «W1: TODO IGUAL»; paso 1, 19 = 19 y SC-013 iguales; paso 2, +8 = +8 y 27 = 27; **SC-025 cumple**: 29 filas = 27 eventos + 2
+  > matadas, cuadradas por el orquestador sobre capturas, sin exportación; Q-3 sin dato)*.
+- [x] **T046** **C5** · El cuerpo del PR, fuera del repo; la fecha de la 0.9.0 entra en la rama *(`PENDIENTE` → 0)*.
+  > Transcripción: §Cierre *(`## 0.9.0 — 2026-10-16`; `PENDIENTE` → 0; `tmp/pr-body.md`, ignorado por git, `PRIV` 0)*.
 - [ ] **T047** ✋ **C6** · Fusión del PR con merge commit.
 - [ ] **T048** ✋ **C6b** · **La plataforma**: la fila `kimi-k2.7-code` *(0,95 · 0,19 · 4,00 USD por millón)* desplegada **en producción**, en su parche aparte, y
   comprobada allí con `CatalogoTarifas::cargar()->esUtilizable("kimi-k2.7-code")` → **`true`**. Transcrita con la fecha. **Sin ella, PARA 15.**

@@ -203,3 +203,26 @@ línea de órdenes el nombre de una suite** *(011 registro §B0, incidencia)*.
   módulo propio; validado contra C2: 11, 12 y 19, con su md5 de tuplas = el de un cálculo aparte)*, `w1.ps1`, `cuadre.py`, `LEEME-W1.md` y `SHA256SUMS`.
   **Probado de punta a punta** en PowerShell 7 y en la 5.1, con una raíz sintética y su actividad simulada: **W1: TODO IGUAL** en los dos *(39 IGUAL; 3 eventos y
   6 nuevos, con subagente, compactación, fork y heredados; 0 nombres ajenos)*; `cuadre.py`, 6 emparejados y 1 «matada» declarada. Carpeta de prueba borrada.
+- **T045 ✋ · C4, W1** *(el dueño, 16-10; `C:\permea-prueba-kimi\w1\w1-20261016-112445.log`, sólo cifras, leído desde WSL)*: los sha256 de `permea-w1.exe`
+  *(`00f46f47…`, el de C3)* y `contador-w1.exe` *(`5bbe69eb…`)*, iguales a `SHA256SUMS`. **«W1: TODO IGUAL»**.
+  - **Paso 1** *(Kimi cerrado, sobre una copia de `sessions\` y el índice: 67 entradas)*: el contador ve 7 `wire.jsonl` *(1 de subagente, 1 con `forked`)*, 21
+    registros y 2 heredados → **19 = 19** eventos y `event_id` distintos; **74 996 · 281 088 · 0 · 3 917**, iguales; md5 de las tuplas `516cee89…`, igual; 0 con
+    coste, 0 de otras herramientas, 0 avisos. **SC-013**: md5 y listado de la copia, iguales. El 2.º `--run` → **0**.
+  - **Paso 2** *(Kimi abierto, `--daemon` cada 60 s)*: el primer ciclo, 19 = 19. Tras un prompt corto, uno con subagente, `/compact`, `/fork` con un prompt y
+    `taskkill /F`: **+8 = +8**, con fichero de subagente, compactación, `forked` y heredados nuevos. El contador: 11 `wire.jsonl` *(3 de subagente, 3 con `forked`)*,
+    36 registros, **9 heredados** → **27 = 27**, cada `event_id` una vez; **94 610 · 409 600 · 0 · 5 543**; tuplas `174530a1…`, iguales; 0 líneas ilegibles.
+    **SC-013**: 0 nombres nuevos ajenos a Kimi *(28 nuevos; 75 → 103)*. **El `/fork` copió también el `wire.jsonl` del subagente**: de ahí los 9 heredados, y
+    ninguno se contó dos veces.
+  - **El CSV** `w1-eventos-20261016-112445.csv` *(27 filas, 8 nuevas; sin ids ni textos)*, sumado aparte con `python3 -I`: Σ `entrada` − Σ `cache` = 94 610,
+    Σ `cache` 409 600, Σ `salida` 5 543 → **= log**; por modelo, `kimi-k2.7-code` 20, `kimi-k2.6` 3, `-highspeed` 2, `kimi-k3` 2 → = log; 0 tuplas repetidas.
+  - **SC-025, cuadre con «Request Details»** *(lo hizo **el orquestador**, sobre las capturas del dueño: la consola no exportó)*: **29 filas = 27 eventos + 2
+    matadas** *(entrada · caché · salida)*:
+    - S6, 15-10 11:08:12: 18 786 · 18 176 · 157 *(la de D-6, spec §Límites)*;
+    - la de W1, 16-10 **11:37:13**: 19 980 · 19 712 · 240 *(tras el último evento, 11:35:12)*.
+
+    Las otras 27, una a una con el CSV *(entrada = `tokens_input` + `tokens_cache_read`)*; **ningún evento sin fila ni fila con dos eventos** → **SC-025 cumple en
+    W1**. **`cuadre.py` no se corrió**: su entrada es la exportación *(una fila por petición)*, y hacerla desde el CSV sería circular. Comprobado aparte: ninguna
+    de las dos matadas casa en partidas con un evento del CSV.
+  - **Q-3**: el encargo no trae observación; sigue abierta. **Limpieza**: los `copia-*` y `sandbox-*` de W1, borrados por el dueño.
+- **T046 · C5**: `CHANGELOG.md` `## 0.9.0 — 2026-10-16`; `grep -c PENDIENTE` en `CHANGELOG.md` y `README.md` → **0 y 0**. El cuerpo del PR, en `tmp/pr-body.md`
+  *(ignorado por git, `.gitignore:24`)*, con `PRIV` → 0.
