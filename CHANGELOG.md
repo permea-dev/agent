@@ -3,6 +3,37 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
+## 0.9.0 — 2026-10-16
+
+### Nuevo
+- Lee también el consumo de Kimi Code CLI, de `~/.kimi-code` (o de `$KIMI_CODE_HOME`), si tiene `sessions/`: el `wire.jsonl` de
+  cada agente, también de los subagentes, y `session_index.jsonl`; nunca `config.toml` ni `credentials/`. Cada petición terminada
+  y cada compactación es un evento con `tool = kimi_code`. La carpeta sólo se lee. (`specs/012-lector-kimi/spec.md`, D-1, D-2,
+  P-1, P-2, P-3, FR-006, FR-010)
+- Los eventos de Kimi Code CLI llevan sus tokens y su modelo, el alias sin su proveedor, sin coste: el coste lo calcula la
+  plataforma con su tarifa. Lo que un `/fork` copia de la sesión de origen no se cuenta otra vez. (`specs/012-lector-kimi/spec.md`,
+  D-3, D-4, D-5, P-9, FR-014, FR-017)
+- `--scan` acepta también un `wire.jsonl` de Kimi Code CLI, sin línea de control. (`specs/012-lector-kimi/spec.md`, P-12, FR-022)
+
+### Sin cambios
+- Claude Code, Codex, Gemini, OpenCode y Copilot CLI se leen exactamente como en la 0.8.0. Sin carpeta de Kimi Code CLI, la salida
+  no cambia. (`specs/012-lector-kimi/spec.md`, FR-023, FR-028, SC-015)
+
+### Requiere
+- La tarifa de la plataforma para `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`, `kimi-k2.6` y `kimi-k3`, desplegada el 2026-10-15
+  (`permea-platform` · `6e7cedd`). Otro modelo llega sin coste hasta que tenga su fila. (`specs/012-lector-kimi/spec.md`, D-5,
+  §Dependencias)
+
+### Limitaciones conocidas
+- Si se mata una sesión, la petición que estaba en curso no está en disco y no se cuenta, aunque Kimi la cobra. Tampoco se cuentan
+  los intentos fallidos o interrumpidos con Esc. (`specs/012-lector-kimi/spec.md`, D-6, §Límites declarados)
+- Si una pasada cae justo entre la copia de un `/fork` y su marca, lo copiado sale como propio: es cuestión de milisegundos.
+  (`specs/012-lector-kimi/spec.md`, §Límites declarados)
+- En Windows, la misma carpeta de trabajo escrita con otras mayúsculas da otro proyecto. (`specs/012-lector-kimi/spec.md`, P-6,
+  §Límites declarados)
+- Medido sólo con Kimi Code 2.2.0, en Windows y con clave de API de Kimi Platform. La membresía (OAuth) y los otros proveedores no
+  tienen muestra. (`specs/012-lector-kimi/spec.md`, §Límites declarados, Q-5)
+
 ## 0.8.0 — 2026-10-14
 
 ### Nuevo

@@ -13,8 +13,8 @@ import (
 // Devuelve la ruta AUNQUE NO EXISTA: si existe se comprueba en cada pasada (P-6, FR-002), porque el demonio vive días y
 // Copilot CLI puede instalarse después.
 //
-// ⚠️ Es una de las CINCO lecturas de entorno de producción, con `CODEX_HOME`, `GEMINI_CLI_HOME`, `XDG_DATA_HOME` y
-// `OPENCODE_DB` (P-011 M-5). Los tests la neutralizan en `internal/testutil.Sandbox` (M-3).
+// ⚠️ Es una de las SEIS lecturas de entorno de producción, con `CODEX_HOME`, `GEMINI_CLI_HOME`, `XDG_DATA_HOME`, `OPENCODE_DB`
+// y `KIMI_CODE_HOME` (P-011 M-5; P-012 M-5). Los tests la neutralizan en `internal/testutil.Sandbox` (M-3).
 func CopilotSessionsRoot() (string, error) {
 	if propia := os.Getenv("COPILOT_HOME"); propia != "" {
 		return filepath.Join(propia, "session-state"), nil

@@ -68,6 +68,8 @@ func Sandbox(t *testing.T) string {
 	t.Setenv("OPENCODE_DB", "")
 	// P-011 M-3: y con Copilot CLI. Vacía, la raíz cae en `<hogar temporal>/.copilot/session-state`, que no existe.
 	t.Setenv("COPILOT_HOME", "")
+	// P-012 M-3: y con Kimi Code. Vacía, la raíz cae en `<hogar temporal>/.kimi-code`, que no existe.
+	t.Setenv("KIMI_CODE_HOME", "")
 
 	base, err := os.UserConfigDir()
 	if err != nil {

@@ -13,8 +13,8 @@ import (
 // Devuelve la ruta AUNQUE NO EXISTA (P-008 E-2): si existe se comprueba en cada pasada, porque el demonio vive
 // días y Codex puede instalarse después (FR-002).
 //
-// ⚠️ Es una de las CINCO lecturas de entorno de producción, con `GEMINI_CLI_HOME`, `XDG_DATA_HOME`, `OPENCODE_DB` y
-// `COPILOT_HOME` (plan D-008-P7, D-009-P9; P-010 M-5; P-011 M-5). Los tests la neutralizan en `internal/testutil.Sandbox` (M-9).
+// ⚠️ Es una de las SEIS lecturas de entorno de producción, con `GEMINI_CLI_HOME`, `XDG_DATA_HOME`, `OPENCODE_DB`, `COPILOT_HOME`
+// y `KIMI_CODE_HOME` (plan D-008-P7, D-009-P9; P-010 M-5; P-011 M-5; P-012 M-5). Los tests la neutralizan en `internal/testutil.Sandbox` (M-9).
 func CodexSessionsRoot() (string, error) {
 	if propia := os.Getenv("CODEX_HOME"); propia != "" {
 		return filepath.Join(propia, "sessions"), nil

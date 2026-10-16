@@ -1,0 +1,2 @@
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":10,"output":1,"inputCacheRead":100,"inputCacheCreation":0},"usageScope":"turn","time":1000}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":20,"output":2,"inputCacheRead":200,"inputCacheCreation":0},"usageScope":"turn","time":2000}

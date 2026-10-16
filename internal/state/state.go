@@ -21,6 +21,9 @@ type FileState struct {
 	// Frontera es la de una base de OpenCode (P-010 D-010-P2), con `Offset` = H, el mayor rowid visto. Las entradas de
 	// los otros lectores no la llevan, y su JSON no cambia. Sin ella, la pasada de una base es completa.
 	Frontera *Frontera `json:"frontera,omitempty"`
+	// Cabeza es la huella con sal de la primera línea completa de un `wire.jsonl` de Kimi Code (P-012 E-1, D-012-P3): si cambia, el
+	// fichero se reescribió y se relee desde 0. Las entradas de los otros lectores no la llevan, y su JSON no cambia.
+	Cabeza string `json:"cabeza,omitempty"`
 }
 
 // Frontera es lo que una base de OpenCode guarda además de H (P-010 §P-3): la huella del `id` de la fila H, y las

@@ -1,0 +1,7 @@
+{"type":"metadata","protocol_version":"1.5","created_at":1}
+{"type":"context.append_message","agentId":"main","message":{"role":"user","content":[{"type":"text","text":"texto-3"}]},"time":2}
+{"type":"llm.request","agentId":"main","kind":"loop","provider":"proveedor-sintetico","model":"modelo-sintetico-1","messageCount":1,"time":3}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":10,"output":1,"inputCacheRead":100,"inputCacheCreation":0},"usageScope":"turn","time":1000}
+{"type":"context.append_message","agentId":"main","message":{"role":"user","content":[{"type":"text","text":"texto-3"}]},"time":2}
+{"type":"llm.request","agentId":"main","kind":"loop","provider":"proveedor-sintetico","model":"modelo-sintetico-1","messageCount":1,"time":3}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":20,"output":2,"inputCacheRead":200,"inputCacheCreation":0},"usageScope":"turn","time":2000}
