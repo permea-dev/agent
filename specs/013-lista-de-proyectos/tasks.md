@@ -22,8 +22,8 @@
 |---|---:|---:|
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 269 |
-| `tasks.md` *(este)* | 220 | 215 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 154 |
+| `tasks.md` *(este)* | 220 | 216 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 205 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
 | `soporte/registro-archivo.md` *(§B0–§B3, desde el 23-10)* | sin techo | 256 |
 
@@ -139,11 +139,12 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B7 · Los seis lectores y la frontera *(FR-004, FR-005, FR-009, FR-010, FR-015, FR-016; SC-002 a SC-005, SC-007, SC-009)* — nace `cmd/permea/lista_frontera_test.go`
 
-- [ ] **T033** **Rojos (22) a (26)** sobre el binario de prueba. Los cinco afirman la tabla, que la tubería vacía de B6 no escribe: son **rojos**, con
+- [x] **T033** **Rojos (22) a (26)** sobre el binario de prueba. Los cinco afirman la tabla, que la tubería vacía de B6 no escribe: son **rojos**, con
   la razón transcrita. (24) monta el servidor de confianza por `SSL_CERT_FILE` *(plan §8)*.
-- [ ] **T034** **Verde**: la tubería en `projectList`: resolverRaices → `ClaudeCodeLogsRoot` y `FindLogs` → `recorrer` con `state.New()` y su
+- [x] **T034** **Verde**: la tubería en `projectList`: resolverRaices → `ClaudeCodeLogsRoot` y `FindLogs` → `recorrer` con `state.New()` y su
   `Resolutor` → agregar → formatear *(plan §1, §4 y §6)*. Si algo exige tocar `internal/ingest/`, **PARA 4**.
-- [ ] **T035** `[MUTACIÓN]` Censo y **m18–m20**, con md5. Vigilancia de privacidad → 0.
+- [x] **T035** `[MUTACIÓN]` Censo y **m18–m20**, con md5. Vigilancia de privacidad → 0.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B7 *(rojos 1156 / 10 / 0 = declarado, 5 hojas nacidas verdes; verde 1166 / 0 / 0; m18–m20 y M-B7a = declarado, por hoja; corte 1166 / 0 / 0, lint 0, `PRIV` 0 al final)*.
 - [ ] **T036** ✋ Puertas y commit: `013 B7: project list no abre la red ni escribe nada`.
 
 ## B8 · README y CHANGELOG *(spec §Limitaciones, Q-1)*

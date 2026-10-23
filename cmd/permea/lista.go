@@ -1,8 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -12,7 +15,9 @@ import (
 
 	"github.com/permea-dev/agent/internal/config"
 	"github.com/permea-dev/agent/internal/event"
+	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/project"
+	"github.com/permea-dev/agent/internal/state"
 )
 
 // ═══ 013 · `permea project list` ════════════════════════════════════════════════════════════════════════════════════
@@ -158,7 +163,9 @@ const (
 //   - Sin sal, no hay nada medido: lo dice y sale con 0 *(D-5, P-11)*.
 //   - `project_ref_mode: "plain"` ni detiene ni avisa *(P-8)*: la lista no emite nada.
 //
-// 013 B6: la tubería *(recorrer → agregar → formatear)* la conecta B7. Hasta entonces, con sal, sale con 0 sin escribir nada.
+// La tubería *(013 plan §1, §4 y §6)*: las raíces de los cinco lectores y los ficheros de Claude Code, en el orden de `generate()`;
+// el MISMO `recorrer`, sobre un estado vacío que nunca se guarda y con su propio `Resolutor`, hacia un sumidero que sólo recoge;
+// `agregar`, con el origen de cada identidad; y `formatear`. Nada de esto abre la red ni escribe *(D-6)*.
 func projectList(args []string, stdout, stderr io.Writer) int {
 	if esPeticionDeAyudaDeSubcomando(args) {
 		escribirAyudaDe(stdout, "project list")
@@ -173,7 +180,7 @@ func projectList(args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintln(stderr, "error:", err)
 		return codigoFallo
 	}
-	_, existe, err := config.LeerSalt(dir)
+	sal, existe, err := config.LeerSalt(dir)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, textoSalIlegible+"\n", err)
 		return codigoFallo
@@ -182,11 +189,46 @@ func projectList(args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintln(stdout, textoSinSal)
 		return codigoExito
 	}
-	if _, err := config.Load(filepath.Join(dir, "config.json")); err != nil {
+	cfg, err := config.Load(filepath.Join(dir, "config.json"))
+	if err != nil {
 		_, _ = fmt.Fprintf(stderr, textoConfigIlegible+"\n", err)
 		return codigoFallo
 	}
+
+	// El `ingest.Context` de la lista: la sal leída, y nada que identifique al usuario ni a la máquina: el evento no sale.
+	a := &agent{cfg: cfg, ictx: ingest.Context{Salt: sal, AgentVersion: version}}
+	a.resolverRaices()
+	root, err := config.ClaudeCodeLogsRoot(cfg)
+	if err != nil {
+		_, _ = fmt.Fprintln(stderr, "error:", err)
+		return codigoFallo
+	}
+	logs, err := state.FindLogs(root)
+	if err != nil {
+		_, _ = fmt.Fprintln(stderr, "error:", err)
+		return codigoFallo
+	}
+	ictx := a.ictx
+	res := project.NuevoResolutor()
+	ictx.Resolutor = res
+	var evs []event.Event
+	if _, _, err := a.recorrer(logs, state.New(), ictx, func(ev event.Event) error {
+		evs = append(evs, ev)
+		return nil
+	}); err != nil {
+		_, _ = fmt.Fprintln(stderr, "error:", err)
+		return codigoFallo
+	}
+	hogar, _ := project.HogarReal()
+	_, _ = fmt.Fprint(stdout, formatear(agregar(evs, res.Origen, existeEnDisco), hogar))
 	return codigoExito
+}
+
+// existeEnDisco es el `existe` de `agregar` en producción: falso sólo si la ruta no existe. Otro error al mirarla *(un permiso)* no
+// marca la carpeta *(013 plan §4)*.
+func existeEnDisco(ruta string) bool {
+	_, err := os.Stat(ruta)
+	return !errors.Is(err, fs.ErrNotExist)
 }
 
 // ═══ 013 B5 · LA TABLA ══════════════════════════════════════════════════════════════════════════════════════════════
