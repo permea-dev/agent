@@ -23,7 +23,7 @@
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 268 |
 | `tasks.md` *(este)* | 220 | 206 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 170 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 204 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
 | `soporte/registro-archivo.md` *(§B0, desde el 23-10)* | sin techo | 104 |
 
@@ -109,10 +109,11 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B4 · Agregación y nombres *(FR-011 a FR-014, FR-016, FR-020)* — nace `cmd/permea/lista_agregar_test.go`
 
-- [ ] **T019** Fase 0: `fila`, `agregar`, que devuelve `nil`, y la tabla de nombres vacía.
-- [ ] **T020** [P] **Rojos (7) a (12)**, con eventos hechos a mano y `origen` y `existe` inyectados.
-- [ ] **T021** **Verde**: plan §4 y §5. La tabla de nombres, con los seis de D-1 en el orden de P-3.
-- [ ] **T022** `[MUTACIÓN]` Censo y **m9–m11**, con md5.
+- [x] **T019** Fase 0: `fila`, `agregar`, que devuelve `nil`, y la tabla de nombres vacía.
+- [x] **T020** [P] **Rojos (7) a (12)**, con eventos hechos a mano y `origen` y `existe` inyectados.
+- [x] **T021** **Verde**: plan §4 y §5. La tabla de nombres, con los seis de D-1 en el orden de P-3.
+- [x] **T022** `[MUTACIÓN]` Censo y **m9–m11**, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B4 *(rojos 1101 / 16 / 0 = declarado; verde 1117 / 0 / 0; m9 interrumpida sin resultado y repetida; m9–m11 = declarado, por hoja; corte 1117 / 0 / 0, vet y lint 0)*.
 - [ ] **T023** ✋ Puertas y commit: `013 B4: agregar por identidad con los nombres comerciales`.
 
 ## B5 · La tabla *(FR-017 a FR-022; SC-001, SC-010, SC-011)* — nace `cmd/permea/lista_formato_test.go`

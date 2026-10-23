@@ -157,7 +157,41 @@ dueño el 23-10 *(`tasks.md` §Presupuesto)*. ⛔ **Ni rutas reales, ni nombres 
   - frontera 0 B, ningún `_test.go` existente modificado, `go.mod` sin `require` y sin `go.sum`;
   - `PRIV` 0 en el diff, en lo nuevo y, con `-a`, en el testdata.
 
-## B4 · Agregación y nombres
+## B4 · Agregación y nombres *(`cmd/permea/lista.go`; sobre `8ef0d68`)*
+
+- **T019** · Esqueleto en `cmd/permea/lista.go`: `fila`, `nombresComerciales` vacía y un `agregar` que devuelve `nil`.
+- **T020** · **Rojos (7) a (12)**, en `cmd/permea/lista_agregar_test.go`, con eventos hechos a mano y `origen` y `existe` inyectados.
+  - Se declaró antes de correr: caen las **13 hojas** porque no hay filas, más los 3 padres con hojas; **ninguna nace verde**.
+  - Se esperaba **1101 / 16 / 0** y salió **1101 / 16 / 0**, sin pánicos *(libre 0.20, tras unos 13 min de espera a la plataforma)*.
+- **T021** · **Verde**, según plan §4 y §5:
+  - `agregar` salta los eventos sin identidad y los `event_id` ya vistos, en cualquier identidad *(el primero gana)*;
+  - lleva por identidad el recuento, el conjunto de `Tool` y el mínimo y el máximo de `OccurredAt.UTC()`;
+  - pone la marca con `existe` primero y `HuboRaiz` después, y ordena por eventos y luego por identidad;
+  - `conNombre` pasa a nombres comerciales en el orden de la tabla, con los desconocidos detrás y por orden alfabético;
+  - la tabla tiene los seis de D-1.
+
+  `existeEnDisco`, el `existe` de producción, **se deja para B7**, donde lo usa la tubería y lo prueba (22). Suite *(libre 0.32)*: **1117 / 0 / 0**. md5:
+  `lista.go` `3cce9963…` y `lista_agregar_test.go` `163b525b…`.
+- **T022** · Censo por llamantes y bajando a las hojas. `agregar` *(y `conNombre`)* no tiene llamantes de producción hasta B7, sólo (7)–(12):
+  - **m9** → `TestAgregar_EventIDDistintos`, `/mismo_id_dos_veces`, `/en_otra_identidad` y `/solo_repetidos`;
+  - **m10** → `TestAgregar_FechasUTC`;
+  - **m11** → `TestAgregar_Marcas` y `/borrada`. El plan decía `/borrada_con_git`, pero la hoja que lo distingue es `/borrada`.
+  - **m9 interrumpida antes de correr, por turno con la plataforma; sin resultado.** La orden se paró *(orquestador, 23-10)* con m9 aplicada y `libre.sh` aún
+    esperando: la suite no llegó a correr. Revertida por edición inversa: `lista.go` vuelve a `3cce9963…` ✅. m9, m10 y m11 se repiten desde el principio
+    cuando la plataforma termine.
+- **Repetidas desde el principio**, cuando el dueño dijo «la plataforma ha terminado», con la suite entera tras `libre.sh` en la misma orden:
+
+  | Mutación | Declarado *(y nada más)* | Cayó | Reversión |
+  |---|---|---|---|
+  | **m9** contar eventos y no `event_id` *(sin `vistos`)* | `TestAgregar_EventIDDistintos`, `/mismo_id_dos_veces`, `/en_otra_identidad`, `/solo_repetidos` | **lo mismo** *(1113 / 4)* | `3cce9963…` ✅ |
+  | **m10** fecha sin `.UTC()` | `TestAgregar_FechasUTC` | **lo mismo** *(1116 / 1)* | `3cce9963…` ✅ |
+  | **m11** `(sin repositorio)` antes que `(ya no existe)` | `TestAgregar_Marcas`, `/borrada` | **lo mismo** *(1115 / 2)* | `3cce9963…` ✅ |
+
+- **Corte de B4**:
+  - suite *(libre 0.49; 15:13:09 → :15)*: **1117 / 0 / 0**;
+  - gofmt vacío, vet limpio y lint 0 *(libre 0.27)*;
+  - frontera 0 B, ningún `_test.go` existente modificado, `go.mod` sin `require` y sin `go.sum`;
+  - `PRIV` 0 en el diff y en los dos ficheros nuevos.
 
 ## B5 · La tabla
 
