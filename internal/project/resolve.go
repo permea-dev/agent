@@ -78,15 +78,8 @@ func Derivar(cwdDeclarado, salt string) string {
 // **NUNCA devuelve error**, igual que `Derivar`: exponer el dato no puede introducir una vía de
 // fallo donde no la había (P-005 FR-016).
 func DerivarConRaiz(cwdDeclarado, salt string) (identidad string, huboRaiz bool) {
-	// ORDEN, y es el requisito (FR-006a / D-004-2): PRIMERO la ubicación real, DESPUÉS el
-	// reconocimiento de raíz. Al revés, un enlace que apunta al interior de un proyecto nunca
-	// llegaría a reconocerse: su cadena literal ascendería por otro sitio y caería al fallback.
-	//
-	// El techo se calcula sobre la MISMA ruta real, no sobre la declarada: si un enlace de fuera
-	// del directorio personal apuntara adentro (o al revés), un techo calculado sobre la forma
-	// literal acotaría un ascenso que ocurre en otro sitio.
-	ubicacion := mejorValorDisponible(cwdDeclarado)
-	return derivarConTechoYRaiz(ubicacion, salt, techoDeProduccion(ubicacion))
+	identidad, _, huboRaiz = DerivarConOrigen(cwdDeclarado, salt)
+	return identidad, huboRaiz
 }
 
 // mejorValorDisponible obtiene la mejor forma del directorio declarado (data-model §entidad 4):
@@ -143,23 +136,27 @@ func mejorValorDisponible(declarado string) string {
 // del contrato, y ampliarla los obligaría a cambiar sin que el cambio les aporte nada. El dato de la
 // raíz se obtiene de `derivarConTechoYRaiz`, que es donde vive el cuerpo.
 func derivarConTecho(ubicacion, salt, techo string) string {
-	identidad, _ := derivarConTechoYRaiz(ubicacion, salt, techo)
+	identidad, _, _ := derivarConTechoYRaiz(ubicacion, salt, techo)
 	return identidad
 }
 
 // derivarConTechoYRaiz es **EL CUERPO COMPARTIDO**: la única implementación de la derivación en todo
-// el paquete. `Derivar`, `DerivarConRaiz` y `derivarConTecho` son envoltorios suyos.
+// el paquete. `Derivar`, `DerivarConRaiz`, `DerivarConOrigen` y `derivarConTecho` son envoltorios suyos.
 //
 // Que sea uno solo **no es orden, es el mecanismo de P-005 FR-005**: mientras la identidad que el
 // comando presenta y la que la ingesta estampa salgan de aquí, **no pueden divergir**. Dos cuerpos que
 // hoy devolvieran lo mismo serían dos cuerpos que mañana pueden no hacerlo, y el síntoma —«me he unido
 // y no aparece nada»— es indistinguible de una avería de servidor.
-func derivarConTechoYRaiz(ubicacion, salt, techo string) (identidad string, huboRaiz bool) {
+//
+// 013: devuelve también el **origen**, la cadena que entra en `event.Ref`. Sale del mismo `return` que
+// la identidad, así que no puede ser otra: `permea project list` enseña la carpeta que de verdad
+// entró en el hash (013 FR-015).
+func derivarConTechoYRaiz(ubicacion, salt, techo string) (identidad, origen string, huboRaiz bool) {
 	// Entrada vacía → identidad ausente (FR-008/G1). No hay guarda propia: `event.Ref` ya
 	// devuelve "" para valor vacío (`internal/event/event.go`, `Ref`), y duplicar aquí la
 	// definición de «ausente» crearía dos que podrían divergir.
 	if raiz, encontrada := ascender(ubicacion, techo); encontrada {
-		return event.Ref(salt, raiz), true
+		return event.Ref(salt, raiz), raiz, true
 	}
 
 	// Fallback: el mejor valor disponible, ya normalizado por `mejorValorDisponible` (G6).
@@ -167,7 +164,7 @@ func derivarConTechoYRaiz(ubicacion, salt, techo string) (identidad string, hubo
 	// **`huboRaiz` es false, y el valor NO es vacío**: la derivación sigue produciendo identidad para
 	// un directorio suelto (P-004 FR-005). Quien decida rehusar por «no hay raíz» debe mirar el
 	// booleano, **nunca** si la identidad está vacía — vacía solo lo está con entrada vacía.
-	return event.Ref(salt, ubicacion), false
+	return event.Ref(salt, ubicacion), ubicacion, false
 }
 
 // ascender sube desde `desde` buscando el marcador, y se detiene AL LLEGAR AL TECHO.
@@ -297,14 +294,18 @@ func cuelgaDe(ruta, base string) bool {
 // LA CACHÉ OPTIMIZA, NO DECIDE: `Derivar` y `Resolutor.Derivar` devuelven exactamente lo
 // mismo para la misma entrada. Dos grafías distintas del mismo directorio son dos claves y se
 // resuelven por separado —**y convergen igual**, porque quien decide es la derivación.
+//
+// 013: apunta también el ORIGEN de cada identidad que deriva, por identidad, para que `permea project
+// list` sepa qué carpeta enseñar. Es un mapa aparte: `cache` no cambia de forma.
 type Resolutor struct {
-	cache map[string]string
+	cache    map[string]string
+	origenes map[string]Origen
 }
 
 // NuevoResolutor crea un resolutor con su caché vacía. Se llama UNA VEZ POR PASADA: ahí vive
 // el ámbito, y por eso no hay ninguna instancia global ni perezosa que pudiera sobrevivirle.
 func NuevoResolutor() *Resolutor {
-	return &Resolutor{cache: make(map[string]string)}
+	return &Resolutor{cache: make(map[string]string), origenes: make(map[string]Origen)}
 }
 
 // Derivar es `Derivar` con memoria de la pasada.
@@ -322,7 +323,61 @@ func (r *Resolutor) Derivar(cwdDeclarado, salt string) string {
 	if identidad, visto := r.cache[cwdDeclarado]; visto {
 		return identidad
 	}
-	identidad := Derivar(cwdDeclarado, salt)
+	identidad, origen, huboRaiz := DerivarConOrigen(cwdDeclarado, salt)
 	r.cache[cwdDeclarado] = identidad
+	if identidad != "" {
+		r.origenes[identidad] = Origen{Ruta: origen, HuboRaiz: huboRaiz}
+	}
 	return identidad
+}
+
+// ═══ 013 · EL ORIGEN DE UNA IDENTIDAD ═════════════════════════════════════════════════════
+
+// Origen es la ruta que entró en el hash de una identidad, y si era la raíz de un proyecto
+// (013 FR-015, FR-016).
+type Origen struct {
+	Ruta     string
+	HuboRaiz bool
+}
+
+// DerivarConOrigen es `DerivarConRaiz` más el **origen**: la ruta que entró en el hash, que es la
+// raíz si `huboRaiz` y la ubicación limpia si no. Es la entrada del cuerpo compartido:
+// `DerivarConRaiz`, y con ella `Derivar`, descartan el origen. NUNCA devuelve error.
+func DerivarConOrigen(cwdDeclarado, salt string) (identidad, origen string, huboRaiz bool) {
+	// ORDEN, y es el requisito (FR-006a / D-004-2): PRIMERO la ubicación real, DESPUÉS el
+	// reconocimiento de raíz. Al revés, un enlace que apunta al interior de un proyecto nunca
+	// llegaría a reconocerse: su cadena literal ascendería por otro sitio y caería al fallback.
+	//
+	// El techo se calcula sobre la MISMA ruta real, no sobre la declarada: si un enlace de fuera
+	// del directorio personal apuntara adentro (o al revés), un techo calculado sobre la forma
+	// literal acotaría un ascenso que ocurre en otro sitio.
+	ubicacion := mejorValorDisponible(cwdDeclarado)
+	return derivarConTechoYRaiz(ubicacion, salt, techoDeProduccion(ubicacion))
+}
+
+// Origen devuelve el origen de una identidad que este resolutor derivó en su pasada, y false si no
+// la derivó. Con receptor nil, como `Derivar`, no hay memoria: false.
+func (r *Resolutor) Origen(identidad string) (Origen, bool) {
+	if r == nil {
+		return Origen{}, false
+	}
+	o, ok := r.origenes[identidad]
+	return o, ok
+}
+
+// HogarReal es el directorio personal con sus enlaces resueltos, el mismo con el que `techoDeProduccion` compara *(013 P-10)*:
+// las rutas que entran en el hash son reales, y el hogar con el que se escriben como `~` también tiene que serlo. false si no
+// se puede resolver.
+func HogarReal() (string, bool) {
+	hogar, err := os.UserHomeDir()
+	if err != nil || hogar == "" {
+		return "", false
+	}
+	return mejorValorDisponible(hogar), true
+}
+
+// CuelgaDe dice si `ruta` es `base` o desciende de ella, por SEGMENTOS *(013 P-10)*: es `cuelgaDe`, que no cambia, para que
+// `permea project list` compare como compara el techo. `<hogar>2` no cuelga de `<hogar>`.
+func CuelgaDe(ruta, base string) bool {
+	return cuelgaDe(ruta, base)
 }

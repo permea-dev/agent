@@ -9,7 +9,6 @@ import (
 
 	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/state"
-	"github.com/permea-dev/agent/internal/transport"
 )
 
 // ═══ P-009 B5 · GEMINI CLI EN `--run` Y EN EL DEMONIO ════════════════════════════════════════════
@@ -21,7 +20,7 @@ import (
 // generarGemini lee la raíz de Gemini CLI y ENCOLA sus eventos (P-009 B5). Los errores son POR FICHERO (FR-025, plan
 // D-009-P10): un fichero que no se puede leer se omite con un aviso, su estado queda como estaba —la pasada siguiente lo
 // relee— y se sigue con el siguiente, sin impedir guardar el estado de los demás. Encolar sigue siendo fatal, como hoy.
-func (a *agent) generarGemini(st *state.Store, ictx ingest.Context) (int, error) {
+func (a *agent) generarGemini(st *state.Store, ictx ingest.Context, sumar sumidero) (int, error) {
 	pg := ingest.NuevaPasadaGemini()
 	a.gemini = pg
 	sesiones, anteriores, err := ingest.ListarGemini(a.geminiRaiz)
@@ -38,7 +37,7 @@ func (a *agent) generarGemini(st *state.Store, ictx ingest.Context) (int, error)
 			continue
 		}
 		for _, ev := range evs {
-			if err := transport.Append(a.dir, ev); err != nil {
+			if err := sumar(ev); err != nil {
 				return total, err
 			}
 			total++

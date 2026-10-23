@@ -9,7 +9,6 @@ import (
 
 	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/state"
-	"github.com/permea-dev/agent/internal/transport"
 )
 
 // ═══ P-012 B4 · KIMI CODE EN `--run` Y EN EL DEMONIO ══════════════════════════════════════════════════════════════════
@@ -31,7 +30,7 @@ func (a *agent) kimiActivo() bool {
 // ya no se corrige; sus offsets no avanzan y la pasada siguiente los lee. Los errores son POR FICHERO (FR-026, D-012-P5): un
 // `wire.jsonl` que no se puede leer se omite con un aviso SIN SU RUTA (la ruta lleva el id de la sesión y, en Windows, el nombre del
 // usuario), su entrada de `state.json` queda como estaba y se sigue con el siguiente. Encolar sigue siendo fatal, como hoy.
-func (a *agent) generarKimi(st *state.Store, ictx ingest.Context) (int, error) {
+func (a *agent) generarKimi(st *state.Store, ictx ingest.Context, sumar sumidero) (int, error) {
 	pk := ingest.NuevaPasadaKimi()
 	a.kimi = pk
 	indice, err := ingest.LeerIndiceKimi(a.kimiRaiz)
@@ -53,7 +52,7 @@ func (a *agent) generarKimi(st *state.Store, ictx ingest.Context) (int, error) {
 			continue
 		}
 		for _, ev := range evs {
-			if err := transport.Append(a.dir, ev); err != nil {
+			if err := sumar(ev); err != nil {
 				return total, err
 			}
 			total++

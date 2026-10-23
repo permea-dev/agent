@@ -14,6 +14,20 @@ func LoadOrCreateSalt(dir string) (string, error) {
 	return loadOrCreateSecret(filepath.Join(dir, "salt"), 32)
 }
 
+// LeerSalt lee el salt de `dir/salt` TAL CUAL, como LoadOrCreateSalt, pero NUNCA lo crea (013 FR-007):
+// sin el fichero —o sin `dir`— devuelve `existe = false` y ningún error. Cualquier otro fallo de
+// lectura es un error (013 FR-008): una sal ilegible no es una sal ausente.
+func LeerSalt(dir string) (sal string, existe bool, err error) {
+	b, err := os.ReadFile(filepath.Join(dir, "salt"))
+	if err == nil {
+		return string(b), true, nil
+	}
+	if os.IsNotExist(err) {
+		return "", false, nil
+	}
+	return "", false, err
+}
+
 // LoadOrCreateMachineID devuelve un id de instalación aleatorio persistido en
 // `dir/machine_id` (R7): estable entre sesiones para agregación, pero no sensible.
 // Solo su hash salado (machine_ref) cruza la frontera; el id crudo se queda en local.

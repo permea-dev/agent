@@ -237,6 +237,19 @@ func setup() (*agent, error) {
 	if err != nil {
 		return nil, err
 	}
+	a := &agent{
+		dir:  dir,
+		cfg:  cfg,
+		ictx: newIngestContext(version, cfg, salt, machineID),
+	}
+	a.resolverRaices() // tras `machine_id`, como siempre; la parada por `plain` sigue siendo la primera
+	return a, nil
+}
+
+// resolverRaices resuelve las raíces de los cinco lectores que no son Claude Code *(013 plan §1)*: lo que hacía `setup()`, sin
+// cambiar nada, para que `permea project list` las tenga sin pasar por `setup()`, que crea la sal y el `machine_id`. Sólo lee el
+// entorno y el directorio personal: no crea nada. Una raíz que no se puede resolver deja su lector inactivo, sin error.
+func (a *agent) resolverRaices() {
 	// P-008 FR-001, FR-002: sin directorio personal no hay raíz de Codex, y el lector queda inactivo sin error.
 	codexRaiz, err := config.CodexSessionsRoot()
 	if err != nil {
@@ -262,17 +275,9 @@ func setup() (*agent, error) {
 	if err != nil {
 		kimiRaiz = ""
 	}
-	return &agent{
-		dir:           dir,
-		cfg:           cfg,
-		ictx:          newIngestContext(version, cfg, salt, machineID),
-		codexRaiz:     codexRaiz,
-		geminiRaiz:    geminiRaiz,
-		opencodeDatos: opencodeDatos,
-		opencodeUnica: opencodeUnica,
-		copilotRaiz:   copilotRaiz,
-		kimiRaiz:      kimiRaiz,
-	}, nil
+	a.codexRaiz, a.geminiRaiz = codexRaiz, geminiRaiz
+	a.opencodeDatos, a.opencodeUnica = opencodeDatos, opencodeUnica
+	a.copilotRaiz, a.kimiRaiz = copilotRaiz, kimiRaiz
 }
 
 // newIngestContext construye el contexto de ingesta a partir de la versión REAL del
@@ -321,6 +326,28 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 	// una por ciclo.
 	ictx := a.ictx
 	ictx.Resolutor = project.NuevoResolutor()
+	// 013 · EL MISMO RECORRIDO QUE `permea project list` *(FR-009, D-013-P2)*: aquí el sumidero ENCOLA, y la emisión es la de
+	// siempre, byte a byte *(FR-024; SC-012)*. El estado se guarda DESPUÉS de encolar, como antes: si algo falla dentro del
+	// recorrido, no se guarda y la pasada siguiente relee.
+	total, pasada, err := a.recorrer(logs, st, ictx, func(ev event.Event) error { return transport.Append(a.dir, ev) })
+	if err != nil {
+		return total, pasada, err
+	}
+
+	if err := st.Save(statePath); err != nil {
+		return total, pasada, err
+	}
+	return total, pasada, nil
+}
+
+// sumidero recibe cada evento que sale del recorrido de los seis lectores *(013 FR-009, D-013-P2)*: `generate()` lo encola
+// y `permea project list` lo agrega en memoria. Un error del sumidero detiene el recorrido, como lo detenía encolar.
+type sumidero func(event.Event) error
+
+// recorrer es EL recorrido de los seis lectores *(013 plan §1)*: el cuerpo que era de `generate()`, desde la Pasada hasta Kimi
+// Code, con cada evento hacia `sumar`. No carga ni guarda el estado: lo hace quien llama, sobre el `st` que le pasa. `logs`
+// son los ficheros de Claude Code, que quien llama resuelve antes de cargar el estado, en el orden de siempre (FR-024).
+func (a *agent) recorrer(logs []string, st *state.Store, ictx ingest.Context, sumar sumidero) (int, *ingest.Pasada, error) {
 	// P-006 FR-001/FR-033 · LA PASADA, POR EL MISMO MOTIVO Y EN EL MISMO SITIO. Un mensaje cuyas
 	// líneas se lean en esta llamada produce UN evento. Una por llamada: en `--daemon`, una por ciclo,
 	// y entre ciclos no hay memoria (los repetidos los descarta la plataforma por `event_id`).
@@ -345,7 +372,7 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 			if ev == nil {
 				return nil // línea no facturable (p. ej. mensaje de usuario)
 			}
-			if err := transport.Append(a.dir, *ev); err != nil {
+			if err := sumar(*ev); err != nil {
 				return err
 			}
 			total++
@@ -367,19 +394,19 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		// P-007 FR-012: lo cerrado se encola ANTES de guardar el estado. Si algo falla antes de este punto, el
 		// estado no avanza y la pasada siguiente relee esas líneas.
 		for _, c := range cerrados {
-			if err := transport.Append(a.dir, c.Evento); err != nil {
+			if err := sumar(c.Evento); err != nil {
 				return total, pasada, err
 			}
 			total++
 		}
 	}
 
-	// P-008: Codex, tras Claude Code y ANTES del único `st.Save` (FR-025, plan D-008-P6). La ruta se resolvió en
+	// P-008: Codex, tras Claude Code y ANTES del único `st.Save` de `generate()` (FR-025, plan D-008-P6). La ruta se resolvió en
 	// `setup()`; si existe se mira en CADA pasada, porque el demonio vive días y Codex puede instalarse después (FR-002, E-2).
 	a.codex = nil
 	if a.codexRaiz != "" {
 		if info, err := os.Stat(a.codexRaiz); err == nil && info.IsDir() {
-			n, err := a.generarCodex(st, ictx)
+			n, err := a.generarCodex(st, ictx, sumar)
 			total += n
 			if err != nil {
 				return total, pasada, err
@@ -387,12 +414,12 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
-	// P-009: Gemini, tras Codex y ANTES del único `st.Save` (FR-024, plan D-009-P7). Activo sólo si `<raíz>/tmp` es un
+	// P-009: Gemini, tras Codex y ANTES del único `st.Save` de `generate()` (FR-024, plan D-009-P7). Activo sólo si `<raíz>/tmp` es un
 	// directorio EN ESTA PASADA (FR-002), sin resolver enlaces (N-11).
 	a.gemini = nil
 	if a.geminiRaiz != "" {
 		if info, err := os.Stat(filepath.Join(a.geminiRaiz, "tmp")); err == nil && info.IsDir() {
-			n, err := a.generarGemini(st, ictx)
+			n, err := a.generarGemini(st, ictx, sumar)
 			total += n
 			if err != nil {
 				return total, pasada, err
@@ -400,49 +427,46 @@ func (a *agent) generate() (int, *ingest.Pasada, error) {
 		}
 	}
 
-	// P-010: OpenCode, tras Gemini y ANTES del único `st.Save` (FR-027). Activo sólo si EN ESTA PASADA existe la base de
+	// P-010: OpenCode, tras Gemini y ANTES del único `st.Save` de `generate()` (FR-027). Activo sólo si EN ESTA PASADA existe la base de
 	// `OPENCODE_DB` o la carpeta de datos (P-10, FR-002).
 	a.opencode = nil
 	if a.opencodeActivo() {
-		n, err := a.generarOpenCode(st, ictx)
+		n, err := a.generarOpenCode(st, ictx, sumar)
 		total += n
 		if err != nil {
 			return total, pasada, err
 		}
 	}
 
-	// P-011: Copilot CLI, tras OpenCode y ANTES del único `st.Save` (FR-024). Activo sólo si EN ESTA PASADA existe la carpeta
+	// P-011: Copilot CLI, tras OpenCode y ANTES del único `st.Save` de `generate()` (FR-024). Activo sólo si EN ESTA PASADA existe la carpeta
 	// de sus sesiones (P-6, FR-002): el demonio vive días y Copilot CLI puede instalarse después.
 	a.copilot = nil
 	if a.copilotActivo() {
-		n, err := a.generarCopilot(st, ictx)
+		n, err := a.generarCopilot(st, ictx, sumar)
 		total += n
 		if err != nil {
 			return total, pasada, err
 		}
 	}
 
-	// P-012: Kimi Code, tras Copilot CLI y ANTES del único `st.Save` (FR-024). Activo sólo si EN ESTA PASADA existe
+	// P-012: Kimi Code, tras Copilot CLI y ANTES del único `st.Save` de `generate()` (FR-024). Activo sólo si EN ESTA PASADA existe
 	// `<carpeta>/sessions` (P-2, FR-002).
 	a.kimi = nil
 	if a.kimiActivo() {
-		n, err := a.generarKimi(st, ictx)
+		n, err := a.generarKimi(st, ictx, sumar)
 		total += n
 		if err != nil {
 			return total, pasada, err
 		}
 	}
 
-	if err := st.Save(statePath); err != nil {
-		return total, pasada, err
-	}
 	return total, pasada, nil
 }
 
 // generarCodex lee la raíz de Codex y ENCOLA sus eventos (P-008 B5). Los errores son POR FICHERO (FR-028, plan
 // D-008-P11): un fichero que no se puede leer se omite con un aviso, su estado queda como estaba —la pasada siguiente lo
 // relee— y se sigue con el siguiente, sin impedir guardar el estado de los demás. Encolar sigue siendo fatal, como hoy.
-func (a *agent) generarCodex(st *state.Store, ictx ingest.Context) (int, error) {
+func (a *agent) generarCodex(st *state.Store, ictx ingest.Context, sumar sumidero) (int, error) {
 	pc := ingest.NuevaPasadaCodex()
 	a.codex = pc
 	sesiones, comprimidos, err := ingest.ListarCodex(a.codexRaiz)
@@ -459,7 +483,7 @@ func (a *agent) generarCodex(st *state.Store, ictx ingest.Context) (int, error) 
 			continue
 		}
 		for _, ev := range evs {
-			if err := transport.Append(a.dir, ev); err != nil {
+			if err := sumar(ev); err != nil {
 				return total, err
 			}
 			total++

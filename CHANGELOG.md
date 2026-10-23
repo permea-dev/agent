@@ -3,6 +3,34 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
+## 0.10.0 — 2026-10-23
+
+### Nuevo
+- `permea project list`: enseña, en esta instalación, qué carpeta hay detrás de cada identidad del panel, para poder asignar las
+  que están sin asignar. Una fila por identidad, con sus 12 primeros caracteres, la carpeta, las herramientas por su nombre, los
+  eventos y las fechas en UTC, como el panel. (`specs/013-lista-de-proyectos/spec.md`, D-1, D-2, D-4, FR-001, FR-009 a FR-022)
+- Marca `(sin repositorio)` la carpeta sin `.git`, y `(ya no existe)` la que ya no está. (`specs/013-lista-de-proyectos/spec.md`,
+  D-3, P-4, FR-016)
+- Es local y de solo lectura: no envía nada, no abre la red, no escribe en disco ni crea la sal, y no necesita enrolamiento. Es el
+  primer comando que imprime rutas reales del disco, sólo en tu terminal. (`specs/013-lista-de-proyectos/spec.md`, D-5, D-6, D-10,
+  FR-004 a FR-008)
+
+### Sin cambios
+- `--run`, `--daemon`, `--scan`, `enroll`, `status` y `project join` funcionan como en la 0.9.0, y lo enviado es el mismo, byte a
+  byte. Cambian sólo la ayuda y el mensaje de «Verbos disponibles», que ahora dice `join, list`. (`specs/013-lista-de-proyectos/spec.md`,
+  D-9, FR-001, FR-003, FR-024, SC-012)
+
+### Limitaciones conocidas
+- La lista cuenta lo que las herramientas conservan en disco, también lo aún no enviado: el panel puede tener más o menos.
+  (`specs/013-lista-de-proyectos/spec.md`, D-4, §Limitaciones)
+- No lista las identidades de antes de la 0.3.0. (`specs/013-lista-de-proyectos/spec.md`, D-7)
+- La identidad se recalcula con las carpetas como están hoy: si una se movió, si se hizo `git init` después o si cambió un enlace,
+  no es la que viajó. (`specs/013-lista-de-proyectos/spec.md`, §Limitaciones)
+- Un mensaje de Claude Code todavía abierto, con menos de 10 minutos sin cambios, no cuenta aún. (`specs/013-lista-de-proyectos/spec.md`,
+  P-9)
+- En Windows, la misma carpeta escrita con otras mayúsculas da dos identidades, y una ruta con caracteres de doble ancho descuadra la
+  tabla. (`specs/013-lista-de-proyectos/spec.md`, P-12, §Limitaciones)
+
 ## 0.9.0 — 2026-10-16
 
 ### Nuevo

@@ -9,7 +9,6 @@ import (
 
 	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/state"
-	"github.com/permea-dev/agent/internal/transport"
 )
 
 // ═══ P-011 B4 · COPILOT CLI EN `--run` Y EN EL DEMONIO ════════════════════════════════════════════════════════════
@@ -30,7 +29,7 @@ func (a *agent) copilotActivo() bool {
 // `events.jsonl` que no se puede leer se omite con un aviso SIN SU RUTA (D-011-P5: la ruta lleva el id de la sesión y, en
 // Windows, el nombre del usuario), su entrada de `state.json` queda como estaba —la pasada siguiente lo relee— y se sigue con
 // el siguiente, sin impedir guardar el estado de los demás. Encolar sigue siendo fatal, como hoy.
-func (a *agent) generarCopilot(st *state.Store, ictx ingest.Context) (int, error) {
+func (a *agent) generarCopilot(st *state.Store, ictx ingest.Context, sumar sumidero) (int, error) {
 	pc := ingest.NuevaPasadaCopilot()
 	a.copilot = pc
 	sesiones, err := ingest.ListarCopilot(a.copilotRaiz)
@@ -47,7 +46,7 @@ func (a *agent) generarCopilot(st *state.Store, ictx ingest.Context) (int, error
 			continue
 		}
 		for _, ev := range evs {
-			if err := transport.Append(a.dir, ev); err != nil {
+			if err := sumar(ev); err != nil {
 				return total, err
 			}
 			total++
