@@ -23,7 +23,7 @@
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 268 |
 | `tasks.md` *(este)* | 220 | 206 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 122 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 166 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
 
 ## Una suite a la vez, con la carga vigilada
@@ -79,10 +79,11 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B1 · Leer sin escribir *(FR-005, FR-007, FR-008)* — nace `internal/config/lectura_test.go`
 
-- [ ] **T004** Fase 0: `RutaDataDir()` y `LeerSalt()`, que devuelven `"", nil` y `"", false, nil`.
-- [ ] **T005** [P] **Rojos (1) y (2)**, con `testutil.Sandbox`.
-- [ ] **T006** **Verde**: plan §3. `DataDir()` llama a `RutaDataDir()` y conserva su conducta.
-- [ ] **T007** `[MUTACIÓN]` Censo y **m1–m3**, con md5. Transcribir.
+- [x] **T004** Fase 0: `RutaDataDir()` y `LeerSalt()`, que devuelven `"", nil` y `"", false, nil`.
+- [x] **T005** [P] **Rojos (1) y (2)**, con `testutil.Sandbox`.
+- [x] **T006** **Verde**: plan §3. `DataDir()` llama a `RutaDataDir()` y conserva su conducta.
+- [x] **T007** `[MUTACIÓN]` Censo y **m1–m3**, con md5. Transcribir.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 *(m1–m3 = declarado, revertidas con md5; **M-B1a**: 1.ª forma PARA 2 por censo incompleto; la 2.ª, con los tres `TestEnroll_*`, = declarado; corte 1084 / 0 / 0, vet y lint 0)*.
 - [ ] **T008** ✋ Puertas y commit: `013 B1: leer el DataDir y la sal sin crearlos`.
 
 ## B2 · La derivación con origen *(FR-010, FR-015)* — nace `internal/project/origen_test.go`

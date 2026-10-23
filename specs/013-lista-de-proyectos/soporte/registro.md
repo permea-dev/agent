@@ -103,7 +103,51 @@ las banderas de `.goreleaser.yaml`; go1.22.2; sin líneas `vcs.*`)*:
 
 **Sin mutaciones en B0.**
 
-## B1 · Leer sin escribir
+## B1 · Leer sin escribir *(`internal/config`; sobre `6b318c5`)* — PARA 2 en M-B1a, **cerrada**
+
+- **T004** · Esqueletos: `RutaDataDir()` → `("", nil)`, en `config.go`; `LeerSalt(dir)` → `("", false, nil)`, en `identity.go`. Compila.
+- **T005** · **Rojos (1) y (2)**, en `internal/config/lectura_test.go`, con `testutil.Sandbox`. La razón se escribió **antes** de correrlos. Se esperaba
+  **1077 / 7 / 0** y salió **1077 / 7 / 0** *(libre 0.29; 13:26:19 → :25)*.
+  - **Caen, por lo que prueban**:
+    - (1/misma_ruta) y (1/no_crea): `RutaDataDir` devuelve `""`, no la ruta;
+    - (2/igual) y (2/igual_con_salto): `LeerSalt` devuelve `""`, no la sal;
+    - (2/ilegible): no devuelve error.
+  - **Nacen verdes, declaradas**: (1/datadir_crea), porque `DataDir` no cambia *(la valida M-B1a)*; (2/ausente) y (2/ausente_con_datadir), porque el esqueleto
+    ya responde lo correcto *(las valida m2)*.
+- **T006** · **Verde**, según plan §3:
+  - `RutaDataDir` = `os.UserConfigDir()` + `permea`, sin `MkdirAll`; `DataDir` = `RutaDataDir` + `MkdirAll`;
+  - `LeerSalt` lee como `loadOrCreateSecret`: tal cual, `existe = false` si no existe, y error en cualquier otro fallo.
+
+  Suite *(libre 0.14; 13:27:04 → :10)*: **1084 / 0 / 0**. md5: `config.go` `19b0d970…`, `identity.go` `5ca4478e…` y `lectura_test.go` `317d7102…`.
+- **T007** · Mutaciones, con el censo declarado **antes**; cada una con la suite entera tras `libre.sh` y la reversión por edición inversa con md5:
+
+  | Mutación | Declarado | Cayó | md5 tras revertir |
+  |---|---|---|---|
+  | **m1** `RutaDataDir` con `MkdirAll` | `TestRutaDataDir`, `/no_crea` | **lo mismo** *(1082 / 2)* | `config.go` `19b0d970…` ✅ |
+  | **m2** `LeerSalt` delega en `LoadOrCreateSalt` | `TestLeerSalt`, `/ausente`, `/ausente_con_datadir` | **lo mismo** *(1081 / 3)* | `identity.go` `5ca4478e…` ✅ |
+  | **m3** `strings.TrimSpace` sobre la sal | `TestLeerSalt`, `/igual_con_salto` | **lo mismo** *(1082 / 2)* | `identity.go` `5ca4478e…` ✅ |
+  | **M-B1a**, 1.ª forma: **PARA 2 por censo incompleto** · `DataDir` sin `MkdirAll` | `TestRutaDataDir`, `/datadir_crea` | eso **y además** `TestEnroll_ReenrollNoResidue`, `TestEnroll_Argv_HappyPath` y `TestEnroll_Stdin_And_SC011` *(1078 / 5)* | puesta hasta la decisión; revertida después: `config.go` `19b0d970…` ✅ |
+  | **M-B1a**, 2.ª forma *(censo corregido; orquestador, 23-10, opción 1)* | `TestRutaDataDir`, `/datadir_crea`, **más** los tres `TestEnroll_*` | **lo mismo** *(1078 / 5; `diff` del declarado contra lo caído, vacío)* | `config.go` `19b0d970…` ✅ |
+
+- ⛔ **PARA 2.** M-B1a tumba tres tests de `enroll` que el censo no declaró. **La mutación se queda puesta.**
+  - **Por qué caen**: `enroll_test.go:65`, `:115` y `enroll_reject_test.go:260`. Esos tests apuntan `XDG_CONFIG_HOME` a un temporal sin `permea/`, y `enroll`
+    escribe allí con `atomicWrite`: «no such file or directory».
+  - **Es un error del censo, no del código.** El censo sólo buscó los tests que borran el `DataDir`. Esos tres sí prueban que `DataDir` crea, así que la
+    conducta de hoy ya estaba cubierta por tests existentes, como decía el encargo.
+- **Cierre** *(decisión del orquestador, 23-10: opción 1)*:
+  - se revirtió M-B1a por edición inversa *(→ `19b0d970…`)*;
+  - se corrigió su censo: los tres `TestEnroll_*` **escriben en el `DataDir` de un `XDG_CONFIG_HOME` vacío**, y sin el `MkdirAll` no pueden;
+  - se repitió, y cayó **exactamente** lo declarado.
+- **El censo, por los llamantes**: `DataDir()` tiene cuatro en producción, `setup()` *(`main.go:207`)*, `enroll` *(`enroll.go:69`)*, `status` *(`status.go:24`)* y
+  `project join` *(`project.go:163`)*. Sólo los tres `TestEnroll_*` los ejercen con un `XDG_CONFIG_HOME` sin `permea/`. Los demás corren en `testutil.Sandbox`,
+  que lo crea.
+- 📌 **La lección**: el censo de una mutación sobre una función **compartida** se hace buscando **todos sus llamantes**, y los tests que ejercen cada uno, **no
+  sólo los tests que parecen relacionados**.
+- **Corte de B1** *(sobre el verde)*:
+  - suite *(libre 0.19; 13:34:09 → :15)*: **1084 / 0 / 0**;
+  - gofmt vacío, vet limpio y lint 0 *(libre 0.24)*;
+  - frontera 0 B, ningún `_test.go` existente modificado, `go.mod` sin `require` y sin `go.sum`;
+  - `PRIV` 0 en el diff, en `lectura_test.go` y, con `-a`, en el testdata.
 
 ## B2 · La derivación con origen
 

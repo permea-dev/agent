@@ -52,15 +52,24 @@ func Default() Config {
 // existe: Linux `$XDG_CONFIG_HOME/permea`, macOS `~/Library/Application Support/permea`,
 // Windows `%AppData%\permea`. Allí viven config.json, state.json, queue.jsonl y salt.
 func DataDir() (string, error) {
-	base, err := os.UserConfigDir()
+	dir, err := RutaDataDir()
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(base, "permea")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
 	return dir, nil
+}
+
+// RutaDataDir es la ruta de DataDir SIN crearla (013, plan §3): la de quien sólo lee, como
+// `permea project list`, que NUNCA crea nada (013 FR-005). DataDir es esta ruta más el MkdirAll.
+func RutaDataDir() (string, error) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, "permea"), nil
 }
 
 // Load lee config.json aplicando Default() a los campos vacíos. Un fichero
