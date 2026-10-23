@@ -149,7 +149,54 @@ las banderas de `.goreleaser.yaml`; go1.22.2; sin líneas `vcs.*`)*:
   - frontera 0 B, ningún `_test.go` existente modificado, `go.mod` sin `require` y sin `go.sum`;
   - `PRIV` 0 en el diff, en `lectura_test.go` y, con `-a`, en el testdata.
 
-## B2 · La derivación con origen
+## B2 · La derivación con origen *(`internal/project`; sobre `651cbdd`)*
+
+- **T009** · Esqueletos, al final de `resolve.go`: `Origen{Ruta, HuboRaiz}`; `DerivarConOrigen` → `("", "", false)`; `Resolutor.Origen` → `(Origen{}, false)`.
+- **T010** · **Rojos (3) y (4)**, en `internal/project/origen_test.go`.
+  - (3) **copia** cada familia de `testdata/` a un `t.TempDir()` *(nunca la abre en su sitio)*, construye su árbol y, por cada `cwd`, exige cuatro cosas:
+    - la identidad y `huboRaiz` de `Derivar` y `DerivarConRaiz`;
+    - el origen esperado;
+    - **`event.Ref(sal, origen)` = la identidad**: la prueba que no depende de la implementación.
+  - La razón se escribió **antes** de correrlos: se esperaba **1084 / 10 / 0** y salió **1084 / 10 / 0** *(libre 0.66)*.
+  - **Caen, por lo que prueban**:
+    - (3/subdirectorio), (3/worktree), (3/fallback), (3/enlace) y (3/degradados): `DerivarConOrigen` = `""`, distinta de la derivación de siempre. En
+      `degradados` caen los cuatro `cwd` no vacíos;
+    - (4/tras_derivar), (4/acierto_de_cache) y (4/dos_cwd_una_raiz): `Origen` = `false`.
+
+    Ninguna nace verde.
+- **T011** · **Verde**, según plan §2. **Un solo cuerpo**:
+  - `derivarConTechoYRaiz` devuelve `(identidad, origen, huboRaiz)`, con el origen saliendo **del mismo `return`** que la identidad: `raiz` o `ubicacion`;
+  - `DerivarConOrigen` es la entrada, con las dos líneas de siempre y el comentario del ORDEN;
+  - `DerivarConRaiz` delega en ella y descarta el origen;
+  - `derivarConTecho` descarta los dos.
+
+  El `Resolutor` gana `origenes map[string]Origen`, por identidad, y la apunta en un fallo de caché. `cache` no cambia de forma. Suite *(libre 0.48)*:
+  **1094 / 0 / 0**. md5: `resolve.go` `009a64d2…` y `origen_test.go` `3d2cb1b1…`.
+- **«El ref no cambia ni un byte»**: además de los tests de siempre, se repitió la **referencia de SC-012** con el código de B2, con el test temporal de B0 en una
+  copia del árbol: **la cola, el stdout y el stderr, byte a byte iguales** a los de `cabf8c5`.
+- **`HogarReal` y `CuelgaDe`** *(plan §2, último punto)* **se dejan para B5**, donde los usa `aCasa` y los prueba (15). Añadirlos aquí sería producción sin rojo.
+- **T012** · Mutaciones, **con el censo por llamantes** *(la lección de B1)*:
+  - **m4 y m5** tocan el origen que devuelve `DerivarConOrigen`. La llaman `DerivarConRaiz` *(y con ella `Derivar` y `project join`)*, que **descarta el origen**;
+    `Resolutor.Derivar`, que lo apunta; y los tests (3) y (4). El origen apuntado sólo lo lee `Resolutor.Origen`, que no tiene llamantes de producción.
+  - **m6** toca la clave de `origenes`. A `Resolutor.Derivar` lo llaman los seis lectores, pero la identidad no cambia; `Origen` sólo lo lee (4).
+
+  | Mutación | Declarado *(y nada más)* | Cayó | Reversión |
+  |---|---|---|---|
+  | **m4** origen = `filepath.Clean(cwd declarado)` | (3) `/subdirectorio`, `/worktree`, `/enlace`, `/degradados` *(el vacío da `.`)* · (4) `/tras_derivar`, `/acierto_de_cache` · y los 2 padres | **lo mismo** *(1086 / 8)* | `009a64d2…` ✅ |
+  | **m5** origen = `cwd` declarado, sin `Clean` | (3) `/subdirectorio`, `/worktree`, `/fallback`, `/enlace` · (4) `/tras_derivar`, `/acierto_de_cache` · y los 2 padres | **lo mismo** *(1086 / 8)* | `009a64d2…` ✅ |
+  | **m6** `origenes` por `cwd` y no por identidad | (4) `/tras_derivar`, `/acierto_de_cache`, `/dos_cwd_una_raiz` · y su padre | **lo mismo** *(1090 / 4)* | `009a64d2…` ✅ |
+
+  `(4/dos_cwd_una_raiz)` sobrevive a m4 y m5 porque gana la última escritura, la del `cwd` de la raíz, que ya es la raíz.
+- **`resolve_test.go` sigue verde y sin tocar**: 0 B de diff; sus tests, en PASS en el verde y en el corte.
+- **Corte de B2**:
+  - suite *(libre 0.51; 13:46:52 → :59)*: **1094 / 0 / 0**;
+  - gofmt vacío, vet limpio y lint 0 *(libre 0.33)*;
+  - frontera 0 B, ningún `_test.go` existente modificado, `go.mod` sin `require` y sin `go.sum`;
+  - `PRIV` 0 en el diff y en `origen_test.go`.
+- **Incidencias**:
+  1. la primera repetición de la referencia de SC-012 salió distinta por **mi copia**, no por el código: `tar --exclude=tmp` dejó fuera también
+     `plantillas/gemini/tmp/`. Repetida con `git ls-files`, salió igual;
+  2. un `go test ./internal/project/` de 0,1 s corrió en la misma orden, tras la suite del corte, **sin otro `libre.sh`** delante.
 
 ## B3 · El recorrido común
 

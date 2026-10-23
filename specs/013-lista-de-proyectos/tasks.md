@@ -23,7 +23,7 @@
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 268 |
 | `tasks.md` *(este)* | 220 | 206 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 166 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 213 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
 
 ## Una suite a la vez, con la carga vigilada
@@ -88,10 +88,11 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B2 · La derivación con origen *(FR-010, FR-015)* — nace `internal/project/origen_test.go`
 
-- [ ] **T009** Fase 0: `Origen`, `DerivarConOrigen`, que devuelve `"", "", false`, y `Resolutor.Origen`, que devuelve `Origen{}, false`.
-- [ ] **T010** [P] **Rojos (3) y (4)**, sobre copias en `t.TempDir()` de las familias de `internal/project/testdata`.
-- [ ] **T011** **Verde**: plan §2. **Un solo cuerpo**: `derivarConTechoYRaiz` devuelve el origen, y no nace una segunda derivación.
-- [ ] **T012** `[MUTACIÓN]` Censo y **m4–m6**, con md5. Transcribir que `resolve_test.go` sigue verde **sin tocarlo**.
+- [x] **T009** Fase 0: `Origen`, `DerivarConOrigen`, que devuelve `"", "", false`, y `Resolutor.Origen`, que devuelve `Origen{}, false`.
+- [x] **T010** [P] **Rojos (3) y (4)**, sobre copias en `t.TempDir()` de las familias de `internal/project/testdata`.
+- [x] **T011** **Verde**: plan §2. **Un solo cuerpo**: `derivarConTechoYRaiz` devuelve el origen, y no nace una segunda derivación.
+- [x] **T012** `[MUTACIÓN]` Censo y **m4–m6**, con md5. Transcribir que `resolve_test.go` sigue verde **sin tocarlo**.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 *(rojos 1084 / 10 / 0 = declarado; verde 1094 / 0 / 0; SC-012 repetida, byte a byte; m4–m6 = declarado, con el censo por llamantes; `resolve_test.go` 0 B y verde)*.
 - [ ] **T013** ✋ Puertas y commit: `013 B2: la derivacion dice que ruta entro en el hash`.
 
 ## B3 · El recorrido común *(FR-009, FR-024; SC-012)* — nace `cmd/permea/recorrido_test.go`
