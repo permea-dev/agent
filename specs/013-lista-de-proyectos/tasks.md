@@ -161,8 +161,8 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 - [x] **T039** **C2** · **SC-018** *(D-013-W)*: `time permea project list | wc -l` sobre la instalación de WSL, con la huella md5 del `DataDir` antes y
   después. Al registro van sólo el tiempo, las líneas y si la huella es igual. **C3** · `goreleaser release --snapshot --clean` y `strings` con los textos.
   > Transcripción *(2026-10-23)*: [`soporte/registro.md`](./soporte/registro.md) §Cierre · C2 y C3 *(C2: 0,713 s, 6 líneas = 2 identidades, como desc. Q4; 0 B de stderr, salida 0, huella IGUAL. C3: tras su PARA, `goreleaser` 2.18.3, rc 0, `0.9.0-SNAPSHOT-eb15b14`; `strings -e S` 10 de 10 en los dos binarios; sha256 = `checksums.txt`)*.
-- [ ] **T040** ✋ **C4 · W1** *(SC-019)*: en Windows, con el panel delante, cada identidad sin asignar de la instalación, contra la lista. Q-2: el tiempo.
-- [ ] **T041** **C5** · El cuerpo del PR, fuera del repo, y la fecha de la versión en la rama.
+- [x] **T040** *(2026-10-23)* ✋ **C4 · W1** *(SC-019)*: en Windows, con el panel delante, cada identidad sin asignar de la instalación, contra la lista. Q-2: el tiempo.
+- [x] **T041** *(2026-10-23)* **C5** · El cuerpo del PR, fuera del repo, y la fecha de la versión en la rama.
 - [ ] **T042** ✋ **C6** · Fusión del PR con merge commit.
 - [ ] **T043** ✋ **C7** · La etiqueta `v0.10.0`; el workflow `release` en verde.
 - [ ] **T044** **C8** · Los canales en la versión nueva, `sha256sum -c`, y `strings` del binario publicado.

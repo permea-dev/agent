@@ -160,3 +160,22 @@ borraron.
 - **Tamaños**: el `.exe` mide 5 938 176 B y el de linux/amd64, 5 738 648 B, iguales a los de la rama en C1.
 - **Al acabar**: `dist/`, que git ignora, se borró, igual que la copia del `.exe`. `GOPROXY=off go mod tidy` → rc 0, `go.mod` con el mismo md5 y sin `go.sum`.
 
+
+### C4 · W1, el cruce con el panel *(SC-019; T040, hecho por el dueño el 2026-10-23, binario de la rama)*
+
+| Instalación | Tiempo *(Q-2)* | Identidades | En el panel | Eventos y fechas |
+|---|---:|---:|---|---|
+| **WSL** *(binario de la rama)* | **0,41 s** | **2** | las 2, ya asignadas a su proyecto | **iguales** que el panel, en las 2 |
+| **Windows** *(`permea.exe` de la rama, en PowerShell)* | **2,09 s** | **3** | 1 asignada · **2 sin asignar** | **iguales** que el panel, en las 3 |
+
+- **SC-019 cumple: 5 de 5.** Entre las «Sin asignar» del panel, **solo una más** tiene la última fecha ≥ 20-10, y no sale en ninguna de las dos listas: es del equipo
+  viejo *(el traslado del 20-10)*, con otra sal. Es la limitación «otras instalaciones» de spec §Limitaciones.
+- **Las tildes en Windows**: escritas directamente en la consola, se ven bien *(«también», «aún», «…»)*. **Capturadas por una tubería de PowerShell 5.1**
+  *(`| Out-File`)*, salen con caracteres rotos, porque PowerShell decodifica con la página de códigos de la consola. **No es de la 013**: pasa igual con cualquier
+  texto con tildes del agente. README y CHANGELOG, aprobados, **no cambian**.
+- **Observación del dueño, para después de esta versión**: una ruta muy larga *(p. ej., la de una carpeta temporal)* ensancha la columna CARPETA de todas las
+  filas. Candidata: recortar la carpeta por el medio con «…» a partir de un ancho. *(Este repo no tiene backlog propio: va en el informe.)*
+
+### C5 · La fecha y el cuerpo del PR *(T041, 2026-10-23)*
+- `CHANGELOG.md`: `## 0.10.0 — PENDIENTE` → `## 0.10.0 — 2026-10-23`, y nada más.
+- El cuerpo del PR, **fuera del repo**: `tmp/pr-013.md`.

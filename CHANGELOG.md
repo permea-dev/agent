@@ -3,7 +3,7 @@
 Cambios visibles del agente `permea`, de la versión más reciente a la más antigua. Cada punto cita la
 especificación de la que sale (`specs/NNN-…/spec.md`).
 
-## 0.10.0 — PENDIENTE
+## 0.10.0 — 2026-10-23
 
 ### Nuevo
 - `permea project list`: enseña, en esta instalación, qué carpeta hay detrás de cada identidad del panel, para poder asignar las
