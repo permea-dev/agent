@@ -22,10 +22,10 @@
 |---|---:|---:|
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 269 |
-| `tasks.md` *(este)* | 220 | 216 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 205 |
+| `tasks.md` *(este)* | 220 | 217 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 86 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
-| `soporte/registro-archivo.md` *(§B0–§B3, desde el 23-10)* | sin techo | 256 |
+| `soporte/registro-archivo.md` *(§B0–§B6, desde el 23-10)* | sin techo | 394 |
 
 ## Una suite a la vez, con la carga vigilada
 
@@ -113,7 +113,7 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 - [x] **T020** [P] **Rojos (7) a (12)**, con eventos hechos a mano y `origen` y `existe` inyectados.
 - [x] **T021** **Verde**: plan §4 y §5. La tabla de nombres, con los seis de D-1 en el orden de P-3.
 - [x] **T022** `[MUTACIÓN]` Censo y **m9–m11**, con md5.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B4 *(rojos 1101 / 16 / 0 = declarado; verde 1117 / 0 / 0; m9 interrumpida sin resultado y repetida; m9–m11 = declarado, por hoja; corte 1117 / 0 / 0, vet y lint 0)*.
+  > Transcripción: [`soporte/registro-archivo.md`](./soporte/registro-archivo.md) §B4 *(rojos 1101 / 16 / 0 = declarado; verde 1117 / 0 / 0; m9 interrumpida sin resultado y repetida; m9–m11 = declarado, por hoja; corte 1117 / 0 / 0, vet y lint 0)*.
 - [ ] **T023** ✋ Puertas y commit: `013 B4: agregar por identidad con los nombres comerciales`.
 
 ## B5 · La tabla *(FR-017 a FR-022; SC-001, SC-010, SC-011)* — nace `cmd/permea/lista_formato_test.go`
@@ -122,7 +122,7 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 - [x] **T025** [P] **Rojos (13) a (16)**. (13), con el bloque de spec §Textos **copiado por programa** *(`awk` sobre `spec.md`)*, no a mano.
 - [x] **T026** **Verde**: plan §6.
 - [x] **T027** `[MUTACIÓN]` Censo y **m12–m14**, con md5. m12 cae en (13) porque `…` ocupa 3 bytes: se declara así.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 *(rojos 1117 / 17 / 0 = declarado; verde 1134 / 0 / 0; m12–m14 = declarado, por hoja; `libre.sh` como hijo directo; corte repetido tras `revive` y `PRIV`: 1134 / 0 / 0, lint 0)*.
+  > Transcripción: [`soporte/registro-archivo.md`](./soporte/registro-archivo.md) §B5 *(rojos 1117 / 17 / 0 = declarado; verde 1134 / 0 / 0; m12–m14 = declarado, por hoja; `libre.sh` como hijo directo; corte repetido tras `revive` y `PRIV`: 1134 / 0 / 0, lint 0)*.
 - [ ] **T028** ✋ Puertas y commit: `013 B5: la tabla de project list`.
 
 ## B6 · El comando *(FR-001 a FR-003, FR-006 a FR-008, FR-023; SC-006, SC-013, SC-014)* — nace `cmd/permea/lista_test.go`
@@ -134,7 +134,7 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
   de verbos *(`project.go:98`, `:108`)*, la fila de ayuda y `ayudasDeSubcomando["project list"]`, con `"project"` → `[]int{2, 3}` *(`ayuda.go:115-120`)*.
   Los textos, **sacados por programa** de spec §Textos.
 - [x] **T031** `[MUTACIÓN]` Censo y **m15–m17**, con md5. Transcribir que los `TestAyuda_*` y `TestProject*` existentes siguen verdes **sin tocarlos**.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B6 *(rojos 1135 / 16 / 0 = declarado, con (21/plain) nacido verde; verde 1151 / 0 / 0; m15–m17 = declarado, por hoja; los existentes, verdes sin tocar; corte 1151 / 0 / 0, lint 0, `PRIV` 0 tras corregir §B5)*.
+  > Transcripción: [`soporte/registro-archivo.md`](./soporte/registro-archivo.md) §B6 *(rojos 1135 / 16 / 0 = declarado, con (21/plain) nacido verde; verde 1151 / 0 / 0; m15–m17 = declarado, por hoja; los existentes, verdes sin tocar; corte 1151 / 0 / 0, lint 0, `PRIV` 0 tras corregir §B5)*.
 - [ ] **T032** ✋ Puertas y commit: `013 B6: el verbo project list`.
 
 ## B7 · Los seis lectores y la frontera *(FR-004, FR-005, FR-009, FR-010, FR-015, FR-016; SC-002 a SC-005, SC-007, SC-009)* — nace `cmd/permea/lista_frontera_test.go`
@@ -149,9 +149,10 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B8 · README y CHANGELOG *(spec §Limitaciones, Q-1)*
 
-- [ ] **T037** ✋ **El dueño aprueba los textos**: «`permea project list`» en el README y la entrada `0.10.0` en el CHANGELOG, con las limitaciones de
+- [x] **T037** ✋ **El dueño aprueba los textos**: «`permea project list`» en el README y la entrada `0.10.0` en el CHANGELOG, con las limitaciones de
   spec §Limitaciones. Claude los propone en un encargo aparte. **Rojo**: `grep -c '^## 0.10.0'` y `grep -c 'project list' README.md` → 0. **Verde**: los
   textos **sacados por programa**, y `cmp` sin diferencias. Commit ✋: `013 B8: README y CHANGELOG`.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B8 *(textos de B8a **aprobados tal cual por el dueño el 2026-10-23**; rojo 0 y 0; verde 1 y 4, con los tres `cmp` y el de la tabla contra spec §Textos sin diferencias; 1166 / 0 / 0)*.
 
 ## Cierre — en tramos, uno por mensaje *(plan §Cierre)*
 

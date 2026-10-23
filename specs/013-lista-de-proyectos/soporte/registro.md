@@ -66,6 +66,21 @@ dueño el 23-10 *(`tasks.md` §Presupuesto)*. ⛔ **Ni rutas reales, ni nombres 
 - **`PRIV`, medido al final**, tras escribir este registro y el informe: **0** en `git diff cabf8c5`, en lo no versionado, en el testdata *(`-a`)*, en el
   registro y en el informe.
 
-## B8 · README y CHANGELOG
+## B8 · README y CHANGELOG *(sobre `fee77c2`)*
+
+- **B8a** *(`fee77c2`)*: §B4–§B6, al archivo; las propuestas de texto, en el informe, sin tocar los ficheros.
+- **T037** · **El dueño aprueba los textos de B8a tal cual** *(2026-10-23)*: la entradilla de `## Comandos`, la sección `### permea project list` y `## 0.10.0 —
+  PENDIENTE`. Se copia el informe de B8a a `tmp/b8a-propuestas.md` *(md5 `cea5b2af…`)*, y de ahí salen los textos.
+  - **Rojo**, declarado en el encargo: `grep -c '^## 0.10.0' CHANGELOG.md` → **0**; `grep -c 'project list' README.md` → **0**.
+  - **Escritos por programa**:
+    - los tres bloques se extraen con `awk` de `tmp/b8a-propuestas.md`, y antes se comprueba con `cmp` que son las propuestas;
+    - la entradilla sustituye a `README.md:85-90`, la lista y la frase de HTTPS; las líneas 83–84 no cambian en la propuesta;
+    - la sección va tras la de `project join` y antes de `## Modos de ejecución`;
+    - la entrada, antes de `## 0.9.0`.
+  - **Verde**:
+    - `grep` → **1** y **4**;
+    - `cmp` sin diferencias de los tres bloques contra lo escrito;
+    - `cmp` sin diferencias del ejemplo del README, sin la sangría, contra el bloque «La salida» de spec §Textos *(8 líneas)*.
+  - Puertas y `PRIV`: en el informe de B8.
 
 ## Cierre

@@ -85,9 +85,10 @@ Tres subcomandos, y el orden en que aparecen es el orden en que se usan:
     permea enroll [<enrollment-string>]   empareja la instalación con su backend
     permea status                         informa si la instalación está enrolada, y contra qué
     permea project join [<código>]        une este árbol de trabajo a un Proyecto
+    permea project list                   enseña qué carpeta hay detrás de cada identidad
 
 `enroll` y `project join` exigen **HTTPS**, sin exención ni modo de desarrollo: es la misma
-frontera que la emisión de eventos. `status` no contacta con nadie.
+frontera que la emisión de eventos. `status` y `project list` no contactan con nadie.
 
 ### `permea enroll` — emparejar la instalación con su backend
 
@@ -138,6 +139,47 @@ servidor**, sobre lo que ya llegó.
   efecto vive en el servidor, y los ficheros del directorio de datos quedan igual que estaban.
 - La operación es **de un solo intento**: transmite y espera. Nunca queda en la cola de envío
   diferido, ni siquiera con el servidor inalcanzable.
+
+### `permea project list` — qué carpeta hay detrás de cada identidad
+
+    permea project list
+
+En el panel, el consumo de una carpeta que aún no está unida a ningún Proyecto aparece como una
+**identidad sin asignar**: un hash, sin nombre. Este comando enseña, en esta instalación, **qué
+carpeta hay detrás de cada una**, para poder asignarla. Una fila por identidad, con los mismos 12
+primeros caracteres que el panel, su carpeta, las herramientas, los eventos y las fechas:
+
+    IDENTIDAD      CARPETA                            HERRAMIENTAS        EVENTOS  DESDE       HASTA
+    08926050c4b8…  ~/dev/proyecto-ejemplo             Claude Code, Codex    1.240  2026-10-03  2026-10-23
+    3f1c9a77d02e…  ~/dev/otro-proyecto                Claude Code             412  2026-10-12  2026-10-22
+    b7e40d915a63…  ~/pruebas/tmp-1 (sin repositorio)  Gemini CLI               18  2026-10-20  2026-10-20
+    c05d2e8a1f94…  ~/dev/viejo (ya no existe)         Claude Code               7  2026-10-05  2026-10-06
+
+    4 identidades, 1.677 eventos. Fechas en UTC, como en el panel.
+    Cuenta lo que las herramientas conservan en disco, también lo aún no enviado: el panel puede tener más o menos.
+
+- **La carpeta** es la raíz del repositorio o, si no hay repositorio, el propio directorio; la
+  carpeta personal se escribe `~`. `(sin repositorio)` marca una carpeta sin `.git`, que
+  `project join` no puede unir; `(ya no existe)`, una carpeta que se borró o se movió.
+- **Las fechas van en UTC**, como en el panel, y los eventos se cuentan como allí: un mensaje que
+  aparece en dos ficheros cuenta una vez.
+- **Es local y de solo lectura**: no envía nada, no abre la red y no escribe en disco —ni la cola,
+  ni el estado, ni la sal—. No necesita estar enrolado. Si aún no hay sal, es que la instalación no
+  ha medido nada, y lo dice.
+- **Es el primer comando que imprime rutas reales de tu disco**, y sólo en tu terminal: nada de eso
+  cruza la frontera.
+
+Lo que puede no cuadrar con el panel, y por qué:
+
+- **El panel puede tener más o menos.** Más: lo que las herramientas ya borraron de disco, lo que
+  envió una versión anterior a la 0.3.0 y lo de otras instalaciones, que tienen otra sal. Menos: lo
+  que aún no se ha enviado.
+- **Las identidades de antes de la 0.3.0 no se listan**: se calculaban con otra regla.
+- **La identidad se recalcula con las carpetas como están hoy.** Si una carpeta se movió, si se hizo
+  `git init` después o si cambió un enlace, la identidad listada no es la que viajó.
+- **Un mensaje de Claude Code todavía abierto** *(menos de 10 minutos sin cambios)* no cuenta aún.
+- **En Windows**, la misma carpeta escrita con otras mayúsculas da dos identidades.
+- **Una ruta con caracteres de doble ancho** *(CJK, emoji)* descuadra la tabla.
 
 ## Modos de ejecución
 
