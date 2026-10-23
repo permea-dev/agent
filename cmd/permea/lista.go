@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/permea-dev/agent/internal/config"
 	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/project"
 )
@@ -137,6 +139,54 @@ func conocido(id string) bool {
 		}
 	}
 	return false
+}
+
+// ═══ 013 B6 · EL VERBO ══════════════════════════════════════════════════════════════════════════════════════════════
+
+// Los textos de `project list`, letra a letra *(spec §Textos; los errores, aprobados por el dueño el 23-10)*. Generados desde la spec.
+const (
+	textoSinSal         = "Esta instalación aún no ha medido nada."
+	textoSinArgumentos  = "error: project list no admite argumentos. Ayuda: permea project list -h"
+	textoConfigIlegible = "error: la configuración local no se puede leer: %v"
+	textoSalIlegible    = "error: la sal de esta instalación no se puede leer: %v"
+)
+
+// projectList es `permea project list` *(013 FR-001 a FR-008)*: sólo lee, y NUNCA crea nada *(D-6)*. Por eso no pasa por `setup()`,
+// que crea la sal y el `machine_id`: el `DataDir` y la sal se leen sin crearlos *(`RutaDataDir`, `LeerSalt`)*, y la configuración,
+// sólo por `logs_root`.
+//   - `-h` y `--help` dan la ayuda; cualquier otro argumento, el error de uso, sin reproducirlo *(P-7)*.
+//   - Sin sal, no hay nada medido: lo dice y sale con 0 *(D-5, P-11)*.
+//   - `project_ref_mode: "plain"` ni detiene ni avisa *(P-8)*: la lista no emite nada.
+//
+// 013 B6: la tubería *(recorrer → agregar → formatear)* la conecta B7. Hasta entonces, con sal, sale con 0 sin escribir nada.
+func projectList(args []string, stdout, stderr io.Writer) int {
+	if esPeticionDeAyudaDeSubcomando(args) {
+		escribirAyudaDe(stdout, "project list")
+		return codigoExito
+	}
+	if len(args) > 0 {
+		_, _ = fmt.Fprintln(stderr, textoSinArgumentos)
+		return codigoFallo
+	}
+	dir, err := config.RutaDataDir()
+	if err != nil {
+		_, _ = fmt.Fprintln(stderr, "error:", err)
+		return codigoFallo
+	}
+	_, existe, err := config.LeerSalt(dir)
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, textoSalIlegible+"\n", err)
+		return codigoFallo
+	}
+	if !existe {
+		_, _ = fmt.Fprintln(stdout, textoSinSal)
+		return codigoExito
+	}
+	if _, err := config.Load(filepath.Join(dir, "config.json")); err != nil {
+		_, _ = fmt.Fprintf(stderr, textoConfigIlegible+"\n", err)
+		return codigoFallo
+	}
+	return codigoExito
 }
 
 // ═══ 013 B5 · LA TABLA ══════════════════════════════════════════════════════════════════════════════════════════════

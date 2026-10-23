@@ -85,7 +85,7 @@ dueño el 23-10 *(`tasks.md` §Presupuesto)*. ⛔ **Ni rutas reales, ni nombres 
 
 - **El primer corte no salió limpio**:
   - `revive`: `redefines-builtin-id`, la variable `real` de (15/enlace), pasa a `casaReal`;
-  - `PRIV` 1: el comentario de `CuelgaDe` decía «/home/ana2», y pasa a «`<hogar>2` no cuelga de `<hogar>`».
+  - `PRIV` 1: el comentario de `CuelgaDe` llevaba una ruta de ejemplo con forma de directorio personal, y pasa a «`<hogar>2` no cuelga de `<hogar>`».
 
   Son un test y un comentario, sin conducta: tras ellos, `resolve.go` `acb07a6d…` y `lista_formato_test.go` `04e982e7…`, y se **repitió el corte entero**.
 - **Corte de B5**:
@@ -101,7 +101,51 @@ dueño el 23-10 *(`tasks.md` §Presupuesto)*. ⛔ **Ni rutas reales, ni nombres 
 
   Desde B6 se guarda su salida entera para mirarlo.
 
-## B6 · El comando
+## B6 · El comando *(`cmd/permea/lista.go`, `project.go`, `ayuda.go`; sobre `a6d557c`)*
+
+- **T029** · `case "list"` en `runProject`, hacia `projectList` *(en `lista.go`)*, un esqueleto que sale con 0 sin hacer nada. **Rojos (17) a (21)**, en
+  `cmd/permea/lista_test.go`, por el binario de prueba y en `testutil.Sandbox`. Cada texto esperado sale de spec §Textos **por programa** *(`bloqueDeLaSpec`)*.
+  - Declarado antes de correr:
+    - (17) `sin_sal`: stdout vacío, no el texto; `ilegible`: salida 0, no 1;
+    - (18) `x` y `secreto`: salida 0, no el error de uso;
+    - (19) `-h` y `--help`: stdout vacío; `en_la_general` y `en_project`: sin la fila;
+    - (20) `falta` y `desconocido`: dicen «join» sin `list`;
+    - (21) `ilegible`: salida 0. **`plain` nace verde**, porque el esqueleto sale con 0 sin escribir; lo valida m17.
+  - Se esperaba **1135 / 16 / 0** y salió **1135 / 16 / 0**. `libre.sh` no listó ningún proceso.
+- **T030** · **Verde**:
+  - **los textos, generados por un guion que lee spec §Textos**, sin teclear ninguno: la fila de ayuda de `project list` *(índice 3 de `filasDeSubcomandos`)*;
+    `ayudasDeSubcomando["project list"]` con `uso: permea project list`, y `"project"` → `[]int{2, 3}`; los dos mensajes de verbos *(`project.go:98`, `:110`)*; y
+    `textoSinSal`, `textoSinArgumentos`, `textoConfigIlegible` y `textoSalIlegible`;
+  - `projectList`, por orden:
+    - `-h` y `--help` dan la ayuda; cualquier otro argumento, el error de uso;
+    - después, `RutaDataDir` → `LeerSalt`: si es ilegible, el error con salida 1; sin sal, el texto con salida 0;
+    - y `Load`: si es ilegible, el error con salida 1; si no, sale con 0 sin escribir nada.
+
+    **No** pasa por `setup()` ni llama a `CheckRetiredProjectRefMode` *(P-8)*. La tubería la conecta B7.
+
+  Suite: **1151 / 0 / 0**. md5: `lista.go` `890a202e…`, `project.go` `d95bb1f6…`, `ayuda.go` `8ef71c7d…` y `lista_test.go` `bd1ff006…`.
+- **T031** · Censo por llamantes y por hoja, leyendo cada test entero:
+  - **`projectList`** sólo lo ejercen (17)–(21): ningún test existente ejecuta `project list`;
+  - **los mensajes de verbos**, además, `TestProject_ErroresDeUsoDeLaGramatica`, que sólo exige salida 1, stderr no vacío y stdout vacío en sus 3 hojas;
+  - **la ayuda de `project`**, `TestAyudaSubcomando_NoHaceNada`, `TestAyuda_AnchoMaximo80` y `TestAyuda_SinJergaInterna`, que no tocan los verbos ni la sal.
+
+  | Mutación | Declarado *(y nada más)* | Cayó | Reversión |
+  |---|---|---|---|
+  | **m15** `LoadOrCreateSalt` en vez de `LeerSalt` | `TestProjectList_LaSal`, `/sin_sal` *(`/ilegible` sobrevive: `LoadOrCreateSalt` también falla con un directorio)* | **lo mismo** *(1149 / 2)* | `lista.go` `890a202e…` ✅ |
+  | **m16** «Verbos disponibles: join» en los dos | `TestProjectList_Verbos`, `/falta`, `/desconocido` | **lo mismo** *(1148 / 3)* | `project.go` `d95bb1f6…` ✅ |
+  | **m17** se detiene por `plain` | `TestProjectList_Configuracion`, `/plain` *(con JSON inválido, `CheckRetired…` da `nil`)* | **lo mismo** *(1149 / 2)* | `lista.go` `890a202e…` ✅ |
+
+  **Los `TestAyuda_*` y `TestProject*` existentes siguen verdes sin tocarlos**: en el corte, 50 `TestAyuda_*` y 57 `TestProject*`, sin contar
+  `TestProjectList_*`, contando hojas, todos en PASS.
+- **Incidencia, arreglada**: `PRIV` daba **1** en `git diff cabf8c5`. Era **mi entrada de §B5 en este registro**, ya en el commit `a6d557c`, que citaba la ruta
+  de ejemplo del comentario corregido. El corte de B5 midió `PRIV` antes de escribirla. Se reescribe sin la ruta, y `PRIV` vuelve a 0.
+- **Corte de B6**:
+  - suite *(17:37:21 → :27)*: **1151 / 0 / 0**;
+  - gofmt vacío, vet limpio y lint 0;
+  - frontera 0 B, ningún `_test.go` existente modificado, `go.mod` sin `require` y sin `go.sum`;
+  - `PRIV` 0 en el diff, en lo no versionado y en el testdata *(`-a`)*.
+
+  `libre.sh` *(con `timeout`)* no listó ningún proceso en ninguna de sus seis esperas.
 
 ## B7 · Los seis lectores y la frontera
 

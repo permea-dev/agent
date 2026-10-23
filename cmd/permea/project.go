@@ -95,17 +95,19 @@ func runProject(args []string, stdin io.Reader, stdinEsPipe bool, stdout, stderr
 		return codigoExito
 	}
 	if len(args) == 0 {
-		_, _ = fmt.Fprintln(stderr, "error: falta el verbo. Verbos disponibles: join")
+		_, _ = fmt.Fprintln(stderr, "error: falta el verbo. Verbos disponibles: join, list")
 		return codigoFallo
 	}
 
 	switch args[0] {
 	case "join":
 		return projectJoin(args[1:], stdin, stdinEsPipe, stdout, stderr, adherir)
+	case "list":
+		return projectList(args[1:], stdout, stderr) // 013: lee, no envía; vive en `lista.go`
 	default:
 		// NUNCA se intenta interpretar ni corregir el verbo (`contracts/cli.md` §La gramática): un
 		// comando que adivina lo que quisiste decir ejecuta lo que no pediste.
-		_, _ = fmt.Fprintf(stderr, "error: verbo desconocido %q. Verbos disponibles: join\n", args[0])
+		_, _ = fmt.Fprintf(stderr, "error: verbo desconocido %q. Verbos disponibles: join, list\n", args[0])
 		return codigoFallo
 	}
 }

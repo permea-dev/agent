@@ -21,9 +21,9 @@
 | Fichero de `specs/013-lista-de-proyectos/` | Techo | Hoy |
 |---|---:|---:|
 | `spec.md` | 320 | 304 |
-| `plan.md` | 280 | 268 |
-| `tasks.md` *(este)* | 220 | 206 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 110 |
+| `plan.md` | 280 | 269 |
+| `tasks.md` *(este)* | 220 | 215 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 154 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
 | `soporte/registro-archivo.md` *(§B0–§B3, desde el 23-10)* | sin techo | 256 |
 
@@ -127,13 +127,14 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B6 · El comando *(FR-001 a FR-003, FR-006 a FR-008, FR-023; SC-006, SC-013, SC-014)* — nace `cmd/permea/lista_test.go`
 
-- [ ] **T029** Fase 0 y **rojos (17) a (21)**: `case "list"` en `runProject` *(`project.go:103`)*, con un `projectList` *(en `lista.go`)* que sale con 0
+- [x] **T029** Fase 0 y **rojos (17) a (21)**: `case "list"` en `runProject` *(`project.go:103`)*, con un `projectList` *(en `lista.go`)* que sale con 0
   sin hacer nada.
-- [ ] **T030** **Verde**: `projectList` hasta la tubería: RutaDataDir → LeerSalt → Load. Con sal, **sale con 0 sin escribir nada**: la tubería la conecta
+- [x] **T030** **Verde**: `projectList` hasta la tubería: RutaDataDir → LeerSalt → Load. Con sal, **sale con 0 sin escribir nada**: la tubería la conecta
   B7. Más los dos mensajes
   de verbos *(`project.go:98`, `:108`)*, la fila de ayuda y `ayudasDeSubcomando["project list"]`, con `"project"` → `[]int{2, 3}` *(`ayuda.go:115-120`)*.
   Los textos, **sacados por programa** de spec §Textos.
-- [ ] **T031** `[MUTACIÓN]` Censo y **m15–m17**, con md5. Transcribir que los `TestAyuda_*` y `TestProject*` existentes siguen verdes **sin tocarlos**.
+- [x] **T031** `[MUTACIÓN]` Censo y **m15–m17**, con md5. Transcribir que los `TestAyuda_*` y `TestProject*` existentes siguen verdes **sin tocarlos**.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B6 *(rojos 1135 / 16 / 0 = declarado, con (21/plain) nacido verde; verde 1151 / 0 / 0; m15–m17 = declarado, por hoja; los existentes, verdes sin tocar; corte 1151 / 0 / 0, lint 0, `PRIV` 0 tras corregir §B5)*.
 - [ ] **T032** ✋ Puertas y commit: `013 B6: el verbo project list`.
 
 ## B7 · Los seis lectores y la frontera *(FR-004, FR-005, FR-009, FR-010, FR-015, FR-016; SC-002 a SC-005, SC-007, SC-009)* — nace `cmd/permea/lista_frontera_test.go`

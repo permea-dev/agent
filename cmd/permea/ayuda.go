@@ -83,6 +83,16 @@ var filasDeSubcomandos = []filaDeAyuda{
 		},
 		ejemplos: []string{`echo "$CODIGO" | permea project join -`},
 	},
+	{
+		sinopsis: "project list",
+		descripcion: []string{
+			"Enseña los proyectos que ha medido esta instalación: la identidad",
+			"que ves en el panel, su carpeta, las herramientas, los eventos y las",
+			"fechas. Sirve para saber de qué carpeta es cada identidad sin",
+			"asignar. Sólo lee lo que conservan las herramientas: no envía nada",
+			"ni cambia lo que queda por enviar.",
+		},
+	},
 }
 
 // filasDeOpciones son las opciones y la de ayuda.
@@ -115,8 +125,9 @@ var ayudasDeSubcomando = map[string]struct {
 }{
 	"enroll":       {"uso: permea enroll [<enrollment-string>]", "", []int{0}},
 	"status":       {"uso: permea status", "", []int{1}},
-	"project":      {"uso: permea project <verbo>", "Verbos:", []int{2}},
+	"project":      {"uso: permea project <verbo>", "Verbos:", []int{2, 3}},
 	"project join": {"uso: permea project join [<código>]", "", []int{2}},
+	"project list": {"uso: permea project list", "", []int{3}},
 }
 
 // escribirLineas escribe cada línea con la sangría dada.
