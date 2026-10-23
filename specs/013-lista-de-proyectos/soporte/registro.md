@@ -179,3 +179,21 @@ borraron.
 ### C5 · La fecha y el cuerpo del PR *(T041, 2026-10-23)*
 - `CHANGELOG.md`: `## 0.10.0 — PENDIENTE` → `## 0.10.0 — 2026-10-23`, y nada más.
 - El cuerpo del PR, **fuera del repo**: `tmp/pr-013.md`.
+
+### C6 a C8 · Fusión, etiqueta y canales *(T042–T044, hechos por el dueño el 2026-10-23)*
+
+- **C6**: el PR #10, fusionado con merge commit, `0e1b342`. Sin checks de CI, que es lo normal en este repo: sólo `release.yml` corre con la etiqueta. La rama,
+  borrada en local y en remoto.
+- **C7**: la etiqueta **`v0.10.0`**, anotada, sobre `0e1b342`; el workflow `release`, en `completed · success`.
+- **C8**, descargado por el dueño en un temporal:
+  - 5 archivos y `permea_0.10.0_checksums.txt`, con `sha256sum -c` **OK ×5**;
+  - el binario de linux/amd64: `--version` → `0.10.0`, y «uso: permea project list» ×1 y «Fechas en UTC, como en el panel.» ×1;
+  - **Scoop** *(`scoop-permea/permea.json`)*: `0.10.0`, con el hash del zip de Windows igual al de las sumas;
+  - **el cask** *(`homebrew-permea/Casks/permea.rb`)*: `0.10.0`, con sus 4 `sha256`.
+- **Las instalaciones del dueño, en 0.10.0**:
+  - **WSL**, por `install.sh`, con el checksum verificado. La primera vez dio «Text file busy», porque `permea.service`, de systemd de usuario, estaba en marcha. Se
+    paró, se instaló y se arrancó, y queda `active (running)`;
+  - **Windows**, por `scoop update permea`, con el hash OK.
+- **`goreleaser` 2.18.3**, instalado en WSL en `~/.local/bin` para C3. En el equipo nuevo sólo estaba en Windows, por scoop.
+- **La 013, cerrada**: spec §Cierre, con los 19 SC ✅.
+

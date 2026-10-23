@@ -1,6 +1,6 @@
 # 013 · «Lista de proyectos» — Especificación
 
-**Feature Branch**: `013-lista-de-proyectos` · **Created**: 2026-10-23 · **Status**: **Ratificada el 2026-10-23**
+**Feature Branch**: `013-lista-de-proyectos` · **Created**: 2026-10-23 · **Status**: **Cerrada (2026-10-23)**, ratificada el mismo día
 *(D-1 a D-11 y P-1 a P-12, del dueño; la 0.10.0 y SC-016, también)* · **Cabeza de partida**: `6417548` *(«013 B0: descubrimiento»; el código es el de `cabf8c5`, 0.9.0)*
 **Input**:
 - las decisiones del dueño D-1 a D-11 *(2026-10-23)*;
@@ -264,20 +264,12 @@ La última es la de un error de lectura de Claude Code *(P-6)*: el mismo `error:
 
 ## Censo de tests *(detalle en el plan §7)*
 
-**Ninguno de los 1074 existentes cambia.** Ninguno afirma «Verbos disponibles: join» literal: `TestProject_ErroresDeUsoDeLaGramatica` sólo exige
-salida 1, stderr no vacío y stdout vacío *(`cmd/permea/project_test.go:555-583`)*. `lasCincoAyudas` *(`ayuda_test.go:299-307`)* no se amplía: la sexta
-ayuda tiene sus pruebas en un fichero nuevo. Si alguno tuviera que cambiar, **PARA**.
+**Ninguno de los 1074 existentes cambia**: ni `TestProject_ErroresDeUsoDeLaGramatica` ni `lasCincoAyudas`. Los 1074, por nombre, en PASS en C1.
 
 ## Fuera de alcance
 
-| # | Qué | Por qué |
-|---|---|---|
-| **N-1** | `--json` | D-8 |
-| **N-2** | `project join` con carpeta o con hash | D-9; desc. Q7 |
-| **N-3** | Las identidades de la 0.2.x | D-7 |
-| **N-4** | Marcar las identidades ya unidas | No hay dato local *(desc. Q5)*, y preguntar a la plataforma es red *(D-6)* |
-| **N-5** | Otra instalación u otro usuario | Otra sal *(desc. Q2)* |
-| **N-6** | Filtros, por herramienta o por fecha | No pedidos |
+**N-1** `--json` *(D-8)* · **N-2** `project join` con carpeta o con hash *(D-9; desc. Q7)* · **N-3** las identidades de la 0.2.x *(D-7)* · **N-4** marcar las
+ya unidas *(no hay dato local, desc. Q5; preguntar es red, D-6)* · **N-5** otra instalación u otro usuario *(otra sal, desc. Q2)* · **N-6** filtros *(no pedidos)*.
 
 ## Dependencias
 - **La plataforma**: el nombre `copilot_cli` → **GitHub Copilot CLI** falta en el mapa del panel
@@ -289,10 +281,34 @@ ayuda tiene sus pruebas en un fichero nuevo. Si alguno tuviera que cambiar, **PA
 
 ## Preguntas abiertas
 
-| # | Pregunta | Mientras tanto | Cómo se cierra |
-|---|---|---|---|
-| **Q-1** ✅ *(cerrada: el dueño, 23-10)* | ¿Qué versión? | — | **0.10.0** |
-| **Q-2** | ¿Tarda lo mismo con Codex, Gemini, OpenCode, Copilot y Kimi? | La referencia de OpenCode, ≈ 1 ms/MB *(desc. Q4)* | W1, en Windows, con lo que haya |
+**Cerradas las dos.** **Q-1** ✅ la versión, **0.10.0** *(el dueño, 23-10)*. **Q-2** ✅ el tiempo, medido en W1: **0,41 s** en WSL y **2,09 s** en Windows *(registro §Cierre · C4)*.
+
+## Cierre *(2026-10-23)*
+
+**Entregado**: `permea project list` en la **0.10.0** *(PR #10, merge `0e1b342`, etiqueta `v0.10.0`)*, publicada en los tres canales; README y CHANGELOG, aprobados.
+- **SC-001** ✅ el ejemplo de §Textos, byte a byte *((13))*.
+- **SC-002** ✅ los seis lectores, salida exacta, con el aviso de un fichero ilegible *((22))*.
+- **SC-003** ✅ las identidades de la lista = las de `--run` *((23))*.
+- **SC-004** ✅ 0 peticiones y 0 conexiones a un servidor de confianza *((24); m19)*.
+- **SC-005** ✅ la huella del sandbox, igual; sin `DataDir`, no se crea *((25); m18, M-B7a)*.
+- **SC-006** ✅ sin sal, el texto y salida 0, sin crearla; ilegible, el error *((17))*.
+- **SC-007** ✅ una sola marca, en agregación y en disco *((11), (22))*.
+- **SC-008** ✅ el orden, con empates y un id desconocido *((10), (12))*.
+- **SC-009** ✅ la copia de Claude Code cuenta una vez *((7), (26))*.
+- **SC-010** ✅ el punto de miles y el singular *((14))*.
+- **SC-011** ✅ la carpeta personal como `~`, por segmentos y con enlace *((15))*.
+- **SC-012** ✅ `--run` byte a byte el de `cabf8c5`, y los 1074 por nombre *((5); C1)*.
+- **SC-013** ✅ la ayuda literal; en el snapshot, 10 de 10; en el binario publicado, los textos *((19); C3, C8)*.
+- **SC-014** ✅ con argumentos, el error de uso sin reproducirlos *((18))*.
+- **SC-015** ✅ vet y lint 0, frontera 0 B, sin `require` ni `go.sum` *(C1)*.
+- **SC-016** ✅ como mucho +25 216 B, en darwin/amd64: el 49 % de 50 KB *(C1)*.
+- **SC-017** ✅ `PRIV` 0 en el diff y en el testdata *(C1 y cada corte)*.
+- **SC-018** ✅ 0,713 s en WSL; 2 identidades, como desc. Q4 *(C2)*.
+- **SC-019** ✅ 5 de 5, con eventos y fechas iguales al panel *(C4, el dueño)*.
+
+**Las dos lecciones** *(registro)*:
+1. El censo de una mutación baja por **todos los llamadores** de lo que se muta, hasta **cada hoja**, leyendo cada test entero *(B1, B3)*.
+2. `PRIV` se mide **al final**, después de escribir el registro y el informe *(B5)*.
 
 ## Registro de enmiendas
 
