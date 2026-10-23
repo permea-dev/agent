@@ -113,3 +113,50 @@ sesión**: go1.22.2, `CGO_ENABLED=0`, `-trimpath -ldflags "-s -w …"` y sin lí
 La mayor es **+25 216 B, el 49 % del tope**. La 0.9.0 da las mismas cifras que en B0, también medidas esta sesión. Los árboles y los binarios temporales se
 borraron.
 
+### C2 · SC-018, la medida sobre la instalación de WSL *(T039, 2026-10-23, sobre `eb15b14`)* — **D-013-W, estricto**
+
+- **El binario**: `git archive HEAD` en un temporal del scratchpad, con `CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=0.10.0"`; `--version` →
+  `0.10.0`. El temporal se borró.
+- **Cómo se midió**:
+  - `<binario> project list`, con stdout a `wc -l`, stderr a `wc -c` y el código aparte;
+  - la huella del `DataDir`: el md5 de la lista ordenada de «md5 + tamaño + `mtime` en ns» de cada fichero, **sólo en variables**.
+
+  No se imprimió ninguna ruta, nombre ni identidad, ni se abrió ningún fichero de las herramientas.
+
+| Medida | Resultado |
+|---|---|
+| tiempo | **0,713 s** *(SC-018: ≤ 2 s)* |
+| líneas de stdout | **6** *(cabecera, 2 filas, la línea en blanco y las 2 del pie)* |
+| bytes de stderr | **0** |
+| código de salida | **0** |
+| huella del `DataDir` | **IGUAL** antes y después *(5 ficheros, y 5 después)* |
+
+**SC-018, cerrado** *(dueño, 23-10)*: el recuento independiente del mismo día es el de desc. Q4 *(23-10)*, **2 identidades** en WSL, y la lista da **2 filas**.
+
+### C3 · snapshot *(SC-013; T039, 2026-10-23)* — PARA por `goreleaser`, **cerrada**
+
+- **1.ª vuelta, PARA**: `goreleaser` no estaba instalado *(ni en el `PATH`, ni en `~/go/bin`, `~/bin` o `/usr/local/bin`, ni en la caché de módulos)*, e
+  instalarlo pedía red.
+- **El dueño lo instala** *(23-10)*: en `~/.local/bin`, **2.18.3**, bajado de la página de versiones de GitHub y con su sha256 comprobado. `goreleaser --version` →
+  `GitVersion: 2.18.3`.
+- **`GOPROXY=off GOTOOLCHAIN=local goreleaser release --snapshot --clean`** → **rc 0**, versión **`0.9.0-SNAPSHOT-eb15b14`**.
+  - La versión sale de la última etiqueta, `v0.9.0`, como `0.8.0-SNAPSHOT-8809c58` en la 012.
+  - El único gancho es `go mod tidy`, y no pidió red.
+  - La publicación, el tap y el bucket se saltan en el modo snapshot.
+- **`strings`**: 10 agujas sacadas por programa de spec §Textos.
+  - Son las 5 líneas de la fila de ayuda, `uso: permea project list`, los 2 mensajes de verbos *(con `<verbo>` → `%q`)* y las 2 frases del pie *(«Fechas en
+    UTC, como en el panel.» y la segunda línea)*.
+  - Se buscan con `LC_ALL=C grep -aF`.
+
+  | Binario | `strings -e s` | `strings -e S` |
+  |---|---:|---:|
+  | linux/amd64 del snapshot | 6 de 10 | **10 de 10** |
+  | `permea.exe` del zip de Windows | 6 de 10 | **10 de 10** |
+
+  Las 4 que no da `-e s` son **justo las que llevan caracteres no ASCII** *(Enseña, Sólo, instalación, también…)*: `-e s` sólo lee 7 bits y las corta.
+- **Incidencia de método, mía**: con un `grep` sin `LC_ALL=C -a`, `-e S` dio 0 de 10, porque la salida con bytes de 8 bits se trataba como binaria o inválida. Con
+  el `grep` de bytes, 10 de 10. El binario no cambió.
+- **sha256**: el del zip de Windows *(`6f7e7cd3…`)* = el de `checksums.txt`, y `sha256sum -c` da OK en los 5 artefactos.
+- **Tamaños**: el `.exe` mide 5 938 176 B y el de linux/amd64, 5 738 648 B, iguales a los de la rama en C1.
+- **Al acabar**: `dist/`, que git ignora, se borró, igual que la copia del `.exe`. `GOPROXY=off go mod tidy` → rc 0, `go.mod` con el mismo md5 y sin `go.sum`.
+

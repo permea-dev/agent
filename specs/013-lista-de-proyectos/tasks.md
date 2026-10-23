@@ -22,8 +22,8 @@
 |---|---:|---:|
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 269 |
-| `tasks.md` *(este)* | 220 | 218 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 115 |
+| `tasks.md` *(este)* | 220 | 219 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 162 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
 | `soporte/registro-archivo.md` *(§B0–§B6, desde el 23-10)* | sin techo | 394 |
 
@@ -158,8 +158,9 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 - [x] **T038** **C1** · Puertas, con 0 SKIP: los 1074 **por nombre**; SC-015; **SC-016** en las 5; SC-017; compilan Windows y darwin.
   > Transcripción *(2026-10-23)*: [`soporte/registro.md`](./soporte/registro.md) §Cierre · C1 *(1166 / 0 / 0; faltan 0 de los 1074 y 92 nuevos; frontera 0 B; SC-016 +25 216 B como mucho; lint 0; `PRIV` 0)*.
-- [ ] **T039** **C2** · **SC-018** *(D-013-W)*: `time permea project list | wc -l` sobre la instalación de WSL, con la huella md5 del `DataDir` antes y
+- [x] **T039** **C2** · **SC-018** *(D-013-W)*: `time permea project list | wc -l` sobre la instalación de WSL, con la huella md5 del `DataDir` antes y
   después. Al registro van sólo el tiempo, las líneas y si la huella es igual. **C3** · `goreleaser release --snapshot --clean` y `strings` con los textos.
+  > Transcripción *(2026-10-23)*: [`soporte/registro.md`](./soporte/registro.md) §Cierre · C2 y C3 *(C2: 0,713 s, 6 líneas = 2 identidades, como desc. Q4; 0 B de stderr, salida 0, huella IGUAL. C3: tras su PARA, `goreleaser` 2.18.3, rc 0, `0.9.0-SNAPSHOT-eb15b14`; `strings -e S` 10 de 10 en los dos binarios; sha256 = `checksums.txt`)*.
 - [ ] **T040** ✋ **C4 · W1** *(SC-019)*: en Windows, con el panel delante, cada identidad sin asignar de la instalación, contra la lista. Q-2: el tiempo.
 - [ ] **T041** **C5** · El cuerpo del PR, fuera del repo, y la fecha de la versión en la rama.
 - [ ] **T042** ✋ **C6** · Fusión del PR con merge commit.
