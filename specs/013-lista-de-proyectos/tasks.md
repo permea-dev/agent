@@ -16,14 +16,14 @@
 - **Las transcripciones** van a `soporte/registro.md`, que **nace en T001**, y cada tarea deja una remisión.
 - **Bloques de 45–60 min** de Claude *(plan §Estimación)*; en cada uno, **el rojo antes del verde**, con la razón real transcrita.
 
-## Presupuesto *(techos propuestos; el dueño los fija antes de la fase)*
+## Presupuesto *(techos **fijados por el dueño** el 23-10, como se propusieron; ninguno se sube: si no cabe, se condensa)*
 
 | Fichero de `specs/013-lista-de-proyectos/` | Techo | Hoy |
 |---|---:|---:|
-| `spec.md` | 320 | 303 |
+| `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 268 |
 | `tasks.md` *(este)* | 220 | 206 |
-| `soporte/registro.md` *(nace en T001)* | 250 | — |
+| `soporte/registro.md` *(nace en T001)* | 250 | 122 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
 
 ## Una suite a la vez, con la carga vigilada
@@ -68,11 +68,13 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B0 · Fase 0, referencia y registro
 
-- [ ] **T001** Fase 0 sobre `cabf8c5` por `git archive` en un temporal: la línea base *(1074, vet, lint 0)*, los **tamaños de la 0.9.0** en las 5
+- [x] **T001** Fase 0 sobre `cabf8c5` por `git archive` en un temporal: la línea base *(1074, vet, lint 0)*, los **tamaños de la 0.9.0** en las 5
   plataformas *(D-013-P7)* y la frontera sin diff. **Nace `soporte/registro.md`**, con su techo y las secciones §B0…§B8 y §Cierre.
-- [ ] **T002** **Nacen `cmd/permea/testdata/lista/generar.sh` y sus plantillas** *(plan §9)*, y **la referencia de SC-012**: `--run` del binario de
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B0 · T001 *(1074 / 0 / 0; vet y lint 0, con lint 2.15.0; frontera 0; `PRIV` 0; los cinco tamaños, que no cuadran con la 012: SC-016 recompila las dos en C1)*.
+- [x] **T002** **Nacen `cmd/permea/testdata/lista/generar.sh` y sus plantillas** *(plan §9)*, y **la referencia de SC-012**: `--run` del binario de
   `cabf8c5` sobre los seis fixtures, en sandbox con `SandboxConSemillas`. La cola, el stdout y el stderr van a `testdata/lista/referencia-run.*`.
   md5 al registro *(D-013-P6)*. `PRIV` → 0.
+  > Transcripción: §B0 · T002 *(`generar.sh` `96304965…`, 10 plantillas; la referencia, determinista: cola `e6b011db…` con 17 eventos de los seis lectores, stdout vacío y stderr `1799737c…`; `PRIV` 0, también con `-a`)*.
 - [ ] **T003** ✋ Commit: `013 B0: linea base, referencia y registro`.
 
 ## B1 · Leer sin escribir *(FR-005, FR-007, FR-008)* — nace `internal/config/lectura_test.go`

@@ -229,7 +229,7 @@ error: falta el verbo. Verbos disponibles: join, list
 error: verbo desconocido "<verbo>". Verbos disponibles: join, list
 ```
 
-**Errores del comando** *(stderr, salida 1, stdout vacío)* `DECIDÍ YO`:
+**Errores del comando** *(stderr, salida 1, stdout vacío; aprobados por el dueño, 23-10)*:
 ```
 error: project list no admite argumentos. Ayuda: permea project list -h
 error: la configuración local no se puede leer: <error>
@@ -301,3 +301,4 @@ ayuda tiene sus pruebas en un fichero nuevo. Si alguno tuviera que cambiar, **PA
 | **Borrador** | 2026-10-23 | Primera redacción, con D-1 a D-11 del dueño, y P-1 a P-12 y Q-1 a Q-2 para ratificar | Encargo 013 · B1 |
 | **Analyze** | 2026-10-23 | Redacción, sin tocar D-1 a D-11: DEBE/NUNCA en cada FR y «cuando» en cada escenario; P-2 precisa los repetidos; P-6 cita los avisos reales y que un error de lectura de Claude Code detiene la lista, como `--run`; P-8 nombra `project_ref_mode: "plain"`; FR-021, la cabecera de `EVENTOS` a la derecha; FR-025 suma `internal/state/` e `internal/pricing/`; SC-002, SC-004, SC-006, SC-009, SC-012 y SC-018 se vuelven comprobables; §Dependencias, las dos frases de 005 y 006 | Encargo 013 · B1, `/speckit-analyze` |
 | **Ratificación** | 2026-10-23 | **El dueño ratifica** P-1 a P-12 tal cual, la **0.10.0** *(Q-1 cerrada)* y SC-016 *(≤ 50 KB)*. **D-4**: «Antes: `Cuenta lo que las herramientas conservan en disco: el panel puede tener más.`» → **Después**: `Cuenta lo que las herramientas conservan en disco, también lo aún no enviado: el panel puede tener más o menos.` §Limitaciones, «el panel puede tener más» y «puede tener menos», en una línea. «1.240» se queda con el punto, como el panel *(«3.908 mensajes»)*. La costumbre de citar `fichero:línea`, al backlog | Encargo 013 · B1, ratificación |
+| **E-1** | 2026-10-23 | **Los textos de error de §Textos, aprobados por el dueño**: «Antes: `DECIDÍ YO`» → aprobados letra a letra *(argumentos, configuración, sal y `error: <error>`)* | Encargo 013 · B0 |

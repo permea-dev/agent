@@ -1,0 +1,4 @@
+{"type":"metadata","protocol_version":"1.5","created_at":1}
+{"type":"context.append_message","agentId":"main","message":{"role":"user","content":[{"type":"text","text":"texto-3"}]},"time":2}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":10,"output":1,"inputCacheRead":100,"inputCacheCreation":0},"usageScope":"turn","time":1760000000000}
+{"type":"usage.record","agentId":"main","model":"moonshot-ai/kimi-k2.7-code","usage":{"inputOther":20,"output":2,"inputCacheRead":100,"inputCacheCreation":0},"usageScope":"turn","time":1760000060000}
