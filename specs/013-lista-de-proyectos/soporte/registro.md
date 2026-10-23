@@ -83,4 +83,33 @@ dueño el 23-10 *(`tasks.md` §Presupuesto)*. ⛔ **Ni rutas reales, ni nombres 
     - `cmp` sin diferencias del ejemplo del README, sin la sangría, contra el bloque «La salida» de spec §Textos *(8 líneas)*.
   - Puertas y `PRIV`: en el informe de B8.
 
-## Cierre
+## Cierre *(en tramos)*
+
+### C1 · Puertas *(T038, 2026-10-23, sobre `752c217`)*
+
+`libre.sh` corrió antes de cada suite y del lint, y no listó nada.
+
+| Puerta | Resultado |
+|---|---|
+| `gofmt -l .` · `go vet ./...` · `golangci-lint run` *(2.15.0)* | vacío · limpio · **0 issues** |
+| `go test -count=1 -v ./...` | **1166 PASS · 0 FAIL · 0 SKIP**, 10 paquetes `ok` |
+| **Los 1074 de `cabf8c5`, por nombre** | `git archive cabf8c5` en un temporal del scratchpad, sin worktree: su suite, **1074 / 0 / 0**. Contra la rama: **faltan 0**, y **92 son nuevos**, todos de los tests de la 013 |
+| **SC-015** | frontera FR-025, **0 B**; 0 `_test.go` existentes modificados; `go.mod` sin `require`; sin `go.sum` |
+| **SC-016** | ≤ 51 200 B en las 5 plataformas *(abajo)*. **Compilan Windows y darwin** |
+| **SC-017** | `PRIV` 0 en `git diff cabf8c5` y en `testdata/lista/` *(`-a`)*, medido al final |
+
+**SC-016.** La 0.9.0 *(`git archive cabf8c5`, `-X main.version=0.9.0`)* y la rama *(`git archive HEAD`, `-X main.version=0.10.0`)* se compilaron **en esta misma
+sesión**: go1.22.2, `CGO_ENABLED=0`, `-trimpath -ldflags "-s -w …"` y sin líneas `vcs.*`.
+
+| Plataforma | 0.9.0 *(B)* | Rama *(B)* | Δ *(B)* | Δ *(KB)* |
+|---|---:|---:|---:|---:|
+| linux/amd64 | 5 718 168 | 5 738 648 | +20 480 | 20,0 |
+| linux/arm64 *(fichero)* | 5 439 640 | 5 439 640 | 0 | 0,0 |
+| linux/arm64 *(Σ `LOAD`, 010 E-3)* | 5 398 044 | 5 419 484 | +21 440 | 20,9 |
+| darwin/amd64 | 5 881 792 | 5 907 008 | +25 216 | 24,6 |
+| darwin/arm64 | 5 638 738 | 5 655 938 | +17 200 | 16,8 |
+| windows/amd64 | 5 914 112 | 5 938 176 | +24 064 | 23,5 |
+
+La mayor es **+25 216 B, el 49 % del tope**. La 0.9.0 da las mismas cifras que en B0, también medidas esta sesión. Los árboles y los binarios temporales se
+borraron.
+
