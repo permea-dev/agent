@@ -11,7 +11,6 @@ import (
 	"github.com/permea-dev/agent/internal/ingest"
 	"github.com/permea-dev/agent/internal/sqlitero"
 	"github.com/permea-dev/agent/internal/state"
-	"github.com/permea-dev/agent/internal/transport"
 )
 
 // ═══ P-010 B6 · OPENCODE EN `--run` Y EN EL DEMONIO ═════════════════════════════════════════════════════════════
@@ -36,7 +35,7 @@ func (a *agent) opencodeActivo() bool {
 // P7): una base que no se puede leer se omite con un aviso que lleva su NOMBRE, su entrada de `state.json` queda como
 // estaba —la pasada siguiente la relee— y se sigue con la siguiente, sin impedir guardar el estado de los demás. Encolar
 // sigue siendo fatal, como hoy.
-func (a *agent) generarOpenCode(st *state.Store, ictx ingest.Context) (int, error) {
+func (a *agent) generarOpenCode(st *state.Store, ictx ingest.Context, sumar sumidero) (int, error) {
 	po := ingest.NuevaPasadaOpenCode()
 	a.opencode = po
 	bases := []string{a.opencodeUnica}
@@ -60,7 +59,7 @@ func (a *agent) generarOpenCode(st *state.Store, ictx ingest.Context) (int, erro
 			continue
 		}
 		for _, ev := range evs {
-			if err := transport.Append(a.dir, ev); err != nil {
+			if err := sumar(ev); err != nil {
 				return total, err
 			}
 			total++

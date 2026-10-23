@@ -91,6 +91,7 @@ specs/013-lista-de-proyectos/soporte/registro.md                    # nace en T0
 - **Dos ayudantes exportados**, para que la tabla no copie la lógica del techo: `HogarReal() (string, bool)`, el hogar con `mejorValorDisponible`
   *(como `techoDeProduccion`, `resolve.go:241-249`)*, y `CuelgaDe(ruta, base string) bool`, un envoltorio de `cuelgaDe` *(`resolve.go:268`)*.
   `cuelgaDe` y `mejorValorDisponible` **no cambian de nombre ni de firma**: `resolve_test.go:790` usa la segunda.
+  **Se añaden en B5, no en B2** *(decisión del 23-10)*: allí los usa `aCasa` y los prueba (15), con su rojo.
 
 ## 3 · Leer sin escribir *(B1; FR-005, FR-007, FR-008)*
 

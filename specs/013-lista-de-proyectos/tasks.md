@@ -23,8 +23,9 @@
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 268 |
 | `tasks.md` *(este)* | 220 | 206 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 213 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 170 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
+| `soporte/registro-archivo.md` *(§B0, desde el 23-10)* | sin techo | 104 |
 
 ## Una suite a la vez, con la carga vigilada
 
@@ -70,11 +71,11 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 - [x] **T001** Fase 0 sobre `cabf8c5` por `git archive` en un temporal: la línea base *(1074, vet, lint 0)*, los **tamaños de la 0.9.0** en las 5
   plataformas *(D-013-P7)* y la frontera sin diff. **Nace `soporte/registro.md`**, con su techo y las secciones §B0…§B8 y §Cierre.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B0 · T001 *(1074 / 0 / 0; vet y lint 0, con lint 2.15.0; frontera 0; `PRIV` 0; los cinco tamaños, que no cuadran con la 012: SC-016 recompila las dos en C1)*.
+  > Transcripción: [`soporte/registro-archivo.md`](./soporte/registro-archivo.md) §B0 · T001 *(1074 / 0 / 0; vet y lint 0, con lint 2.15.0; frontera 0; `PRIV` 0; los cinco tamaños, que no cuadran con la 012: SC-016 recompila las dos en C1)*.
 - [x] **T002** **Nacen `cmd/permea/testdata/lista/generar.sh` y sus plantillas** *(plan §9)*, y **la referencia de SC-012**: `--run` del binario de
   `cabf8c5` sobre los seis fixtures, en sandbox con `SandboxConSemillas`. La cola, el stdout y el stderr van a `testdata/lista/referencia-run.*`.
   md5 al registro *(D-013-P6)*. `PRIV` → 0.
-  > Transcripción: §B0 · T002 *(`generar.sh` `96304965…`, 10 plantillas; la referencia, determinista: cola `e6b011db…` con 17 eventos de los seis lectores, stdout vacío y stderr `1799737c…`; `PRIV` 0, también con `-a`)*.
+  > Transcripción: `registro-archivo.md` §B0 · T002 *(`generar.sh` `96304965…`, 10 plantillas; la referencia, determinista: cola `e6b011db…` con 17 eventos de los seis lectores, stdout vacío y stderr `1799737c…`; `PRIV` 0, también con `-a`)*.
 - [ ] **T003** ✋ Commit: `013 B0: linea base, referencia y registro`.
 
 ## B1 · Leer sin escribir *(FR-005, FR-007, FR-008)* — nace `internal/config/lectura_test.go`
@@ -97,12 +98,13 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B3 · El recorrido común *(FR-009, FR-024; SC-012)* — nace `cmd/permea/recorrido_test.go`
 
-- [ ] **T014** **(5)**, **antes de tocar `main.go`** *(con B1 y B2 ya hechos, que no tocan la emisión)*: `--run` = la referencia de T002, **en verde**
+- [x] **T014** **(5)**, **antes de tocar `main.go`** *(con B1 y B2 ya hechos, que no tocan la emisión)*: `--run` = la referencia de T002, **en verde**
   *(nace verde; lo valida m8)*.
-- [ ] **T015** Fase 0 y **rojo (6)**: `sumidero` y un `recorrer` que aún no recorre.
-- [ ] **T016** **Verde**: plan §1. Primero, `recorrer` con el cuerpo de `generate()` y `sumar` en los siete puntos de encolado. Después, `generate()`
+- [x] **T015** Fase 0 y **rojo (6)**: `sumidero` y un `recorrer` que aún no recorre.
+- [x] **T016** **Verde**: plan §1. Primero, `recorrer` con el cuerpo de `generate()` y `sumar` en los siete puntos de encolado. Después, `generate()`
   sobre `recorrer` y, por último, `resolverRaices` fuera de `setup()`. **(5) y (6) en verde**, y los 1074.
-- [ ] **T017** `[MUTACIÓN]` Censo *(m8, por nombre: los `TestCodex_*` que pasan por `--run`)* y **m7–m8**, con md5.
+- [x] **T017** `[MUTACIÓN]` Censo *(m8, por nombre: los `TestCodex_*` que pasan por `--run`)* y **m7–m8**, con md5.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 *(m7 = declarado; m8: 1.ª forma PARA 2, censo sin bajar a las hojas; la 2.ª, con 15 hojas, = declarado; corte 1101 / 0 / 0, vet y lint 0)*.
 - [ ] **T018** ✋ Puertas y commit: `013 B3: un solo recorrido de los seis lectores con sumidero`.
 
 ## B4 · Agregación y nombres *(FR-011 a FR-014, FR-016, FR-020)* — nace `cmd/permea/lista_agregar_test.go`
