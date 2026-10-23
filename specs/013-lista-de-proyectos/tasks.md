@@ -23,9 +23,9 @@
 | `spec.md` | 320 | 304 |
 | `plan.md` | 280 | 268 |
 | `tasks.md` *(este)* | 220 | 206 |
-| `soporte/registro.md` *(nace en T001)* | 250 | 204 |
+| `soporte/registro.md` *(nace en T001)* | 250 | 110 |
 | `soporte/descubrimiento.md` | cerrado | 262 |
-| `soporte/registro-archivo.md` *(§B0, desde el 23-10)* | sin techo | 104 |
+| `soporte/registro-archivo.md` *(§B0–§B3, desde el 23-10)* | sin techo | 256 |
 
 ## Una suite a la vez, con la carga vigilada
 
@@ -84,7 +84,7 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 - [x] **T005** [P] **Rojos (1) y (2)**, con `testutil.Sandbox`.
 - [x] **T006** **Verde**: plan §3. `DataDir()` llama a `RutaDataDir()` y conserva su conducta.
 - [x] **T007** `[MUTACIÓN]` Censo y **m1–m3**, con md5. Transcribir.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B1 *(m1–m3 = declarado, revertidas con md5; **M-B1a**: 1.ª forma PARA 2 por censo incompleto; la 2.ª, con los tres `TestEnroll_*`, = declarado; corte 1084 / 0 / 0, vet y lint 0)*.
+  > Transcripción: [`soporte/registro-archivo.md`](./soporte/registro-archivo.md) §B1 *(m1–m3 = declarado, revertidas con md5; **M-B1a**: 1.ª forma PARA 2 por censo incompleto; la 2.ª, con los tres `TestEnroll_*`, = declarado; corte 1084 / 0 / 0, vet y lint 0)*.
 - [ ] **T008** ✋ Puertas y commit: `013 B1: leer el DataDir y la sal sin crearlos`.
 
 ## B2 · La derivación con origen *(FR-010, FR-015)* — nace `internal/project/origen_test.go`
@@ -93,7 +93,7 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 - [x] **T010** [P] **Rojos (3) y (4)**, sobre copias en `t.TempDir()` de las familias de `internal/project/testdata`.
 - [x] **T011** **Verde**: plan §2. **Un solo cuerpo**: `derivarConTechoYRaiz` devuelve el origen, y no nace una segunda derivación.
 - [x] **T012** `[MUTACIÓN]` Censo y **m4–m6**, con md5. Transcribir que `resolve_test.go` sigue verde **sin tocarlo**.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B2 *(rojos 1084 / 10 / 0 = declarado; verde 1094 / 0 / 0; SC-012 repetida, byte a byte; m4–m6 = declarado, con el censo por llamantes; `resolve_test.go` 0 B y verde)*.
+  > Transcripción: [`soporte/registro-archivo.md`](./soporte/registro-archivo.md) §B2 *(rojos 1084 / 10 / 0 = declarado; verde 1094 / 0 / 0; SC-012 repetida, byte a byte; m4–m6 = declarado, con el censo por llamantes; `resolve_test.go` 0 B y verde)*.
 - [ ] **T013** ✋ Puertas y commit: `013 B2: la derivacion dice que ruta entro en el hash`.
 
 ## B3 · El recorrido común *(FR-009, FR-024; SC-012)* — nace `cmd/permea/recorrido_test.go`
@@ -104,7 +104,7 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 - [x] **T016** **Verde**: plan §1. Primero, `recorrer` con el cuerpo de `generate()` y `sumar` en los siete puntos de encolado. Después, `generate()`
   sobre `recorrer` y, por último, `resolverRaices` fuera de `setup()`. **(5) y (6) en verde**, y los 1074.
 - [x] **T017** `[MUTACIÓN]` Censo *(m8, por nombre: los `TestCodex_*` que pasan por `--run`)* y **m7–m8**, con md5.
-  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B3 *(m7 = declarado; m8: 1.ª forma PARA 2, censo sin bajar a las hojas; la 2.ª, con 15 hojas, = declarado; corte 1101 / 0 / 0, vet y lint 0)*.
+  > Transcripción: [`soporte/registro-archivo.md`](./soporte/registro-archivo.md) §B3 *(m7 = declarado; m8: 1.ª forma PARA 2, censo sin bajar a las hojas; la 2.ª, con 15 hojas, = declarado; corte 1101 / 0 / 0, vet y lint 0)*.
 - [ ] **T018** ✋ Puertas y commit: `013 B3: un solo recorrido de los seis lectores con sumidero`.
 
 ## B4 · Agregación y nombres *(FR-011 a FR-014, FR-016, FR-020)* — nace `cmd/permea/lista_agregar_test.go`
@@ -118,10 +118,11 @@ edición inversa y md5; si no, PARA 2. Una mutación que no compila no cuenta.
 
 ## B5 · La tabla *(FR-017 a FR-022; SC-001, SC-010, SC-011)* — nace `cmd/permea/lista_formato_test.go`
 
-- [ ] **T024** Fase 0: `formatear`, `miles` y `aCasa`, que devuelven `""`.
-- [ ] **T025** [P] **Rojos (13) a (16)**. (13), con el bloque de spec §Textos **copiado por programa** *(`awk` sobre `spec.md`)*, no a mano.
-- [ ] **T026** **Verde**: plan §6.
-- [ ] **T027** `[MUTACIÓN]` Censo y **m12–m14**, con md5. m12 cae en (13) porque `…` ocupa 3 bytes: se declara así.
+- [x] **T024** Fase 0: `formatear`, `miles` y `aCasa`, que devuelven `""`.
+- [x] **T025** [P] **Rojos (13) a (16)**. (13), con el bloque de spec §Textos **copiado por programa** *(`awk` sobre `spec.md`)*, no a mano.
+- [x] **T026** **Verde**: plan §6.
+- [x] **T027** `[MUTACIÓN]` Censo y **m12–m14**, con md5. m12 cae en (13) porque `…` ocupa 3 bytes: se declara así.
+  > Transcripción: [`soporte/registro.md`](./soporte/registro.md) §B5 *(rojos 1117 / 17 / 0 = declarado; verde 1134 / 0 / 0; m12–m14 = declarado, por hoja; `libre.sh` como hijo directo; corte repetido tras `revive` y `PRIV`: 1134 / 0 / 0, lint 0)*.
 - [ ] **T028** ✋ Puertas y commit: `013 B5: la tabla de project list`.
 
 ## B6 · El comando *(FR-001 a FR-003, FR-006 a FR-008, FR-023; SC-006, SC-013, SC-014)* — nace `cmd/permea/lista_test.go`

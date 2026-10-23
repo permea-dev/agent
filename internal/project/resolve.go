@@ -364,3 +364,20 @@ func (r *Resolutor) Origen(identidad string) (Origen, bool) {
 	o, ok := r.origenes[identidad]
 	return o, ok
 }
+
+// HogarReal es el directorio personal con sus enlaces resueltos, el mismo con el que `techoDeProduccion` compara *(013 P-10)*:
+// las rutas que entran en el hash son reales, y el hogar con el que se escriben como `~` también tiene que serlo. false si no
+// se puede resolver.
+func HogarReal() (string, bool) {
+	hogar, err := os.UserHomeDir()
+	if err != nil || hogar == "" {
+		return "", false
+	}
+	return mejorValorDisponible(hogar), true
+}
+
+// CuelgaDe dice si `ruta` es `base` o desciende de ella, por SEGMENTOS *(013 P-10)*: es `cuelgaDe`, que no cambia, para que
+// `permea project list` compare como compara el techo. `<hogar>2` no cuelga de `<hogar>`.
+func CuelgaDe(ruta, base string) bool {
+	return cuelgaDe(ruta, base)
+}

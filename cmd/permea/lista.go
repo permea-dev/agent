@@ -1,8 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/permea-dev/agent/internal/event"
 	"github.com/permea-dev/agent/internal/project"
@@ -132,4 +137,112 @@ func conocido(id string) bool {
 		}
 	}
 	return false
+}
+
+// ═══ 013 B5 · LA TABLA ══════════════════════════════════════════════════════════════════════════════════════════════
+
+// Las columnas y el pie, letra a letra *(013 D-2, D-4; spec §Textos)*.
+var cabeceraDeLaLista = []string{"IDENTIDAD", "CARPETA", "HERRAMIENTAS", "EVENTOS", "DESDE", "HASTA"}
+
+const (
+	columnaEventos  = 3 // la única a la derecha *(FR-021)*
+	pieFechas       = "%s, %s. Fechas en UTC, como en el panel."
+	pieDisco        = "Cuenta lo que las herramientas conservan en disco, también lo aún no enviado: el panel puede tener más o menos."
+	formatoDeLaFila = "2006-01-02"
+)
+
+// formatear escribe la tabla y su pie *(013 FR-017 a FR-022, spec §Textos)*. Es pura: las filas ya vienen ordenadas
+// *(`agregar`)*, y `hogar` es el real *(`project.HogarReal`)*, o vacío si no se pudo resolver.
+//   - Cada columna mide lo que su celda más ancha o su cabecera, **en runas** *(P-12)*, con dos espacios entre columnas.
+//   - `EVENTOS` va a la derecha, también su cabecera; las demás, a la izquierda, y la última sin relleno: ninguna línea acaba
+//     en espacio.
+//   - Tras una línea en blanco, el pie. Sin filas, **sólo** el pie *(P-5)*.
+func formatear(filas []fila, hogar string) string {
+	var b strings.Builder
+	if len(filas) > 0 {
+		celdas := [][]string{cabeceraDeLaLista}
+		for _, f := range filas {
+			carpeta := aCasa(f.ruta, hogar)
+			if f.marca != "" {
+				carpeta += " " + f.marca
+			}
+			celdas = append(celdas, []string{abreviar(f.identidad), carpeta, strings.Join(f.herramientas, ", "), miles(f.eventos),
+				f.desde.Format(formatoDeLaFila), f.hasta.Format(formatoDeLaFila)})
+		}
+		anchos := make([]int, len(cabeceraDeLaLista))
+		for _, fila := range celdas {
+			for i, c := range fila {
+				anchos[i] = max(anchos[i], ancho(c))
+			}
+		}
+		for _, fila := range celdas {
+			for i, c := range fila {
+				relleno := strings.Repeat(" ", anchos[i]-ancho(c))
+				switch {
+				case i == columnaEventos:
+					b.WriteString(relleno + c)
+				case i == len(fila)-1:
+					b.WriteString(c)
+				default:
+					b.WriteString(c + relleno)
+				}
+				if i < len(fila)-1 {
+					b.WriteString("  ")
+				}
+			}
+			b.WriteString("\n")
+		}
+		b.WriteString("\n")
+	}
+	eventos := 0
+	for _, f := range filas {
+		eventos += f.eventos
+	}
+	b.WriteString(fmt.Sprintf(pieFechas, contar(len(filas), "identidad", "identidades"), contar(eventos, "evento", "eventos")) + "\n")
+	b.WriteString(pieDisco + "\n")
+	return b.String()
+}
+
+// ancho es el ancho de una celda en runas *(P-12)*: una tilde o el `…` de la identidad cuentan uno.
+func ancho(s string) int { return utf8.RuneCountInString(s) }
+
+// abreviar deja los 12 primeros caracteres de la identidad y `…`, como el panel *(FR-018)*.
+func abreviar(identidad string) string {
+	if len(identidad) <= 12 {
+		return identidad
+	}
+	return identidad[:12] + "…"
+}
+
+// contar escribe `n` con punto de miles y la palabra en singular o en plural *(D-4: «1 identidad», «0 identidades»)*.
+func contar(n int, singular, plural string) string {
+	if n == 1 {
+		return "1 " + singular
+	}
+	return miles(n) + " " + plural
+}
+
+// miles escribe `n` con un punto cada tres cifras desde la derecha *(013 FR-019)*: «999», «1.240», «1.234.567».
+func miles(n int) string {
+	s := strconv.Itoa(n)
+	for i := len(s) - 3; i > 0 && s[i-1] != '-'; i -= 3 {
+		s = s[:i] + "." + s[i:]
+	}
+	return s
+}
+
+// aCasa escribe la carpeta personal como `~` *(013 P-10)*: `~` si la ruta es el hogar, `~` + separador + el resto si cuelga de él
+// *(por segmentos, `project.CuelgaDe`)*, y la ruta tal cual si no, o si no hay hogar.
+func aCasa(ruta, hogar string) string {
+	if hogar == "" || !project.CuelgaDe(ruta, hogar) {
+		return ruta
+	}
+	rel, err := filepath.Rel(hogar, ruta)
+	if err != nil {
+		return ruta
+	}
+	if rel == "." {
+		return "~"
+	}
+	return "~" + string(filepath.Separator) + rel
 }
